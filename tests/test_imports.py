@@ -21,6 +21,7 @@ OPTIONAL = {
     "fleetgym.nn.policies": "sb3_contrib",
     "fleetgym.agents": "sb3_contrib",
     "fleetgym.testing.module_checker": "torch",
+    "fleetgym.viz": "matplotlib",
 }
 
 
