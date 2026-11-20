@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0a1] - 2026-11-20
+
+First public pre-release: milestones M0 to M10b (v0.1 as built; Gate 2 review pending). Takes the
+`fleetgym` name on PyPI.
+
 ### Changed
 - VRP-SDO (`VRPSD-Outsource-v0`) is deferred after v0.1 by the user: its decision is a selection on
   top of routing. Gate 2 is the review of v0.1 (`docs/gates/gate2.md`).

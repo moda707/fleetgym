@@ -8,7 +8,7 @@ authors:
 license: MIT
 repository-code: "https://github.com/moda707/fleetgym"
 url: "https://github.com/moda707/fleetgym"
-version: 0.1.0.dev0
+version: 0.1.0a1
 keywords:
   - reinforcement learning
   - vehicle routing
