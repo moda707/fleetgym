@@ -3,9 +3,9 @@ id: VRPTW-v0
 extends: CVRP-v0
 meta:
   name: VRP with time windows
-  status: experimental
+  status: stable
   references: [solomon1987]
-  instances: {source: solomon}
+  instances: {source: solomon, set: "100"}
 # Default source for quick experiments; benchmark runs pass Solomon instances explicitly.
 instance_source:
   type: generator

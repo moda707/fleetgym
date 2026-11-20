@@ -43,7 +43,11 @@ def add_parser(subparsers: Any) -> None:
     parser.add_argument("config", help="environment ID")
     parser.add_argument("--instances", nargs="*", help="instance names (default: all)")
     parser.add_argument("--limit", type=int, help="replay only the first N instances")
-    parser.add_argument("--tolerance", type=float, default=0.0, help="absolute cost tolerance")
+    parser.add_argument(
+        "--tolerance",
+        type=float,
+        help="absolute cost tolerance (default: the collection's, from its manifest)",
+    )
     parser.set_defaults(handler=_run)
 
 
@@ -58,13 +62,16 @@ def _run(args: argparse.Namespace) -> int:
     if args.limit is not None:
         names = names[: args.limit]
     spec = load_spec(args.config)
+    tolerance = collection.tolerance if args.tolerance is None else args.tolerance
     failures = 0
     print(f"{'instance':<16} {'published':>12} {'environment':>12}  result")
     for name in names:
-        instance = read_instance(fetch(collection.name, name))
+        instance = read_instance(fetch(collection.name, name), fmt=collection.format)
         solution = read_solution(fetch(collection.name, name, kind="solution"))
         result = replay_solution(spec, instance, solution)
-        ok = result.matches(args.tolerance)
+        if result.published is None:  # e.g. Solomon: the cost is in the table, not the file
+            result.published = collection.published_cost(name)
+        ok = result.matches(tolerance)
         failures += not ok
         cost = "-" if result.cost is None else f"{result.cost:.6g}"
         detail = "" if ok else f"  {'; '.join(result.errors) or _violations(result)}"

@@ -2,8 +2,13 @@ import json
 from importlib import resources
 from pathlib import Path
 
+import jsonschema
+import pytest
+import yaml
+
 from fleetgym.cli.schema import render_schema
 from fleetgym.spec import json_schema
+from fleetgym.spec.loader import resolve_raw
 from fleetgym.spec.registries import (
     CONSTRAINTS,
     COST_COMPONENTS,
@@ -62,3 +67,26 @@ def test_configs_point_editors_at_the_schema():
         first = path.read_text(encoding="utf-8").splitlines()[0]
         assert first == f"# yaml-language-server: $schema=../{SCHEMA_FILENAME}", path
     json.loads(SHIPPED.read_text(encoding="utf-8"))
+
+
+CONFIGS = sorted((SHIPPED.parent).rglob("*.yaml"))
+
+
+def _validator() -> jsonschema.Draft202012Validator:
+    return jsonschema.Draft202012Validator(json.loads(SHIPPED.read_text(encoding="utf-8")))
+
+
+@pytest.mark.parametrize("path", CONFIGS, ids=lambda p: p.stem)
+def test_shipped_configs_validate_against_the_schema(path: Path):
+    """The editor schema accepts every config as written and after `extends` is resolved."""
+    validator = _validator()
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    assert not list(validator.iter_errors(raw))
+    assert not list(validator.iter_errors(resolve_raw(path)))
+
+
+def test_schema_rejects_unknown_keys_and_bad_values():
+    validator = _validator()
+    raw = yaml.safe_load((SHIPPED.parent / "deterministic" / "CVRP-v0.yaml").read_text())
+    assert list(validator.iter_errors({**raw, "objectve": {"distance": 1}}))
+    assert list(validator.iter_errors({**raw, "network": {"type": "euclidean", "rounding": "up"}}))

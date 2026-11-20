@@ -48,6 +48,32 @@ def test_replicate_reports_infeasible_solutions(monkeypatch, capsys, tmp_path: P
     assert "capacity" in capsys.readouterr().out
 
 
-def test_collection_for():
+def test_collection_for(tmp_path: Path, capsys):
     assert replicate.collection_for("CVRP-v0") == "cvrplib/X"
-    assert main(["replicate", "VRPTW-v0"]) == 1
+    assert replicate.collection_for("VRPTW-v0") == "solomon/100"
+    config = tmp_path / "Mine-v0.yaml"
+    config.write_text("id: Mine-v0\nextends: CVRP-v0\n")  # meta is not inherited
+    assert main(["replicate", str(config)]) == 1
+    assert "no replication data" in capsys.readouterr().err
+
+
+def test_published_cost_falls_back_to_the_manifest(monkeypatch, capsys, tmp_path: Path):
+    sol = tmp_path / "nocost.sol"
+    sol.write_text("Route #1: 1 3\nRoute #2: 2 4\n")
+    coll = Collection(
+        name="solomon/100",
+        base_url="",
+        format="vrplib",
+        items={"tiny-n5": {"cost": 17.004}},
+        retrieved="",
+        tolerance=0.005,
+    )
+    monkeypatch.setattr(replicate, "load_collection", lambda name: coll)
+    monkeypatch.setattr(
+        replicate,
+        "fetch",
+        lambda coll, name, kind="instance": FIXTURES / "tiny.vrp" if kind == "instance" else sol,
+    )
+    assert main(["replicate", "CVRP-v0"]) == 0
+    assert "17.004" in capsys.readouterr().out
+    assert main(["replicate", "CVRP-v0", "--tolerance", "0"]) == 1

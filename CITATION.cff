@@ -6,6 +6,8 @@ authors:
   - family-names: Dastpak
     given-names: Mohsen
 license: MIT
+repository-code: "https://github.com/moda707/fleetgym"
+url: "https://github.com/moda707/fleetgym"
 version: 0.1.0.dev0
 keywords:
   - reinforcement learning

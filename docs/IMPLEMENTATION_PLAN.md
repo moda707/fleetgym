@@ -823,7 +823,12 @@ Gate 2 = M11). Q6: `meta.status`; start with a few configs and expand. Q7: `obje
 merged; `meta` is not inherited; a discriminator change replaces the subtree. Q20: standard plus custom
 recourse, design to be discussed before M5 (see below).
 **Adopted in M1 (recommendations, user unavailable):** Q8, Q9, Q10, Q11, Q12, Q24, Q28 (ADRs 0006,
-0007). Adopted in M3: Q13 to Q17 (ADR 0009). M4: Q18/Q19 resolved for CVRPLIB X from the conventions CVRPLIB publishes (ADR 0010); Solomon still needs the user. Not adopted yet: Q21 to Q23, Q25 to Q27, Q29 to Q31.
+0007). Adopted in M3: Q13 to Q17 (ADR 0009). M4: Q18/Q19 resolved for CVRPLIB X from the conventions CVRPLIB publishes (ADR 0010), and for Solomon from SINTEF TOP's published route files and conventions (ADR 0011). Not adopted yet: Q21 to Q23, Q25 to Q27, Q29 to Q31.
+**Gate 1 approved by the user (2026-11-20).** Q4: the repository is `github.com/moda707/fleetgym`
+(personal account); the PyPI name is taken by the first release through trusted publishing
+(`.github/workflows/release.yml`, set up by the user). Q20: the user asked to start M5 with the agreed
+design (standard rules plus user-written custom rules) and to keep a list of later improvements and
+extensions (`docs/recourse.md`).
 **Policy for unanswered questions:** where the user has not answered, the recommendation is adopted
 when its milestone starts and recorded in an ADR, so it can be overridden later. Exceptions that
 require the user: Q18 and Q19 (Gate 1 data), Q20 (recourse design), Q-M11.

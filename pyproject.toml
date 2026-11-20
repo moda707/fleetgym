@@ -43,6 +43,12 @@ dependencies = [
     "vrplib>=1.5",
 ]
 
+[project.urls]
+Homepage = "https://github.com/moda707/fleetgym"
+Repository = "https://github.com/moda707/fleetgym"
+Issues = "https://github.com/moda707/fleetgym/issues"
+Changelog = "https://github.com/moda707/fleetgym/blob/main/CHANGELOG.md"
+
 [project.optional-dependencies]
 sb3 = ["stable-baselines3>=2.4", "sb3-contrib>=2.4", "torch>=2.4"]
 gnn = ["torch-geometric>=2.6"]
@@ -57,6 +63,7 @@ dev = [
     "ruff>=0.8",
     "pyright>=1.1.390",
     "pre-commit>=4.0",
+    "jsonschema>=4.23",
 ]
 
 [project.scripts]

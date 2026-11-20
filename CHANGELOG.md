@@ -7,6 +7,19 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Solomon replication: checksummed SINTEF TOP manifest for the 56 instances with 100 customers
+  (`solomon/100`), archive-member downloads, `fleetgym replicate VRPTW-v0`, Gate 1 fidelity tests;
+  ADR 0011. Collections carry a cost `tolerance`.
+- Configs are validated against the shipped JSON Schema in tests (`jsonschema` in `[dev]`).
+- Project metadata for `github.com/moda707/fleetgym`: project URLs, README, `CONTRIBUTING.md`,
+  issue and pull-request templates, Dependabot for GitHub Actions, and a PyPI release workflow
+  using trusted publishing.
+
+### Changed
+- `CVRP-v0` and `VRPTW-v0` are `stable` (both pass the replication suite). Hashes unchanged.
+- Gate 1 approved.
+
+### Added (M4)
 - M4 validator and Gate 1: independent `fleetgym.testing.validator`; `fleetgym.testing.check_env`;
   replication (`replay_solution`, `fleetgym replicate`); checksummed CVRPLIB downloads
   (`fleetgym.data.download`, manifest for all 100 X instances); Gate 1 suite (mask exactness against an

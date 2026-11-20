@@ -2,7 +2,7 @@
 id: CVRP-v0
 meta:
   name: Capacitated vehicle routing problem
-  status: experimental
+  status: stable
   references: [dantzig1959]
   instances: {source: cvrplib, set: X}
 # Default source for quick experiments; benchmark runs pass CVRPLIB instances explicitly.

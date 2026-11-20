@@ -1,12 +1,22 @@
 import hashlib
 import io
 import json
+import zipfile
 from pathlib import Path
 
 import pytest
 
 import fleetgym.data.download as download
 from fleetgym.errors import InstanceError
+
+MEMBER = b"VRPTW member\n"
+
+
+def zip_bytes() -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("In/z.txt", MEMBER)
+    return buf.getvalue()
 
 
 def fake_manifest(tmp_path: Path, payload: bytes) -> Path:
@@ -27,7 +37,27 @@ def fake_manifest(tmp_path: Path, payload: bytes) -> Path:
                 },
                 "solution": {"path": "sol/1", "file": "A.sol", "sha256": "0" * 64},
                 "cost": 42.0,
-            }
+            },
+            "Z": {
+                "instance": {
+                    "file": "instances/z.txt",
+                    "archive": "z.zip",
+                    "member": "In/z.txt",
+                    "sha256": hashlib.sha256(MEMBER).hexdigest(),
+                },
+                "missing": {
+                    "file": "instances/m.txt",
+                    "archive": "z.zip",
+                    "member": "In/nope.txt",
+                    "sha256": "0" * 64,
+                },
+                "unlisted": {"file": "x.txt", "archive": "other.zip", "member": "a", "sha256": "0"},
+                "cost": 1.0,
+                "vehicles": 3,
+            },
+        },
+        "archives": {
+            "z.zip": {"path": "arch/z.zip", "sha256": hashlib.sha256(zip_bytes()).hexdigest()}
         },
     }
     (root / "test.json").write_text(json.dumps(manifest))
@@ -50,6 +80,8 @@ def patched(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
     def urlopen(request, timeout):
         calls.append(request.full_url)
+        if request.full_url.endswith("arch/z.zip"):
+            return Response(zip_bytes())
         if request.full_url.endswith("sol/1"):
             return Response(b"Route #1: 1\nCost 42\n")
         return Response(payload)
@@ -62,7 +94,7 @@ def patched(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 def test_fetch_downloads_verifies_and_caches(patched, tmp_path: Path):
     assert download.collections() == ("test/set",)
     coll = download.load_collection("test/set")
-    assert coll.names() == ("A",)
+    assert coll.names() == ("A", "Z")
     assert coll.published_cost("A") == 42.0
     path = download.fetch("test/set", "A")
     assert path == tmp_path / "cache" / "test/set" / "A.vrp"
@@ -87,6 +119,21 @@ def test_network_errors_are_reported(patched, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(download.urllib.request, "urlopen", broken)
     with pytest.raises(InstanceError, match="no route to host"):
         download.fetch("test/set", "A")
+
+
+def test_fetch_extracts_archive_members(patched, tmp_path: Path):
+    path = download.fetch("test/set", "Z")
+    assert path == tmp_path / "cache" / "test" / "set" / "instances" / "z.txt"
+    assert path.read_bytes() == MEMBER
+    assert patched == ["https://example.invalid/arch/z.zip"]
+    path.unlink()
+    download.fetch("test/set", "Z")  # re-extracted from the cached archive, no download
+    assert len(patched) == 1
+    assert download.load_collection("test/set").info("Z")["vehicles"] == 3
+    with pytest.raises(InstanceError, match="cannot extract"):
+        download.fetch("test/set", "Z", kind="missing")  # pyright: ignore[reportArgumentType]
+    with pytest.raises(InstanceError, match="not in the manifest"):
+        download.fetch("test/set", "Z", kind="unlisted")  # pyright: ignore[reportArgumentType]
 
 
 def test_default_cache_dir(monkeypatch: pytest.MonkeyPatch):
