@@ -65,6 +65,7 @@ SAME_LAYER_ALLOWED: frozenset[tuple[str, str]] = frozenset(
         ("cli", "testing"),
         ("viz", "eval"),
         ("eval", "testing"),  # the harness validates every episode (ADR 0017)
+        ("agents", "baselines"),  # trained models implement the Policy protocol (ADR 0018)
     }
 )
 

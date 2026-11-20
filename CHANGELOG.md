@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M9 training stack (ADR 0018): `fleetgym.nn` (graph batch adapter, `Encoder`/`Decoder` base classes,
+  registry, `MLPEncoder`, dense `GATEncoder`, `AttentionModelEncoder`, `PointerDecoder`,
+  `MaskableGraphPolicy`), `fleetgym.testing.check_module`, `fleetgym.agents` (`MaskableDQN`,
+  `make_sb3_vec`, `sb3_defaults`, `SB3Policy`, `ScenarioEval`, `CostComponentLogger`), and the
+  `fleetgym train` and `fleetgym eval` commands. CI type-checks and tests the optional extras.
+
+### Added
 - M8 baselines and evaluation (ADR 0017): `Policy` protocol and `run_episode`; random, nearest
   neighbor, cheapest insertion, a priori route, rollout over forks, PyVRP re-optimization (extra
   `solvers`), perfect-information benchmark (exact bound or heuristic); `fleetgym.eval` with fixed

@@ -25,7 +25,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - run: uv sync --extra dev
+      - run: uv sync --extra dev --extra sb3 --extra solvers --extra viz  # type-check optional modules
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright
@@ -46,6 +46,21 @@ jobs:
       - run: uv sync --extra dev
       - name: Tests
         run: uv run pytest -n auto --cov --cov-report=term --hypothesis-profile=ci --junitxml=junit.xml
+      - name: Annotate failed tests
+        if: failure()
+        run: uv run python .github/scripts/junit_annotations.py junit.xml
+
+  extras:
+    name: Tests with optional extras (sb3, solvers, viz)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra dev --extra sb3 --extra solvers --extra viz
+      - name: Tests
+        run: uv run pytest -n auto -m "(extras_sb3 or extras_solvers or extras_viz) and not slow" --junitxml=junit.xml
       - name: Annotate failed tests
         if: failure()
         run: uv run python .github/scripts/junit_annotations.py junit.xml

@@ -1,0 +1,11 @@
+# Default MaskableDQN hyperparameters. Not tuned yet: these are SB3-style starting points.
+default:
+  learning_rate: 1.0e-4
+  buffer_size: 50000
+  learning_starts: 500
+  batch_size: 64
+  gamma: 1.0
+  train_freq: 4
+  target_update_interval: 1000
+  exploration_fraction: 0.3
+  exploration_final_eps: 0.05

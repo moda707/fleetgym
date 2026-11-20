@@ -60,6 +60,17 @@ fleetgym validate my-config.yaml    # check a config
 fleetgym replicate CVRP-v0          # replay published best-known solutions (downloads data)
 ```
 
+## Train and evaluate
+
+```bash
+pip install "fleetgym[sb3]"
+fleetgym train CVRP-v0 --algo maskable_ppo --policy gat --steps 100000 --out runs/cvrp
+fleetgym eval CVRP-v0 --model runs/cvrp --episodes 32 --reference nearest --out runs/cvrp/report.json
+```
+
+Baselines (random, nearest neighbor, cheapest insertion, rollout, PyVRP re-optimization and a
+perfect-information benchmark) run through the same evaluation harness, on fixed test scenarios.
+
 ## Install (development)
 
 ```bash

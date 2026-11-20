@@ -1,0 +1,1042 @@
+{
+  "total_count": 11,
+  "jobs": [
+    {
+      "id": 136512810438,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwtxg",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512810438",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512810438",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:12Z",
+      "completed_at": "2026-11-20T19:19:29Z",
+      "name": "Lint and type check",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:12Z",
+          "completed_at": "2026-11-20T19:19:13Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:13Z",
+          "completed_at": "2026-11-20T19:19:14Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:14Z",
+          "completed_at": "2026-11-20T19:19:16Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:16Z",
+          "completed_at": "2026-11-20T19:19:18Z"
+        },
+        {
+          "name": "Run uv run ruff check .",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:18Z",
+          "completed_at": "2026-11-20T19:19:18Z"
+        },
+        {
+          "name": "Run uv run ruff format --check .",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-20T19:19:18Z",
+          "completed_at": "2026-11-20T19:19:18Z"
+        },
+        {
+          "name": "Run uv run pyright",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 7,
+          "started_at": "2026-11-20T19:19:18Z",
+          "completed_at": "2026-11-20T19:19:27Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13,
+          "started_at": "2026-11-20T19:19:27Z",
+          "completed_at": "2026-11-20T19:19:27Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-20T19:19:27Z",
+          "completed_at": "2026-11-20T19:19:27Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-20T19:19:27Z",
+          "completed_at": "2026-11-20T19:19:27Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512810438",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000421,
+      "runner_name": "GitHub Actions 1000000421",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512810877,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwvfQ",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512810877",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512810877",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:13Z",
+      "completed_at": "2026-11-20T19:20:42Z",
+      "name": "Test (macos-latest, py3.14)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:14Z",
+          "completed_at": "2026-11-20T19:19:16Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:16Z",
+          "completed_at": "2026-11-20T19:19:18Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:18Z",
+          "completed_at": "2026-11-20T19:19:20Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:20Z",
+          "completed_at": "2026-11-20T19:19:23Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:23Z",
+          "completed_at": "2026-11-20T19:20:37Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:20:37Z",
+          "completed_at": "2026-11-20T19:20:38Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:20:38Z",
+          "completed_at": "2026-11-20T19:20:38Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:20:38Z",
+          "completed_at": "2026-11-20T19:20:38Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:20:38Z",
+          "completed_at": "2026-11-20T19:20:39Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512810877",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000000420,
+      "runner_name": "GitHub Actions 1000000420",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512810890,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwvig",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512810890",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512810890",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:12Z",
+      "completed_at": "2026-11-20T19:22:24Z",
+      "name": "Test (ubuntu-latest, py3.13)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:12Z",
+          "completed_at": "2026-11-20T19:19:13Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:13Z",
+          "completed_at": "2026-11-20T19:19:15Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:15Z",
+          "completed_at": "2026-11-20T19:19:16Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:16Z",
+          "completed_at": "2026-11-20T19:19:19Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:19Z",
+          "completed_at": "2026-11-20T19:22:22Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:22:22Z",
+          "completed_at": "2026-11-20T19:22:22Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:22:22Z",
+          "completed_at": "2026-11-20T19:22:22Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:22:22Z",
+          "completed_at": "2026-11-20T19:22:22Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:22:22Z",
+          "completed_at": "2026-11-20T19:22:22Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512810890",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000424,
+      "runner_name": "GitHub Actions 1000000424",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512810930,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwvsg",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512810930",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512810930",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:13Z",
+      "completed_at": "2026-11-20T19:21:36Z",
+      "name": "Test (macos-latest, py3.13)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:13Z",
+          "completed_at": "2026-11-20T19:19:15Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:15Z",
+          "completed_at": "2026-11-20T19:19:17Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:17Z",
+          "completed_at": "2026-11-20T19:19:19Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:19Z",
+          "completed_at": "2026-11-20T19:19:21Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:21Z",
+          "completed_at": "2026-11-20T19:21:30Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:21:30Z",
+          "completed_at": "2026-11-20T19:21:30Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:21:30Z",
+          "completed_at": "2026-11-20T19:21:31Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:21:31Z",
+          "completed_at": "2026-11-20T19:21:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:21:32Z",
+          "completed_at": "2026-11-20T19:21:34Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512810930",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000000428,
+      "runner_name": "GitHub Actions 1000000428",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512810966,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwv1g",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512810966",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512810966",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:12Z",
+      "completed_at": "2026-11-20T19:22:27Z",
+      "name": "Test (windows-latest, py3.12)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:12Z",
+          "completed_at": "2026-11-20T19:19:13Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:13Z",
+          "completed_at": "2026-11-20T19:19:18Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:18Z",
+          "completed_at": "2026-11-20T19:19:19Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:19Z",
+          "completed_at": "2026-11-20T19:19:24Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:24Z",
+          "completed_at": "2026-11-20T19:22:23Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:22:23Z",
+          "completed_at": "2026-11-20T19:22:23Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:22:23Z",
+          "completed_at": "2026-11-20T19:22:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:22:23Z",
+          "completed_at": "2026-11-20T19:22:25Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:22:25Z",
+          "completed_at": "2026-11-20T19:22:25Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512810966",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000000426,
+      "runner_name": "GitHub Actions 1000000426",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512811016,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwwCA",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512811016",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512811016",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:12Z",
+      "completed_at": "2026-11-20T19:20:39Z",
+      "name": "Test (ubuntu-latest, py3.14)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:13Z",
+          "completed_at": "2026-11-20T19:19:14Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:14Z",
+          "completed_at": "2026-11-20T19:19:15Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:15Z",
+          "completed_at": "2026-11-20T19:19:17Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:17Z",
+          "completed_at": "2026-11-20T19:19:18Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:18Z",
+          "completed_at": "2026-11-20T19:20:36Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:20:36Z",
+          "completed_at": "2026-11-20T19:20:36Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:20:36Z",
+          "completed_at": "2026-11-20T19:20:36Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:20:36Z",
+          "completed_at": "2026-11-20T19:20:36Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:20:36Z",
+          "completed_at": "2026-11-20T19:20:36Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512811016",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000423,
+      "runner_name": "GitHub Actions 1000000423",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512811072,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwwQA",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512811072",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512811072",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:11Z",
+      "completed_at": "2026-11-20T19:23:18Z",
+      "name": "Test (windows-latest, py3.13)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:12Z",
+          "completed_at": "2026-11-20T19:19:13Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:13Z",
+          "completed_at": "2026-11-20T19:19:18Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:18Z",
+          "completed_at": "2026-11-20T19:19:20Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:20Z",
+          "completed_at": "2026-11-20T19:19:25Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:25Z",
+          "completed_at": "2026-11-20T19:23:14Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:23:14Z",
+          "completed_at": "2026-11-20T19:23:14Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:23:14Z",
+          "completed_at": "2026-11-20T19:23:14Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:23:14Z",
+          "completed_at": "2026-11-20T19:23:16Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:23:16Z",
+          "completed_at": "2026-11-20T19:23:17Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512811072",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000000422,
+      "runner_name": "GitHub Actions 1000000422",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512811104,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwwYA",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512811104",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512811104",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:13Z",
+      "completed_at": "2026-11-20T19:21:09Z",
+      "name": "Test (windows-latest, py3.14)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:13Z",
+          "completed_at": "2026-11-20T19:19:14Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:14Z",
+          "completed_at": "2026-11-20T19:19:19Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:19Z",
+          "completed_at": "2026-11-20T19:19:21Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:21Z",
+          "completed_at": "2026-11-20T19:19:30Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:30Z",
+          "completed_at": "2026-11-20T19:21:06Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:21:06Z",
+          "completed_at": "2026-11-20T19:21:06Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:21:06Z",
+          "completed_at": "2026-11-20T19:21:06Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:21:06Z",
+          "completed_at": "2026-11-20T19:21:08Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:21:08Z",
+          "completed_at": "2026-11-20T19:21:08Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512811104",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000000427,
+      "runner_name": "GitHub Actions 1000000427",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512811143,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMwwhw",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512811143",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512811143",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:13Z",
+      "completed_at": "2026-11-20T19:21:58Z",
+      "name": "Test (macos-latest, py3.12)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:13Z",
+          "completed_at": "2026-11-20T19:19:15Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:15Z",
+          "completed_at": "2026-11-20T19:19:17Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:17Z",
+          "completed_at": "2026-11-20T19:19:19Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:19Z",
+          "completed_at": "2026-11-20T19:19:22Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:22Z",
+          "completed_at": "2026-11-20T19:21:52Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:21:52Z",
+          "completed_at": "2026-11-20T19:21:52Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:21:52Z",
+          "completed_at": "2026-11-20T19:21:53Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:21:53Z",
+          "completed_at": "2026-11-20T19:21:53Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:21:53Z",
+          "completed_at": "2026-11-20T19:21:54Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512811143",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000000429,
+      "runner_name": "GitHub Actions 1000000429",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512811225,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMww2Q",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512811225",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512811225",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:12Z",
+      "completed_at": "2026-11-20T19:22:20Z",
+      "name": "Test (ubuntu-latest, py3.12)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-20T19:19:12Z",
+          "completed_at": "2026-11-20T19:19:14Z"
+        },
+        {
+          "name": "Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-20T19:19:14Z",
+          "completed_at": "2026-11-20T19:19:15Z"
+        },
+        {
+          "name": "Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-20T19:19:15Z",
+          "completed_at": "2026-11-20T19:19:17Z"
+        },
+        {
+          "name": "Run uv sync --extra dev",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-20T19:19:17Z",
+          "completed_at": "2026-11-20T19:19:19Z"
+        },
+        {
+          "name": "Tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-20T19:19:19Z",
+          "completed_at": "2026-11-20T19:22:18Z"
+        },
+        {
+          "name": "Annotate failed tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-20T19:22:18Z",
+          "completed_at": "2026-11-20T19:22:18Z"
+        },
+        {
+          "name": "Post Run astral-sh/setup-uv@v6",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-20T19:22:18Z",
+          "completed_at": "2026-11-20T19:22:18Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-20T19:22:18Z",
+          "completed_at": "2026-11-20T19:22:18Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-20T19:22:18Z",
+          "completed_at": "2026-11-20T19:22:18Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512811225",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000425,
+      "runner_name": "GitHub Actions 1000000425",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 136512812642,
+      "run_id": 44801000052,
+      "workflow_name": "CI",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/moda707/fleetgym/actions/runs/44801000052",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOV1m1ac8AAAAfyMw2Yg",
+      "head_sha": "793d413be01f303164ba93402d70b605e1104908",
+      "url": "https://api.github.com/repos/moda707/fleetgym/actions/jobs/136512812642",
+      "html_url": "https://github.com/moda707/fleetgym/actions/runs/44801000052/job/136512812642",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-11-20T19:19:10Z",
+      "started_at": "2026-11-20T19:19:10Z",
+      "completed_at": "2026-11-20T19:19:09Z",
+      "name": "Slow suites (gates)",
+      "steps": [
+
+      ],
+      "check_run_url": "https://api.github.com/repos/moda707/fleetgym/check-runs/136512812642",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

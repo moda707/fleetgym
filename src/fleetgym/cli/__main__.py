@@ -7,7 +7,8 @@ import sys
 from collections.abc import Sequence
 
 from fleetgym._version import __version__
-from fleetgym.cli import replicate, schema, show, validate
+from fleetgym.cli import eval as eval_cmd
+from fleetgym.cli import replicate, schema, show, train, validate
 from fleetgym.errors import FleetGymError
 
 _COMMANDS = {
@@ -16,6 +17,8 @@ _COMMANDS = {
     "validate": validate.add_parser,
     "schema": schema.add_parser,
     "replicate": replicate.add_parser,
+    "train": train.add_parser,
+    "eval": eval_cmd.add_parser,
 }
 
 
