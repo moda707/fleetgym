@@ -62,8 +62,8 @@ class EventLog:
         del self.rows[length:]
 
     def copy(self) -> EventLog:
-        """Copy that shares no mutable state with this log (rows are not modified in place)."""
-        return EventLog(dict(self.metadata), list(self.rows))
+        """Copy that shares no mutable state with this log."""
+        return EventLog(dict(self.metadata), [dict(row) for row in self.rows])
 
     def to_table(self) -> pa.Table:
         """The log as an Arrow table with `LOG_SCHEMA` and the metadata attached."""

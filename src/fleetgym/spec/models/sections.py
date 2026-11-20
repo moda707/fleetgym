@@ -50,6 +50,7 @@ from fleetgym.spec.registries import (
 )
 
 __all__ = [
+    "LEXICOGRAPHIC_BASE",
     "AgentsSpec",
     "ArrivalSpec",
     "DecisionsSpec",
@@ -606,6 +607,10 @@ for _name, _description in (
     COST_COMPONENTS.register(_name, PluginEntry(_NoParams, reserved=True, description=_description))
 
 
+LEXICOGRAPHIC_BASE = 1e6
+"""Weight ratio between consecutive levels of a lexicographic objective (ADR 0009)."""
+
+
 class ObjectiveSpec(FrozenModel):
     """The objective: a weighted sum of cost components, or a lexicographic order.
 
@@ -654,6 +659,13 @@ class ObjectiveSpec(FrozenModel):
     def _flat_out(self) -> dict[str, Any]:
         if self.lexicographic is not None:
             return {"lexicographic": list(self.lexicographic)}
+        return dict(self.weights)
+
+    def scalar_weights(self) -> dict[str, float]:
+        """Weights of the scalar objective; lexicographic levels use powers of the base."""
+        if self.lexicographic is not None:
+            levels = self.lexicographic
+            return {c: LEXICOGRAPHIC_BASE ** (len(levels) - 1 - k) for k, c in enumerate(levels)}
         return dict(self.weights)
 
     def components(self) -> tuple[str, ...]:

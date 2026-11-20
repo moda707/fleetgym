@@ -12,11 +12,9 @@ from collections.abc import Mapping
 from types import MappingProxyType
 
 from fleetgym.spec.models import ObjectiveSpec
+from fleetgym.spec.models.sections import LEXICOGRAPHIC_BASE
 
 __all__ = ["LEXICOGRAPHIC_BASE", "RewardModel"]
-
-LEXICOGRAPHIC_BASE = 1e6
-"""Weight ratio between consecutive levels of a lexicographic objective."""
 
 
 class RewardModel:
@@ -29,12 +27,7 @@ class RewardModel:
     """
 
     def __init__(self, objective: ObjectiveSpec) -> None:
-        if objective.lexicographic is not None:
-            levels = objective.lexicographic
-            weights = {c: LEXICOGRAPHIC_BASE ** (len(levels) - 1 - k) for k, c in enumerate(levels)}
-        else:
-            weights = dict(objective.weights)
-        self.weights: Mapping[str, float] = MappingProxyType(weights)
+        self.weights: Mapping[str, float] = MappingProxyType(objective.scalar_weights())
 
     def cost(self, costs: Mapping[str, float]) -> float:
         """Weighted cost; components without a weight do not count."""

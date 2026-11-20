@@ -1,0 +1,1310 @@
+{
+  "collection": "cvrplib/X",
+  "source": "CVRPLIB, http://vrp.galgos.inf.puc-rio.br",
+  "base_url": "https://galgos.inf.puc-rio.br/cvrplib/index.php/en/download/",
+  "retrieved": "2026-11-20",
+  "format": "vrplib",
+  "solution_node_indexing": "customer k in a solution file is instance node k (depot = node 0)",
+  "items": {
+    "X-n1001-k43": {
+      "instance": {
+        "path": "instance/257",
+        "file": "X-n1001-k43.vrp",
+        "sha256": "97c950e592d8a63d4f81669f1fda9762de2a79e4a213f9e7401c699a754dc492"
+      },
+      "solution": {
+        "path": "bks/257",
+        "file": "X-n1001-k43.sol",
+        "sha256": "6ea65ad25adab07adfb5d3fc2f0e591fa1c3ae7dd3ee6833d895702036fc86ff"
+      },
+      "cost": 72332.0
+    },
+    "X-n101-k25": {
+      "instance": {
+        "path": "instance/158",
+        "file": "X-n101-k25.vrp",
+        "sha256": "38ba943084fc5ef2e7e681bfad2c926ec93c5870dbe2d180cc02b08f748113cb"
+      },
+      "solution": {
+        "path": "bks/158",
+        "file": "X-n101-k25.sol",
+        "sha256": "fe64a62947aa1c8379bb5a119ccdb774bb963ec50d13e5e00bee878d067e4f1c"
+      },
+      "cost": 27591.0
+    },
+    "X-n106-k14": {
+      "instance": {
+        "path": "instance/159",
+        "file": "X-n106-k14.vrp",
+        "sha256": "4f45bbc4757f5b1f050c4af504a4f8ecccc52be553a75f375f8083fca7819bdd"
+      },
+      "solution": {
+        "path": "bks/159",
+        "file": "X-n106-k14.sol",
+        "sha256": "178b85db350dd82186951983ae3edf8e9a8ca8f57741f0d44c2998682249b3e5"
+      },
+      "cost": 26362.0
+    },
+    "X-n110-k13": {
+      "instance": {
+        "path": "instance/160",
+        "file": "X-n110-k13.vrp",
+        "sha256": "d449de04a65d4803f059bc9cfc7b997df11892ebf6085ab23082b884d879e229"
+      },
+      "solution": {
+        "path": "bks/160",
+        "file": "X-n110-k13.sol",
+        "sha256": "a85e4900e81b57afc1f83c1ef03790bc1d020460dfb39a0f1b356bb575dc5097"
+      },
+      "cost": 14971.0
+    },
+    "X-n115-k10": {
+      "instance": {
+        "path": "instance/161",
+        "file": "X-n115-k10.vrp",
+        "sha256": "cba9bc7ad48a1b6f7005690b37a55c37bf37866eec77c6dbac3202ab812b3f07"
+      },
+      "solution": {
+        "path": "bks/161",
+        "file": "X-n115-k10.sol",
+        "sha256": "936462819c5556ad6cab5b2fd99adf244300222dedf866a57a034d3b6295059a"
+      },
+      "cost": 12747.0
+    },
+    "X-n120-k6": {
+      "instance": {
+        "path": "instance/162",
+        "file": "X-n120-k6.vrp",
+        "sha256": "45740da12dbaa8706aa5346662e2a794b1b925420bd0bada29c3b8099689d481"
+      },
+      "solution": {
+        "path": "bks/162",
+        "file": "X-n120-k6.sol",
+        "sha256": "0c449303b1964098664a443a6dbff7270c6607f4f6fa58d63c18d32c56656f61"
+      },
+      "cost": 13332.0
+    },
+    "X-n125-k30": {
+      "instance": {
+        "path": "instance/163",
+        "file": "X-n125-k30.vrp",
+        "sha256": "c69509c717ea1b20cb3a5ec9698baf62776a11d30d92036046ac33c9d37f51d6"
+      },
+      "solution": {
+        "path": "bks/163",
+        "file": "X-n125-k30.sol",
+        "sha256": "bc1e31fd7156be59668c6eadf2318dc10a5335c9cd090bc6b30047d232840191"
+      },
+      "cost": 55539.0
+    },
+    "X-n129-k18": {
+      "instance": {
+        "path": "instance/164",
+        "file": "X-n129-k18.vrp",
+        "sha256": "c686c1a1c9cb9ab8b44b7b01679da4eacde0167b2b590d5ec063cab01b760551"
+      },
+      "solution": {
+        "path": "bks/164",
+        "file": "X-n129-k18.sol",
+        "sha256": "615a1566fc3636673e3f13ef6debc11f8daa675d323638c292f982a1e4285e33"
+      },
+      "cost": 28940.0
+    },
+    "X-n134-k13": {
+      "instance": {
+        "path": "instance/165",
+        "file": "X-n134-k13.vrp",
+        "sha256": "09a36629156cde2db525399a74f1a2a936e53419826ccf180f6cbbc732ada70f"
+      },
+      "solution": {
+        "path": "bks/165",
+        "file": "X-n134-k13.sol",
+        "sha256": "7faab7b5026e298de4fb097a92c7f8510350ffe52d0dcc4f7e30e670541f6a87"
+      },
+      "cost": 10916.0
+    },
+    "X-n139-k10": {
+      "instance": {
+        "path": "instance/166",
+        "file": "X-n139-k10.vrp",
+        "sha256": "539314b53d5b4f52177f577f62e56f6c7a3fa33667a2742e9bf2966958a1cb0b"
+      },
+      "solution": {
+        "path": "bks/166",
+        "file": "X-n139-k10.sol",
+        "sha256": "8e007421b835a86761774241a489ba29403cdef11e2a6da164f12ef8fb285a5b"
+      },
+      "cost": 13590.0
+    },
+    "X-n143-k7": {
+      "instance": {
+        "path": "instance/167",
+        "file": "X-n143-k7.vrp",
+        "sha256": "f333e621612eb8e6e75d6a49d347a757bb14794d32879a9e19269d751d626f7c"
+      },
+      "solution": {
+        "path": "bks/167",
+        "file": "X-n143-k7.sol",
+        "sha256": "4dfbecf31f5c1dd19b68a77f6b33d1ad452e845085fa9024cea532f7047d3dc7"
+      },
+      "cost": 15700.0
+    },
+    "X-n148-k46": {
+      "instance": {
+        "path": "instance/168",
+        "file": "X-n148-k46.vrp",
+        "sha256": "024dff24b80c0df41eb82c31e7732a5dfb9d72c130d3ad76a123ed404945673f"
+      },
+      "solution": {
+        "path": "bks/168",
+        "file": "X-n148-k46.sol",
+        "sha256": "384538b03d46b2ca876f30f4804438673dcb491afb0d7b4613274c9f6aab7d48"
+      },
+      "cost": 43448.0
+    },
+    "X-n153-k22": {
+      "instance": {
+        "path": "instance/169",
+        "file": "X-n153-k22.vrp",
+        "sha256": "8e3849a5d8b3507b7830505fd3ec1bfd09449daa1651b7934df1ec485c35200a"
+      },
+      "solution": {
+        "path": "bks/169",
+        "file": "X-n153-k22.sol",
+        "sha256": "a6de1a2e7e2c5cbd68f056580cd72fef8150e8375fcfaa8e9ba92e0411220607"
+      },
+      "cost": 21220.0
+    },
+    "X-n157-k13": {
+      "instance": {
+        "path": "instance/170",
+        "file": "X-n157-k13.vrp",
+        "sha256": "d3fd75174272cb3470dd9100cbe875ffd566a3e0501f191e91b348756750f69a"
+      },
+      "solution": {
+        "path": "bks/170",
+        "file": "X-n157-k13.sol",
+        "sha256": "e098577d716c9e77f7044b3c892c799936f5cc40afd3510e22c1b9609ea42822"
+      },
+      "cost": 16876.0
+    },
+    "X-n162-k11": {
+      "instance": {
+        "path": "instance/171",
+        "file": "X-n162-k11.vrp",
+        "sha256": "b4f529560c718558d58dd57e21d4b58060b341cc3bc299d221ac500c50198031"
+      },
+      "solution": {
+        "path": "bks/171",
+        "file": "X-n162-k11.sol",
+        "sha256": "02882110aba93d512864e6415ead08c4fcca222cac2980a89463f022e934fe80"
+      },
+      "cost": 14138.0
+    },
+    "X-n167-k10": {
+      "instance": {
+        "path": "instance/172",
+        "file": "X-n167-k10.vrp",
+        "sha256": "d3611c7a1c037f116ad902d3f6e97b2f4c60a86434efc2582035d8757a9f1c31"
+      },
+      "solution": {
+        "path": "bks/172",
+        "file": "X-n167-k10.sol",
+        "sha256": "e8b8c4d673c26d9d525eaad6e067dc3fccaa61f2bed6c1c8af0a36e7f8ad163b"
+      },
+      "cost": 20557.0
+    },
+    "X-n172-k51": {
+      "instance": {
+        "path": "instance/173",
+        "file": "X-n172-k51.vrp",
+        "sha256": "49b1489635680901eb58b356a675072385bdbcd8666a720c0e1342cb09a453b6"
+      },
+      "solution": {
+        "path": "bks/173",
+        "file": "X-n172-k51.sol",
+        "sha256": "e92452c528ebf3563cbcc75837c6af4f8d22e0addde1af8cdffcfce4fae44c1b"
+      },
+      "cost": 45607.0
+    },
+    "X-n176-k26": {
+      "instance": {
+        "path": "instance/174",
+        "file": "X-n176-k26.vrp",
+        "sha256": "983acd9256b9c2a0198e94308eab6c6fc1316ab873dc0e1f64bad372c712639c"
+      },
+      "solution": {
+        "path": "bks/174",
+        "file": "X-n176-k26.sol",
+        "sha256": "0da290e49ba542df9e1b9ba8de3cceb49caa9e6f0e31e793791ff6b2daad0990"
+      },
+      "cost": 47812.0
+    },
+    "X-n181-k23": {
+      "instance": {
+        "path": "instance/175",
+        "file": "X-n181-k23.vrp",
+        "sha256": "e9d9348209ebd58fe1d7c97724f3d45f64319dd9e1a6b50b0b8fdfee16cc0c16"
+      },
+      "solution": {
+        "path": "bks/175",
+        "file": "X-n181-k23.sol",
+        "sha256": "8d3be163e50854af0673bb96cc8ec41bab437dc9c3f597a6e6825e2f59e83edf"
+      },
+      "cost": 25569.0
+    },
+    "X-n186-k15": {
+      "instance": {
+        "path": "instance/176",
+        "file": "X-n186-k15.vrp",
+        "sha256": "f02e45ef5ae4c0f25736613114fa1217ad48066fdfa8035e3c89e295699ce8a1"
+      },
+      "solution": {
+        "path": "bks/176",
+        "file": "X-n186-k15.sol",
+        "sha256": "8a2cfa7409d8b6d3d15246c75e82260d0152246a2f606f10d66a85886bc583d1"
+      },
+      "cost": 24145.0
+    },
+    "X-n190-k8": {
+      "instance": {
+        "path": "instance/177",
+        "file": "X-n190-k8.vrp",
+        "sha256": "01f09f95b77f1b475b769b64e6597509675755562dc539c2f1cec6f0210ae9a5"
+      },
+      "solution": {
+        "path": "bks/177",
+        "file": "X-n190-k8.sol",
+        "sha256": "49353879ffd5fb4752366272a7c9ce1e130cc94d941b36fa9dcafac2d43eea98"
+      },
+      "cost": 16980.0
+    },
+    "X-n195-k51": {
+      "instance": {
+        "path": "instance/178",
+        "file": "X-n195-k51.vrp",
+        "sha256": "0878da713e726f2bd2e2b1e6f6a8af705e90617043d3019d4f82c4dac1f1c131"
+      },
+      "solution": {
+        "path": "bks/178",
+        "file": "X-n195-k51.sol",
+        "sha256": "7f173a5e1e7951ec08eeec83da59dbc61e58e47a3d79ef55153a72894ecc9b27"
+      },
+      "cost": 44225.0
+    },
+    "X-n200-k36": {
+      "instance": {
+        "path": "instance/179",
+        "file": "X-n200-k36.vrp",
+        "sha256": "c9524bedaf4b9aac542538ca56fffd33ae935f667f3580fbd1d61f1c2c5988f9"
+      },
+      "solution": {
+        "path": "bks/179",
+        "file": "X-n200-k36.sol",
+        "sha256": "3f8afac8b869caffed19cbc3309e6667665d8ee82b59b7606602cd56bd2556b1"
+      },
+      "cost": 58578.0
+    },
+    "X-n204-k19": {
+      "instance": {
+        "path": "instance/180",
+        "file": "X-n204-k19.vrp",
+        "sha256": "5a32c193d08072abfe967a6e7582693d44238f05a4a3814902bf893cd80044db"
+      },
+      "solution": {
+        "path": "bks/180",
+        "file": "X-n204-k19.sol",
+        "sha256": "065fdbab7cc93bda761ca65024f64c4c9de534a107eb4885cb23f1a6e28539d2"
+      },
+      "cost": 19565.0
+    },
+    "X-n209-k16": {
+      "instance": {
+        "path": "instance/181",
+        "file": "X-n209-k16.vrp",
+        "sha256": "56cc5baa783e30efe91cb22af399e16564b5433de6cd15dbb87289a72d0d024b"
+      },
+      "solution": {
+        "path": "bks/181",
+        "file": "X-n209-k16.sol",
+        "sha256": "e7ee80d44fa268b7db60399526a66a1b8b6868ace256276dbf358bee672fd91d"
+      },
+      "cost": 30656.0
+    },
+    "X-n214-k11": {
+      "instance": {
+        "path": "instance/182",
+        "file": "X-n214-k11.vrp",
+        "sha256": "06b7785ed1286046fefdead4f108e92564ab968b21eae82e79509c5e0125ffcf"
+      },
+      "solution": {
+        "path": "bks/182",
+        "file": "X-n214-k11.sol",
+        "sha256": "bf27854df61c259f6752aff5faaca983c1bd7baefc5cf53bfd95828bef2aeea7"
+      },
+      "cost": 10856.0
+    },
+    "X-n219-k73": {
+      "instance": {
+        "path": "instance/183",
+        "file": "X-n219-k73.vrp",
+        "sha256": "36099c8e8dcfa8318b1fdf7601aa0449ffdf45f4cc08ae6b65200637a59aa31b"
+      },
+      "solution": {
+        "path": "bks/183",
+        "file": "X-n219-k73.sol",
+        "sha256": "9e2441f79b8ea5f67afca81440abdf6115179807056b52cece2deeea89ffc8e4"
+      },
+      "cost": 117595.0
+    },
+    "X-n223-k34": {
+      "instance": {
+        "path": "instance/184",
+        "file": "X-n223-k34.vrp",
+        "sha256": "279877f821a1fc20e3baa0e12fd006eb898622e69b475762306b00b71e77565c"
+      },
+      "solution": {
+        "path": "bks/184",
+        "file": "X-n223-k34.sol",
+        "sha256": "cdaf1bdacca24517de347aded8e6d27267807aaa9f52ccb6d788343f9f309baf"
+      },
+      "cost": 40437.0
+    },
+    "X-n228-k23": {
+      "instance": {
+        "path": "instance/185",
+        "file": "X-n228-k23.vrp",
+        "sha256": "b3d33f7d6f7a59e36aff4147ff979479e1767426aa2fe2f3ee26a0476d05bcd8"
+      },
+      "solution": {
+        "path": "bks/185",
+        "file": "X-n228-k23.sol",
+        "sha256": "f02c80e489495d0e46ab592a13853a6b3df30358b6403f30ea3efe52ea4babad"
+      },
+      "cost": 25742.0
+    },
+    "X-n233-k16": {
+      "instance": {
+        "path": "instance/186",
+        "file": "X-n233-k16.vrp",
+        "sha256": "62d6ef0f3c76c27cfddaf5faee8d38e2d22df99aa6646102c7fb700cd070ca68"
+      },
+      "solution": {
+        "path": "bks/186",
+        "file": "X-n233-k16.sol",
+        "sha256": "b867fac03f5f9d99a28e8850bbf765f221ee119f3476e2ab5135031e6d91f5ee"
+      },
+      "cost": 19230.0
+    },
+    "X-n237-k14": {
+      "instance": {
+        "path": "instance/187",
+        "file": "X-n237-k14.vrp",
+        "sha256": "b41f20eb4c7cb1a56caad157088932414a1a9b9639e52b60a68a99110d19b532"
+      },
+      "solution": {
+        "path": "bks/187",
+        "file": "X-n237-k14.sol",
+        "sha256": "9c61135b47b4e71bbc6224e4b1ecb1e621e1ddcd87107a880e25b80e19bdb5ff"
+      },
+      "cost": 27042.0
+    },
+    "X-n242-k48": {
+      "instance": {
+        "path": "instance/188",
+        "file": "X-n242-k48.vrp",
+        "sha256": "905c49fc4d14d4aa93a1a76e304c426d5e73fc7f29c35b583827e4c95b1fc3bc"
+      },
+      "solution": {
+        "path": "bks/188",
+        "file": "X-n242-k48.sol",
+        "sha256": "ed101c7cc6bbf2ed316020acc44b6fe7f5f75beef78ac5771eff6a8325a78433"
+      },
+      "cost": 82751.0
+    },
+    "X-n247-k50": {
+      "instance": {
+        "path": "instance/189",
+        "file": "X-n247-k50.vrp",
+        "sha256": "3a060ca546c1dc6b2beb090faf273b0604462db748d6d5a27c921b31e499d682"
+      },
+      "solution": {
+        "path": "bks/189",
+        "file": "X-n247-k50.sol",
+        "sha256": "a06a0c15d64b9e01117d62c0203f3ce65cf75f985144f0bedd99d7b69d24d167"
+      },
+      "cost": 37274.0
+    },
+    "X-n251-k28": {
+      "instance": {
+        "path": "instance/190",
+        "file": "X-n251-k28.vrp",
+        "sha256": "0084bfb89fe74798cbd940f7524eee794a6f3118d4e850c1c2371ad4e080efeb"
+      },
+      "solution": {
+        "path": "bks/190",
+        "file": "X-n251-k28.sol",
+        "sha256": "ec96242d3dcc7e41295834448df81e118d1168a6d98ad77e946b970b09fd7982"
+      },
+      "cost": 38684.0
+    },
+    "X-n256-k16": {
+      "instance": {
+        "path": "instance/191",
+        "file": "X-n256-k16.vrp",
+        "sha256": "774ef0c981ba462682475062ba4202af574ab0f8370280e54e5fc494755d0963"
+      },
+      "solution": {
+        "path": "bks/191",
+        "file": "X-n256-k16.sol",
+        "sha256": "4d4941ef6490f562e47d5b453a92f5720d7402b300f9fd107bb215f52bdd63bc"
+      },
+      "cost": 18839.0
+    },
+    "X-n261-k13": {
+      "instance": {
+        "path": "instance/192",
+        "file": "X-n261-k13.vrp",
+        "sha256": "5df52625eda44d10e36389c0502d0f5e06205c8527b747071e79de37a5d6d738"
+      },
+      "solution": {
+        "path": "bks/192",
+        "file": "X-n261-k13.sol",
+        "sha256": "d57432bf74351aeac7610ddc28a7ed59be46a163dcdc4d79c064daf8f2ba0e9b"
+      },
+      "cost": 26558.0
+    },
+    "X-n266-k58": {
+      "instance": {
+        "path": "instance/193",
+        "file": "X-n266-k58.vrp",
+        "sha256": "95d9f5a6eb2f9f5e0d2552eb9f68da51ae415d991f572f38bf920e1ed5488388"
+      },
+      "solution": {
+        "path": "bks/193",
+        "file": "X-n266-k58.sol",
+        "sha256": "e10484f1bdc9c81ff407c077129856700f557442e9b0d104ddc3cbb5d3ab6634"
+      },
+      "cost": 75478.0
+    },
+    "X-n270-k35": {
+      "instance": {
+        "path": "instance/194",
+        "file": "X-n270-k35.vrp",
+        "sha256": "c0e13d7a19a2c2b3601a6dff64836290efba5d07fb3e53c8530379e4d549ac93"
+      },
+      "solution": {
+        "path": "bks/194",
+        "file": "X-n270-k35.sol",
+        "sha256": "7160d93835c70e1a9b1905eb589c4f52b42454b22aef7d27e14ce86364ad9969"
+      },
+      "cost": 35291.0
+    },
+    "X-n275-k28": {
+      "instance": {
+        "path": "instance/195",
+        "file": "X-n275-k28.vrp",
+        "sha256": "0df1b5614b3e09bca7f9839069160116a806c8cb9fa1631f834cad861a6e0fae"
+      },
+      "solution": {
+        "path": "bks/195",
+        "file": "X-n275-k28.sol",
+        "sha256": "9c6493deb849985ed643dff44eac0272c3555d8159c164fcb5b1dedd666bedd7"
+      },
+      "cost": 21245.0
+    },
+    "X-n280-k17": {
+      "instance": {
+        "path": "instance/196",
+        "file": "X-n280-k17.vrp",
+        "sha256": "d5b39b59491997b9e74299a5bf343719627cc4cde87727ef2e10764924b84f96"
+      },
+      "solution": {
+        "path": "bks/196",
+        "file": "X-n280-k17.sol",
+        "sha256": "d81fcf51ca800efb74491f84eee5cc0515646d8d836eb8a7fa2756848400bf4b"
+      },
+      "cost": 33503.0
+    },
+    "X-n284-k15": {
+      "instance": {
+        "path": "instance/197",
+        "file": "X-n284-k15.vrp",
+        "sha256": "1e0c78f1ed5da8f431cdc9bacfa79b4bfa2ecf86502a4f992daaabef7d565ad3"
+      },
+      "solution": {
+        "path": "bks/197",
+        "file": "X-n284-k15.sol",
+        "sha256": "8129a25b976101d4759c3c25a1c25e2120711b28474132cebd08eba1d5ffb76a"
+      },
+      "cost": 20215.0
+    },
+    "X-n289-k60": {
+      "instance": {
+        "path": "instance/198",
+        "file": "X-n289-k60.vrp",
+        "sha256": "d8f4465978cca02c6bc50df8cc2de4d7ce2e49b62a6c717b4d86163367d10957"
+      },
+      "solution": {
+        "path": "bks/198",
+        "file": "X-n289-k60.sol",
+        "sha256": "31751d1d61f59874a0c8090526268f2c90dedbb42f7a3965cc8182693e7e78a0"
+      },
+      "cost": 95151.0
+    },
+    "X-n294-k50": {
+      "instance": {
+        "path": "instance/199",
+        "file": "X-n294-k50.vrp",
+        "sha256": "49aa7365653be5efea48e963322356a3198e50b1d15c18f02c71d241a854fb49"
+      },
+      "solution": {
+        "path": "bks/199",
+        "file": "X-n294-k50.sol",
+        "sha256": "29fe6ed89f9a6d789e1f78f12bbbe599aef039f3b2ebbcf64add448395adb848"
+      },
+      "cost": 47161.0
+    },
+    "X-n298-k31": {
+      "instance": {
+        "path": "instance/200",
+        "file": "X-n298-k31.vrp",
+        "sha256": "265dc1161296eef96fae425ee12f794d36eba05d92f0ab2ed8f9c0ac5dd404a8"
+      },
+      "solution": {
+        "path": "bks/200",
+        "file": "X-n298-k31.sol",
+        "sha256": "66251e57304c4bcd7e3f9ca639feb230180cca7d105f3ae9d1166e9306cdf578"
+      },
+      "cost": 34231.0
+    },
+    "X-n303-k21": {
+      "instance": {
+        "path": "instance/201",
+        "file": "X-n303-k21.vrp",
+        "sha256": "8b31998ba5500255b3b2b81bacbe1e5467209439ca8efae9ba099e1190724dfe"
+      },
+      "solution": {
+        "path": "bks/201",
+        "file": "X-n303-k21.sol",
+        "sha256": "16d9b34b3d4d4047034160972b004ecb8e63daa3ba2d7b9207303386598a85e9"
+      },
+      "cost": 21736.0
+    },
+    "X-n308-k13": {
+      "instance": {
+        "path": "instance/202",
+        "file": "X-n308-k13.vrp",
+        "sha256": "e94414156b38b9281736bf527dc8bba7db33c45b10513034b261b74cf3b060b5"
+      },
+      "solution": {
+        "path": "bks/202",
+        "file": "X-n308-k13.sol",
+        "sha256": "39ed44ed521489979680b8302a6561cca4ea85e06bc630601250de0d361a226b"
+      },
+      "cost": 25859.0
+    },
+    "X-n313-k71": {
+      "instance": {
+        "path": "instance/203",
+        "file": "X-n313-k71.vrp",
+        "sha256": "a1aef78c8ea1c91b1145bc617c28e64ad4c09e6d5b9eae9450d0819caeffdc62"
+      },
+      "solution": {
+        "path": "bks/203",
+        "file": "X-n313-k71.sol",
+        "sha256": "e2ccab0935f8e6bcd94ed1a9120b696535ffc31ea6acd279e43605b0e39d4772"
+      },
+      "cost": 94043.0
+    },
+    "X-n317-k53": {
+      "instance": {
+        "path": "instance/204",
+        "file": "X-n317-k53.vrp",
+        "sha256": "a49da8c430ec097a0b932c98daa560d9241d2e4910dc46d0e4c597337720d409"
+      },
+      "solution": {
+        "path": "bks/204",
+        "file": "X-n317-k53.sol",
+        "sha256": "810564acafada242fd94b47881e1f11bfaa0815ab7072e2814b4023f7d65bbf7"
+      },
+      "cost": 78355.0
+    },
+    "X-n322-k28": {
+      "instance": {
+        "path": "instance/205",
+        "file": "X-n322-k28.vrp",
+        "sha256": "d6c46cbb59e71a944585c804c00b8cf0309f94ff891689873587114914734625"
+      },
+      "solution": {
+        "path": "bks/205",
+        "file": "X-n322-k28.sol",
+        "sha256": "c69355d95a55c5dcddf8f3f13f126dd00ba4d5bf5370b66c39abbba00dfa3dfb"
+      },
+      "cost": 29834.0
+    },
+    "X-n327-k20": {
+      "instance": {
+        "path": "instance/206",
+        "file": "X-n327-k20.vrp",
+        "sha256": "fd4550e0511cd159e1a1ea39b61be8db51ffc8e4ba605274a3b8e72e4340cf6a"
+      },
+      "solution": {
+        "path": "bks/206",
+        "file": "X-n327-k20.sol",
+        "sha256": "8a3888500f44eb95237179504a5aa6bbb955cd137c27c69901790a49b3a8e691"
+      },
+      "cost": 27532.0
+    },
+    "X-n331-k15": {
+      "instance": {
+        "path": "instance/207",
+        "file": "X-n331-k15.vrp",
+        "sha256": "dc97b402717be0e8f3d0075c2b2b77b0046137d403b354abcb7f0c97c266e54f"
+      },
+      "solution": {
+        "path": "bks/207",
+        "file": "X-n331-k15.sol",
+        "sha256": "0eab6818fed3a7a8a3e185ca536f249334031796387b921c05f041a7294945fb"
+      },
+      "cost": 31102.0
+    },
+    "X-n336-k84": {
+      "instance": {
+        "path": "instance/208",
+        "file": "X-n336-k84.vrp",
+        "sha256": "8e957a8e540162b7491f116f8fe0023c73d2d121ce4777f4e930464cf1a8d970"
+      },
+      "solution": {
+        "path": "bks/208",
+        "file": "X-n336-k84.sol",
+        "sha256": "c1ab72cbd4d2e9cfb732d7af1de032fc8c226f93c274534d5c3a9f2f9131677e"
+      },
+      "cost": 139111.0
+    },
+    "X-n344-k43": {
+      "instance": {
+        "path": "instance/209",
+        "file": "X-n344-k43.vrp",
+        "sha256": "a19635dd1184d4510746e144e61fa5fa3310647c85c7de83ed83c72b14dd48f6"
+      },
+      "solution": {
+        "path": "bks/209",
+        "file": "X-n344-k43.sol",
+        "sha256": "f2f33acaf32aedd300687aee5c898cb9153b9f03cba84029cd33a2a7aa0f39c0"
+      },
+      "cost": 42050.0
+    },
+    "X-n351-k40": {
+      "instance": {
+        "path": "instance/210",
+        "file": "X-n351-k40.vrp",
+        "sha256": "7d6d5d57545c4b869e571413d1b02ce7083801159c5c98b63808b6076d87640d"
+      },
+      "solution": {
+        "path": "bks/210",
+        "file": "X-n351-k40.sol",
+        "sha256": "ed6c9494f19d17968e850faff32b3ea2e11b39d3e6a631e20be44e212e16d471"
+      },
+      "cost": 25896.0
+    },
+    "X-n359-k29": {
+      "instance": {
+        "path": "instance/211",
+        "file": "X-n359-k29.vrp",
+        "sha256": "c41cd1e25b2123bacb0a5afa4e2cf5d6c55e79f5ba81cc4fb4f433676a58f1aa"
+      },
+      "solution": {
+        "path": "bks/211",
+        "file": "X-n359-k29.sol",
+        "sha256": "6974353d26658ce87d25d42f9f5bbbc145cc4dd43c0ad2162a8094426a222971"
+      },
+      "cost": 51505.0
+    },
+    "X-n367-k17": {
+      "instance": {
+        "path": "instance/212",
+        "file": "X-n367-k17.vrp",
+        "sha256": "65294617ba5b836b510c2a7e5b8471db43d552513e0b6632491271ce7aa7b02c"
+      },
+      "solution": {
+        "path": "bks/212",
+        "file": "X-n367-k17.sol",
+        "sha256": "d9aad84b52f0f478c35f07352f5a5b2f76bed3079e848e101d30b410c366cd10"
+      },
+      "cost": 22814.0
+    },
+    "X-n376-k94": {
+      "instance": {
+        "path": "instance/213",
+        "file": "X-n376-k94.vrp",
+        "sha256": "e5cd5cc70fb755caa7875d1844629e2133c8d172d92c27da6cbb83b28de8c781"
+      },
+      "solution": {
+        "path": "bks/213",
+        "file": "X-n376-k94.sol",
+        "sha256": "677ead5ddbd3c06265ecd1cc360c71e64803b4070b9ec0c92a598d895dc0c1d4"
+      },
+      "cost": 147713.0
+    },
+    "X-n384-k52": {
+      "instance": {
+        "path": "instance/214",
+        "file": "X-n384-k52.vrp",
+        "sha256": "acea608cef6f9af4c187e0b6f963cc58ce191b56c9dd65ec7376e07847e1a7f5"
+      },
+      "solution": {
+        "path": "bks/214",
+        "file": "X-n384-k52.sol",
+        "sha256": "f6bda471eda33ee56641a4b8e83dcc951527a561df1f594c3d328100f5704ea2"
+      },
+      "cost": 65928.0
+    },
+    "X-n393-k38": {
+      "instance": {
+        "path": "instance/215",
+        "file": "X-n393-k38.vrp",
+        "sha256": "edcb2b4dcb4d6081014c969dc26ab46a65880523b4edc194f7e06caace558745"
+      },
+      "solution": {
+        "path": "bks/215",
+        "file": "X-n393-k38.sol",
+        "sha256": "fc125bdf67a02713e30a866670b72769c9b2fda61a7cfef7c92a834a915ac705"
+      },
+      "cost": 38260.0
+    },
+    "X-n401-k29": {
+      "instance": {
+        "path": "instance/216",
+        "file": "X-n401-k29.vrp",
+        "sha256": "11ba49745cc7080cd8d67a6c508ba9447f059709b347f1eb81fcd41fbefc55a0"
+      },
+      "solution": {
+        "path": "bks/216",
+        "file": "X-n401-k29.sol",
+        "sha256": "5ff7c4521e79aa7cdbcaa16983ad0d4fc087ce7756db000edd715eeb8a8077a8"
+      },
+      "cost": 66154.0
+    },
+    "X-n411-k19": {
+      "instance": {
+        "path": "instance/217",
+        "file": "X-n411-k19.vrp",
+        "sha256": "d6e22ac66b59a5fc11e75776535decb5734ea9a0c095ecb7008b5c12bf2109aa"
+      },
+      "solution": {
+        "path": "bks/217",
+        "file": "X-n411-k19.sol",
+        "sha256": "aa6dc6e97f94a7189cc89d12f8f099a959b3847efa128a8739a5e19086fc8770"
+      },
+      "cost": 19712.0
+    },
+    "X-n420-k130": {
+      "instance": {
+        "path": "instance/218",
+        "file": "X-n420-k130.vrp",
+        "sha256": "a015956fd982706c909004a8ee9a7b78ec75d53c2681f6e22a77d9ac12772cfa"
+      },
+      "solution": {
+        "path": "bks/218",
+        "file": "X-n420-k130.sol",
+        "sha256": "6e18b9a5abec26ffa66ac7cbd3253495c0f5af74ac6b73544cb2dbe7abc0c277"
+      },
+      "cost": 107798.0
+    },
+    "X-n429-k61": {
+      "instance": {
+        "path": "instance/219",
+        "file": "X-n429-k61.vrp",
+        "sha256": "d6c7380a277a699f887269ac590c24b0053338bedf6768ad6eed57ee90118eec"
+      },
+      "solution": {
+        "path": "bks/219",
+        "file": "X-n429-k61.sol",
+        "sha256": "7b33a97e756f30329eff654781bc7ea544db23a986386853636fb42fc5a8c1b8"
+      },
+      "cost": 65449.0
+    },
+    "X-n439-k37": {
+      "instance": {
+        "path": "instance/220",
+        "file": "X-n439-k37.vrp",
+        "sha256": "c317bb3eef0fda6b7074f5872a725d4cf0bf881c941093258e3ee30fdcb7e40c"
+      },
+      "solution": {
+        "path": "bks/220",
+        "file": "X-n439-k37.sol",
+        "sha256": "277738580f74aa225055b055dd16af0081b28f62afaaa0f3e05d52e7356f4489"
+      },
+      "cost": 36391.0
+    },
+    "X-n449-k29": {
+      "instance": {
+        "path": "instance/221",
+        "file": "X-n449-k29.vrp",
+        "sha256": "1f77d49652605084b40a8babdf3c50f5527e2b450f1b113224693ae484f5b71c"
+      },
+      "solution": {
+        "path": "bks/221",
+        "file": "X-n449-k29.sol",
+        "sha256": "d067a6123698e1fee2716b020dbaff374cbe4b6dca02260ec19551e094f828f1"
+      },
+      "cost": 55233.0
+    },
+    "X-n459-k26": {
+      "instance": {
+        "path": "instance/222",
+        "file": "X-n459-k26.vrp",
+        "sha256": "007f46036f6b52d92fbec99c9771649b6bb2a87c6bb88a56303ba08cc0805208"
+      },
+      "solution": {
+        "path": "bks/222",
+        "file": "X-n459-k26.sol",
+        "sha256": "16f4e9312ff1b0be0548a6688f1bbf0337717b251fa24d46cc84f146a818c709"
+      },
+      "cost": 24139.0
+    },
+    "X-n469-k138": {
+      "instance": {
+        "path": "instance/223",
+        "file": "X-n469-k138.vrp",
+        "sha256": "5a1510874af4afecb9b81404b5b2e60a586c9eb63a3c8a766a2d4ade7a24d65c"
+      },
+      "solution": {
+        "path": "bks/223",
+        "file": "X-n469-k138.sol",
+        "sha256": "5836696f71c4961329241975fa61ece41141ebcf06fed2fd69b3bbe5e8ff44f7"
+      },
+      "cost": 221824.0
+    },
+    "X-n480-k70": {
+      "instance": {
+        "path": "instance/224",
+        "file": "X-n480-k70.vrp",
+        "sha256": "4585ac3d135d19aa1f5f1c9e32f4241da80df04e096635afa170171e18624734"
+      },
+      "solution": {
+        "path": "bks/224",
+        "file": "X-n480-k70.sol",
+        "sha256": "2cebb201b4816991af82ae911c9a5fbf0cbc41633e150ceaf88071704abacd3d"
+      },
+      "cost": 89449.0
+    },
+    "X-n491-k59": {
+      "instance": {
+        "path": "instance/225",
+        "file": "X-n491-k59.vrp",
+        "sha256": "e2ad38bb8d6cf7f3bcb2a7f866944c4fb6ba12587ba09b42cfaf0c63ec003d03"
+      },
+      "solution": {
+        "path": "bks/225",
+        "file": "X-n491-k59.sol",
+        "sha256": "e957960cc017f63e15f5f15c96cf4321790f9f0934e745ec542bcec511602b07"
+      },
+      "cost": 66483.0
+    },
+    "X-n502-k39": {
+      "instance": {
+        "path": "instance/226",
+        "file": "X-n502-k39.vrp",
+        "sha256": "091335fafbabacd1354df183013fa7130538bc100265986af000be6b5bc2d165"
+      },
+      "solution": {
+        "path": "bks/226",
+        "file": "X-n502-k39.sol",
+        "sha256": "c5551be3e43d2127005f382781e6c43dcadf763bb38ec3210104d0dd9c485c37"
+      },
+      "cost": 69226.0
+    },
+    "X-n513-k21": {
+      "instance": {
+        "path": "instance/227",
+        "file": "X-n513-k21.vrp",
+        "sha256": "235d809f940b9e113f510f305624f095c0db546102f0b65b91bf53e070943696"
+      },
+      "solution": {
+        "path": "bks/227",
+        "file": "X-n513-k21.sol",
+        "sha256": "1158ff5066353da0ab6c9dce26490309ec79e10152ba0547d49177d0b4fa4754"
+      },
+      "cost": 24201.0
+    },
+    "X-n524-k153": {
+      "instance": {
+        "path": "instance/228",
+        "file": "X-n524-k153.vrp",
+        "sha256": "c7ac96fa3b801f9751ac5a8ffd2cbd6e098d82142d5d7005aaa2b01a8cf001b5"
+      },
+      "solution": {
+        "path": "bks/228",
+        "file": "X-n524-k153.sol",
+        "sha256": "7ae30329b0cfde099a22b91297152bc1057b00cf1371a9188fbee52af707b6ab"
+      },
+      "cost": 154593.0
+    },
+    "X-n536-k96": {
+      "instance": {
+        "path": "instance/229",
+        "file": "X-n536-k96.vrp",
+        "sha256": "358bcc85f4a4cb1e8a437c069336719ffdd247766cf0e1689fd26b770f974172"
+      },
+      "solution": {
+        "path": "bks/229",
+        "file": "X-n536-k96.sol",
+        "sha256": "ac81c8f019c00f7c4ee34b0a08bca46bca733f4a8c68bf10deff42061e4f7efe"
+      },
+      "cost": 94832.0
+    },
+    "X-n548-k50": {
+      "instance": {
+        "path": "instance/230",
+        "file": "X-n548-k50.vrp",
+        "sha256": "3e879a86cd8fa49337f7b717962ae11c82eb1a7f299d54e2046e78e28dd3f55f"
+      },
+      "solution": {
+        "path": "bks/230",
+        "file": "X-n548-k50.sol",
+        "sha256": "3e74daa02f513a6fc726f6c16e4b9946d3e1c8a4bbfc502d0e0a9b26f244f349"
+      },
+      "cost": 86700.0
+    },
+    "X-n561-k42": {
+      "instance": {
+        "path": "instance/231",
+        "file": "X-n561-k42.vrp",
+        "sha256": "45b278e553b47c0b129b7f7cad926fd9ae29709834816cc46565bad2860ce67e"
+      },
+      "solution": {
+        "path": "bks/231",
+        "file": "X-n561-k42.sol",
+        "sha256": "5dbdddc2225280b3ffa13d724ee44c4127c0229726bc9a2bed3231fa5e2d6133"
+      },
+      "cost": 42717.0
+    },
+    "X-n573-k30": {
+      "instance": {
+        "path": "instance/232",
+        "file": "X-n573-k30.vrp",
+        "sha256": "27f52a15d0574a47696264c0429e8fadf04fffdd2da42cd8708d7690a59af5e9"
+      },
+      "solution": {
+        "path": "bks/232",
+        "file": "X-n573-k30.sol",
+        "sha256": "8158cbd75bbb1ca83aa8b3b20d0609ba1442bbae037e7c63fee859b2ba3b483a"
+      },
+      "cost": 50673.0
+    },
+    "X-n586-k159": {
+      "instance": {
+        "path": "instance/233",
+        "file": "X-n586-k159.vrp",
+        "sha256": "6dc2154531666069b55fc6315d880678b6b22c7ad5dfede0de0e7f6f367b2ee7"
+      },
+      "solution": {
+        "path": "bks/233",
+        "file": "X-n586-k159.sol",
+        "sha256": "24720a3c2500b45a8fe39a5adaa8d1b55b6ef7bfcf5f2cc4d54d7d8bf4ad348a"
+      },
+      "cost": 190316.0
+    },
+    "X-n599-k92": {
+      "instance": {
+        "path": "instance/234",
+        "file": "X-n599-k92.vrp",
+        "sha256": "586dcc98e0274d490e89d5473eb87b67d7de8c0c33a48aba1f5ceeeb4bf39834"
+      },
+      "solution": {
+        "path": "bks/234",
+        "file": "X-n599-k92.sol",
+        "sha256": "c4e1f1c979347116d7a2b279df9dcebc259c096c1f677ea4f72177fed342a0c6"
+      },
+      "cost": 108451.0
+    },
+    "X-n613-k62": {
+      "instance": {
+        "path": "instance/235",
+        "file": "X-n613-k62.vrp",
+        "sha256": "4401de98b4a1fb0ea32f30cc9abba6cc6426df6b95d597c4695f0e1e040c6cf8"
+      },
+      "solution": {
+        "path": "bks/235",
+        "file": "X-n613-k62.sol",
+        "sha256": "e5559f5a53d7c95914b3029d2e95363c97d1a04755d1a43b20b11c5f4e618aa7"
+      },
+      "cost": 59535.0
+    },
+    "X-n627-k43": {
+      "instance": {
+        "path": "instance/236",
+        "file": "X-n627-k43.vrp",
+        "sha256": "9e3827d8e188658b4493d57697dd1abce27811529bbe68a74bd34ca69bcd707a"
+      },
+      "solution": {
+        "path": "bks/236",
+        "file": "X-n627-k43.sol",
+        "sha256": "44e0d7a07d52c5195dc455b002e9f5d8d99d6b09e35f45ce350a95772a9450b2"
+      },
+      "cost": 62164.0
+    },
+    "X-n641-k35": {
+      "instance": {
+        "path": "instance/237",
+        "file": "X-n641-k35.vrp",
+        "sha256": "0b971a43ae4b5b6db7a0971eb79a25fb3df7c9b7311f4d0093f79a8c7e625e4f"
+      },
+      "solution": {
+        "path": "bks/237",
+        "file": "X-n641-k35.sol",
+        "sha256": "ba60f48a78ef485421d121c7012e8cbf8aece88b6cf7dd90815aeaedfb5c7c0a"
+      },
+      "cost": 63682.0
+    },
+    "X-n655-k131": {
+      "instance": {
+        "path": "instance/238",
+        "file": "X-n655-k131.vrp",
+        "sha256": "25a6970b0f43fccb94ce2735c78e4951d0b9b0b6924d8fb8f31b5d2e62721fb4"
+      },
+      "solution": {
+        "path": "bks/238",
+        "file": "X-n655-k131.sol",
+        "sha256": "f97dd2ed420b87316d5927cf80ddd9ebb8e39015100a0ec026ce6407d65eb9a0"
+      },
+      "cost": 106780.0
+    },
+    "X-n670-k130": {
+      "instance": {
+        "path": "instance/239",
+        "file": "X-n670-k130.vrp",
+        "sha256": "5a46eb86b856e49766b5e1fa2dc727bc1ee2457da6f875af39b267a7c1110b12"
+      },
+      "solution": {
+        "path": "bks/239",
+        "file": "X-n670-k130.sol",
+        "sha256": "953e38a76c1d66a769cd7e0b951056d35e7c3de66ddf81e1f2359c0557e97625"
+      },
+      "cost": 146332.0
+    },
+    "X-n685-k75": {
+      "instance": {
+        "path": "instance/240",
+        "file": "X-n685-k75.vrp",
+        "sha256": "cf2d00acd5e5304b479535b6e919c8ecea31899f223100f0911ddf693e10c56c"
+      },
+      "solution": {
+        "path": "bks/240",
+        "file": "X-n685-k75.sol",
+        "sha256": "bda5c295553cb571c88a176578838477fc0132469a9ef53df18a1b721b3778f2"
+      },
+      "cost": 68205.0
+    },
+    "X-n701-k44": {
+      "instance": {
+        "path": "instance/241",
+        "file": "X-n701-k44.vrp",
+        "sha256": "3ee7f05bb239d893db8f6b5959ad151f2ef400881e63847fbdddd5b2ff3a7742"
+      },
+      "solution": {
+        "path": "bks/241",
+        "file": "X-n701-k44.sol",
+        "sha256": "36195395fae806393ce6146ba9a9d31b267039d353eb3e5e7b453f04e221c511"
+      },
+      "cost": 81899.0
+    },
+    "X-n716-k35": {
+      "instance": {
+        "path": "instance/242",
+        "file": "X-n716-k35.vrp",
+        "sha256": "e70e65b3988b2e561afd318b03a4f8ffe0dfe32a2cdbcdf35a112ab5621ccf79"
+      },
+      "solution": {
+        "path": "bks/242",
+        "file": "X-n716-k35.sol",
+        "sha256": "5303760b156b1dcbb4ccdeb7723396870bd9adcb1e4326a00a38cb19dfc8b35d"
+      },
+      "cost": 43350.0
+    },
+    "X-n733-k159": {
+      "instance": {
+        "path": "instance/243",
+        "file": "X-n733-k159.vrp",
+        "sha256": "5399c3b354b3d0facde2442c58ee5c8c61da229348907f23ea6507c27849f21d"
+      },
+      "solution": {
+        "path": "bks/243",
+        "file": "X-n733-k159.sol",
+        "sha256": "84ca383f68fd8ca669a2ba8271f3ba4449340e1fe4163105ec1bde7b150d859a"
+      },
+      "cost": 136187.0
+    },
+    "X-n749-k98": {
+      "instance": {
+        "path": "instance/244",
+        "file": "X-n749-k98.vrp",
+        "sha256": "68d2539f434b9ca48c4938f060f6401d040fe91c0a55015b1200374f668fc622"
+      },
+      "solution": {
+        "path": "bks/244",
+        "file": "X-n749-k98.sol",
+        "sha256": "4f60281a4a74610dfc9bbff0e9b6b1594fdeb1d660e52f51ed293e4d9773cece"
+      },
+      "cost": 77269.0
+    },
+    "X-n766-k71": {
+      "instance": {
+        "path": "instance/245",
+        "file": "X-n766-k71.vrp",
+        "sha256": "b9d8b3a48c9c55965cec0d60706e586f9bc6eda94c4c794bec2c9f68674e61ca"
+      },
+      "solution": {
+        "path": "bks/245",
+        "file": "X-n766-k71.sol",
+        "sha256": "62d4dd1ef8a085c7c91c2141c72c9f404b27266bb305ea263def26b5e54ff1c7"
+      },
+      "cost": 114417.0
+    },
+    "X-n783-k48": {
+      "instance": {
+        "path": "instance/246",
+        "file": "X-n783-k48.vrp",
+        "sha256": "2411b9408542042c1e0b5a6ffaeb66d95aa23494985651c94afad62ce207d66f"
+      },
+      "solution": {
+        "path": "bks/246",
+        "file": "X-n783-k48.sol",
+        "sha256": "f527b87a3f233549a540001ddb522fe683da69dc8cea11173488813e7172a01a"
+      },
+      "cost": 72383.0
+    },
+    "X-n801-k40": {
+      "instance": {
+        "path": "instance/247",
+        "file": "X-n801-k40.vrp",
+        "sha256": "fe07d06c3237e27a4285f5523c4be5912af7ecbec555f482fc1d8e474fe11361"
+      },
+      "solution": {
+        "path": "bks/247",
+        "file": "X-n801-k40.sol",
+        "sha256": "37099ec66e3931c7da7deb16cca06b071c266ff4c9efc457ca28079ba27aa7d3"
+      },
+      "cost": 73305.0
+    },
+    "X-n819-k171": {
+      "instance": {
+        "path": "instance/248",
+        "file": "X-n819-k171.vrp",
+        "sha256": "2b1f92252f985d6f707684ddd138cc21d23d808d55fa781c133e1172c0942924"
+      },
+      "solution": {
+        "path": "bks/248",
+        "file": "X-n819-k171.sol",
+        "sha256": "79c7f0e16712eb3404ecf621d4817ea455e54ce883e9d5cbe16b87628139f430"
+      },
+      "cost": 158121.0
+    },
+    "X-n837-k142": {
+      "instance": {
+        "path": "instance/249",
+        "file": "X-n837-k142.vrp",
+        "sha256": "353d34df3a10e01930f189ece3a23ea944439c0f06574c67b1abedeb02a57158"
+      },
+      "solution": {
+        "path": "bks/249",
+        "file": "X-n837-k142.sol",
+        "sha256": "b70240464278cfd42890b379ed0ea58411ccbe8488dda7c97bc3b9b6734ca6d5"
+      },
+      "cost": 193721.0
+    },
+    "X-n856-k95": {
+      "instance": {
+        "path": "instance/250",
+        "file": "X-n856-k95.vrp",
+        "sha256": "eb606d99a431e6d93e9e47c86e0d2b858c41ff0e2d6bd45f570564be86781d65"
+      },
+      "solution": {
+        "path": "bks/250",
+        "file": "X-n856-k95.sol",
+        "sha256": "573980e6087594a29ad012851b9229c57ba6fc0ae51b5ab74781c884c8ce263c"
+      },
+      "cost": 88965.0
+    },
+    "X-n876-k59": {
+      "instance": {
+        "path": "instance/251",
+        "file": "X-n876-k59.vrp",
+        "sha256": "1d3bb2f38134b8487aee703e1780f226c7ce2147bf19be96c0b09f56916014ed"
+      },
+      "solution": {
+        "path": "bks/251",
+        "file": "X-n876-k59.sol",
+        "sha256": "b5d25477a4a0d680509aa8375493b7829b98c6696bf51f6871b3cb7897592abb"
+      },
+      "cost": 99299.0
+    },
+    "X-n895-k37": {
+      "instance": {
+        "path": "instance/252",
+        "file": "X-n895-k37.vrp",
+        "sha256": "c597319002912d1d41031f4ea8cd2a0db13472dc40258287c9023584ab4e116a"
+      },
+      "solution": {
+        "path": "bks/252",
+        "file": "X-n895-k37.sol",
+        "sha256": "081d6283ac4698b56edd88d0b6871ce4c3c0de4f1dacd5e0b0aa4833e69b1c65"
+      },
+      "cost": 53845.0
+    },
+    "X-n916-k207": {
+      "instance": {
+        "path": "instance/253",
+        "file": "X-n916-k207.vrp",
+        "sha256": "73bbb5243cb1255ecabc19372d803603647cdd4449b456e83a542559e8309d6e"
+      },
+      "solution": {
+        "path": "bks/253",
+        "file": "X-n916-k207.sol",
+        "sha256": "bcaa4f43e3f750781f4500aaddcae182dadeecb200c5c0159594a557e6897564"
+      },
+      "cost": 329179.0
+    },
+    "X-n936-k151": {
+      "instance": {
+        "path": "instance/254",
+        "file": "X-n936-k151.vrp",
+        "sha256": "5e020bc1e4c3152c57ca7bcb589a19acf2fb7b5b6af1be76774293b2a7c5e6c6"
+      },
+      "solution": {
+        "path": "bks/254",
+        "file": "X-n936-k151.sol",
+        "sha256": "6712fe4119d342cc065b11eeefb8d74e6210d8324f0c929750716886affa97e4"
+      },
+      "cost": 132715.0
+    },
+    "X-n957-k87": {
+      "instance": {
+        "path": "instance/255",
+        "file": "X-n957-k87.vrp",
+        "sha256": "69bfeffa43e6fe382cd85399710561726c145402c5bce01023499152c8874d02"
+      },
+      "solution": {
+        "path": "bks/255",
+        "file": "X-n957-k87.sol",
+        "sha256": "b059033a6353a58a37f6af5ca7471c8e1cecf2fd1a13b39bf7c6550ac6b8596b"
+      },
+      "cost": 85464.0
+    },
+    "X-n979-k58": {
+      "instance": {
+        "path": "instance/256",
+        "file": "X-n979-k58.vrp",
+        "sha256": "1304fb25427f08cf9e5e35039890dc46486db3c54681794b75a1258c79f38981"
+      },
+      "solution": {
+        "path": "bks/256",
+        "file": "X-n979-k58.sol",
+        "sha256": "ab135c5013dc0874d78d330ca087e524d01c8ffaf4df5b9a58e46f71b5815b7b"
+      },
+      "cost": 118923.0
+    }
+  }
+}

@@ -1,6 +1,7 @@
 # Status
 
-**Current milestone:** M3 Simulator core done. Next: M4 Validator and Gate 1 (stop for approval).
+**Current milestone:** M4 Validator and Gate 1 done. **Stopped at Gate 1 for user approval** (see
+`docs/gates/gate1.md`). Next after approval: M5 (recourse interface design to discuss first).
 
 | Milestone | State | Notes |
 | --- | --- | --- |
@@ -9,22 +10,21 @@
 | M1 Spec and configs | Done | Models, loader, merge rules, overrides, registry, schema, CLI |
 | M2 Network and instances | Done | Instance, readers, generators, networks, binding |
 | M3 Simulator core | Done | Event engine, constraints, next_node, Gymnasium env, event log |
-| M4 Validator and Gate 1 | Next | Stops for approval; needs Q18/Q19 from the user |
-| M5 to M11 | Not started | Stops at Gate 2 (M11) |
+| M4 Validator and Gate 1 | Done, awaiting approval | Solomon fidelity pending user input (Q18/Q19) |
+| M5 to M11 | Not started | M5 starts with the recourse design discussion; stops at Gate 2 (M11) |
 
-## Tests (M3)
-- 479 tests passing (Python 3.12, macOS), coverage 97%, ruff and pyright (standard) clean.
+## Tests (M4)
+- 519 tests pass in the default run (1 skipped: Solomon fidelity), coverage 97%; ruff and pyright
+  (standard) clean.
+- Gate suite (`-m "slow or network"`): 104 tests pass, including 10,000 validated rollouts and all 100
+  CVRPLIB X best-known solutions reproduced exactly.
 - Gymnasium `check_env` passes for every registered config (with `invalid_action="repair"`).
-- Hypothesis: random static problems (all epoch, fleet and constraint combinations) with random
-  masked actions never crash, keep invariants, and satisfy return = -weighted total cost; a one-off
-  stress run of 3,000 examples also checked exact clones.
-- Determinism: identical event-log digests for the same seed, also across processes.
-- Snapshot/restore replays bit for bit; clones are independent.
+- Determinism (also across processes), exact snapshots, independent clones.
 
 ## Registered configs
 | ID | Status | Notes |
 | --- | --- | --- |
-| CVRP-v0 | experimental | `epochs: sequential` (ADR 0007) |
+| CVRP-v0 | experimental | Reproduces CVRPLIB X exactly; can become `stable` once Gate 1 is approved |
 | VRPTW-v0 | experimental | lexicographic objective (scalarization decided in M3, Q15) |
 | DVRP-StochReq-v0 | planned | until M6 |
 | VRPSD-Outsource-v0 | planned | until Gate 2 (M11) |

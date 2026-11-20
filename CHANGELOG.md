@@ -7,6 +7,15 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M4 validator and Gate 1: independent `fleetgym.testing.validator`; `fleetgym.testing.check_env`;
+  replication (`replay_solution`, `fleetgym replicate`); checksummed CVRPLIB downloads
+  (`fleetgym.data.download`, manifest for all 100 X instances); Gate 1 suite (mask exactness against an
+  independent oracle, 10,000 validated rollouts, brute-force golden optima, CVRPLIB X fidelity).
+- ADR 0010; Gate 1 report in `docs/gates/gate1.md`.
+
+### Changed
+- Lexicographic weights moved to `ObjectiveSpec.scalar_weights()` (spec layer).
+- `EventLog.copy()` now copies rows, so copies share no mutable state.
 - M3 simulator core: discrete-event engine (sequential and on-event epochs), pure-data state with exact
   snapshots, primitive decisions, capacity / time-window (hard, soft, waiting rules) / route-duration
   constraints with depot look-ahead, fleet sizing, invariant monitor; `InformationState` view;
