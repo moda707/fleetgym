@@ -7,6 +7,14 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M3 simulator core: discrete-event engine (sequential and on-event epochs), pure-data state with exact
+  snapshots, primitive decisions, capacity / time-window (hard, soft, waiting rules) / route-duration
+  constraints with depot look-ahead, fleet sizing, invariant monitor; `InformationState` view;
+  `next_node` interface with repair; padded observations; reward model with lexicographic
+  scalarization; `FleetGymEnv` with three invalid-action modes, seeding, `get_state`/`set_state`/
+  `clone`, `ansi` rendering; `fleetgym.make`, `make_vec`, Gymnasium registration (`fleetgym/<ID>`);
+  event log with Parquet I/O; per-source random streams; Hypothesis strategies in `fleetgym.testing`.
+- ADR 0009 (simulator semantics, rewards, environment conventions).
 - M2 network and instances: immutable `Instance` with content hash; VRPLIB/CVRPLIB and Solomon readers
   (through `vrplib`); `Solution` reader; `uniform` and `clustered` generators with reachable time
   windows; `EuclideanNetwork` (`none`, `nearest_int` = `floor(d + 0.5)`) and `MatrixNetwork`;

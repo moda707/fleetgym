@@ -94,6 +94,7 @@ ignore = [
     "D105",  # magic methods need no docstring
     "D107",  # __init__ is documented in the class docstring (numpy style)
     "SIM114",  # separate branches for dicts and lists read better than one long condition
+    "D401",  # property-style summaries ("The ...") read better than forced imperatives
 ]
 
 [tool.ruff.lint.pydocstyle]

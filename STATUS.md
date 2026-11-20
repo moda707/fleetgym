@@ -1,6 +1,6 @@
 # Status
 
-**Current milestone:** M2 Network and instances done. Next: M3 Simulator core.
+**Current milestone:** M3 Simulator core done. Next: M4 Validator and Gate 1 (stop for approval).
 
 | Milestone | State | Notes |
 | --- | --- | --- |
@@ -8,14 +8,18 @@
 | M0 Scaffolding | Done | Package skeleton, tooling, CI, layer test |
 | M1 Spec and configs | Done | Models, loader, merge rules, overrides, registry, schema, CLI |
 | M2 Network and instances | Done | Instance, readers, generators, networks, binding |
-| M3 Simulator core | Next | |
-| M4 to M11 | Not started | Stops at Gate 1 (M4) and Gate 2 (M11) |
+| M3 Simulator core | Done | Event engine, constraints, next_node, Gymnasium env, event log |
+| M4 Validator and Gate 1 | Next | Stops for approval; needs Q18/Q19 from the user |
+| M5 to M11 | Not started | Stops at Gate 2 (M11) |
 
-## Tests (M2)
-- 406 tests passing (Python 3.12, macOS), including Hypothesis properties for spec round trips and
-  generator time-window reachability.
-- Coverage 98% overall. ruff and pyright (standard) clean.
-- Golden spec hashes updated once in M2 (configs gained `instance_source`); IDs stay `-v0`.
+## Tests (M3)
+- 479 tests passing (Python 3.12, macOS), coverage 97%, ruff and pyright (standard) clean.
+- Gymnasium `check_env` passes for every registered config (with `invalid_action="repair"`).
+- Hypothesis: random static problems (all epoch, fleet and constraint combinations) with random
+  masked actions never crash, keep invariants, and satisfy return = -weighted total cost; a one-off
+  stress run of 3,000 examples also checked exact clones.
+- Determinism: identical event-log digests for the same seed, also across processes.
+- Snapshot/restore replays bit for bit; clones are independent.
 
 ## Registered configs
 | ID | Status | Notes |
