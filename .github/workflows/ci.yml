@@ -25,7 +25,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - run: uv sync --extra dev --extra sb3 --extra solvers --extra viz  # type-check optional modules
+      - run: uv sync --extra dev --extra sb3 --extra solvers --extra viz --extra docs  # type-check optional modules
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright
