@@ -3,7 +3,7 @@
 Every figure is drawn from the event log, so any episode can be drawn during or after the run
 (`fleetgym[viz]`).
 
-```{literalinclude} ../../../examples/08_render.py
+```{literalinclude} ../../../examples/08_render/render.py
 :language: python
 ```
 

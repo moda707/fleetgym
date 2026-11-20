@@ -82,7 +82,7 @@ to let the policy decide. It may also restock preventively (`after_service`).
 :language: yaml
 ```
 
-```{literalinclude} ../../../examples/05_custom_variant/run.py
+```{literalinclude} ../../../examples/05_custom_variant/custom_variant.py
 :language: python
 :start-at: "spec = fg.load_spec"
 ```

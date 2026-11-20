@@ -1,8 +1,10 @@
-"""Train a MaskablePPO agent with a graph attention policy, then evaluate it (extra `sb3`).
+# %% [markdown]
+# # Training an agent
+#
+# MaskablePPO with a graph attention policy on a small CVRP, evaluated against nearest neighbor on
+# fixed test scenarios. Needs `fleetgym[sb3]`.
 
-Run: python examples/06_train_agent.py
-"""
-
+# %%
 from sb3_contrib import MaskablePPO
 
 from fleetgym.agents import SB3Policy, make_sb3_vec, policy_settings
@@ -18,13 +20,21 @@ SMALL = {
     },
 }
 
+# %% [markdown]
+# Train. A real run uses far more steps than this demonstration.
+
+# %%
 vec = make_sb3_vec(SMALL, n_envs=4, seed=0)
 policy, policy_kwargs = policy_settings("maskable_ppo", "gat", embed_dim=32)
 model = MaskablePPO(
     policy, vec, n_steps=64, batch_size=64, gamma=1.0, seed=0, policy_kwargs=policy_kwargs
 )
-model.learn(2_000)  # a real run uses far more steps
+model.learn(2_000)
 
+# %% [markdown]
+# Evaluate the trained policy and the baseline on the same test scenarios.
+
+# %%
 seeds = scenario_seeds("small-cvrp", "test", 8)
 agent = evaluate(SMALL, SB3Policy(model, name="ppo-gat"), seeds)
 baseline = evaluate(SMALL, NearestNeighbor, seeds)

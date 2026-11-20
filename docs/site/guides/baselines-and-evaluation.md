@@ -19,7 +19,7 @@ Baselines and trained agents implement one protocol: `reset(env)`, then `act(obs
 Policies are compared on fixed test scenarios (`scenario_seeds(env_id, "test", n)`), every episode is
 validated, and results carry confidence intervals, CVaR and paired tests.
 
-```{literalinclude} ../../../examples/04_compare_policies.py
+```{literalinclude} ../../../examples/04_compare_policies/compare_policies.py
 :language: python
 ```
 

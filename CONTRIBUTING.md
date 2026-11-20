@@ -29,6 +29,9 @@ UV_PROJECT_ENVIRONMENT=.venv-core uv sync --extra dev
 UV_PROJECT_ENVIRONMENT=.venv-core uv run --no-sync pytest -n auto --cov --cov-config=.github/coverage-core.toml
 ```
 
+After editing an example script, regenerate its notebook with
+`uv run python scripts/build_example_notebooks.py` (see `examples/README.md`).
+
 Build the documentation with `uv sync --extra docs --extra viz` and
 `uv run sphinx-build -W -b html docs/site docs/_build/html`.
 

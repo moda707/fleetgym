@@ -1,15 +1,20 @@
-"""Requests arriving during the day: accept/reject with built-in routing, and next_node with wait.
+# %% [markdown]
+# # Requests arriving during the day
+#
+# Two ways to decide: accept or reject each request while a built-in routing rule drives the
+# fleet, or route the vehicles yourself with `next_node`, including a wait action.
 
-Run: python examples/03_dynamic_day.py
-"""
-
+# %%
 import numpy as np
 
 import fleetgym as fg
 from fleetgym.baselines import CheapestInsertion, NearestNeighbor, run_episode
 from fleetgym.uncertainty.dynamism import degree_of_dynamism
 
-# 1. The agent accepts, rejects or outsources each request; cheapest insertion routes the fleet.
+# %% [markdown]
+# ## Accept or reject, with cheapest-insertion routing
+
+# %%
 env = fg.make("DVRP-StochReq-v0")
 episode = run_episode(env, CheapestInsertion(), seed=2)
 log = env.event_log
@@ -20,11 +25,17 @@ print(
 release = env.scenario["request.release"]
 print("degree of dynamism:", round(degree_of_dynamism(release, 0.0), 2))
 
-# 2. The same day with next_node: requests are accepted automatically until the cutoff, and each
-#    vehicle picks its next customer, waits for the next event, reloads at the depot or ends.
+# %% [markdown]
+# ## Routing with `next_node`
+#
+# Requests are accepted automatically until the cutoff (here the last 20% of the 480-minute day
+# takes no new requests). Each vehicle picks its next customer, waits for the next event, reloads
+# at the depot, or ends its route.
+
+# %%
 spec = {
     "extends": "DVRP-StochReq-v0",
-    "dynamics": {"cutoff": 384},  # the last 20% of the 480-minute day takes no new requests
+    "dynamics": {"cutoff": 384},
     "decisions": {"epochs": "on_event", "interface": "next_node"},
     "objective": {"distance": 1.0, "unserved": 50.0},
 }

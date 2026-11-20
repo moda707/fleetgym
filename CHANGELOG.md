@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Examples: one folder per example, each with its script and a notebook generated from it
+  (`scripts/build_example_notebooks.py`); the tests run both and check they are in sync.
+
 ## [0.1.0a1] - 2026-11-20
 
 First public pre-release: milestones M0 to M10b (v0.1 as built; Gate 2 review pending). Takes the

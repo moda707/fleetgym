@@ -6,7 +6,7 @@ FleetGym environments work with SB3 and sb3-contrib out of the box (dictionary o
 `action_masks()` for MaskablePPO). `MaskableGraphPolicy` keeps one embedding per node and points at
 nodes with an attention decoder; `MaskableDQN` masks Q-values in selection and targets.
 
-```{literalinclude} ../../../examples/06_train_agent.py
+```{literalinclude} ../../../examples/06_train_agent/train_agent.py
 :language: python
 ```
 

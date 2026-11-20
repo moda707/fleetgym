@@ -5,7 +5,7 @@
 Every environment is a Gymnasium environment. Observations are dictionaries of padded arrays, and
 `info["action_mask"]` (or `env.action_masks()`) tells which actions are valid now.
 
-```{literalinclude} ../../../examples/01_first_environment.py
+```{literalinclude} ../../../examples/01_first_environment/first_environment.py
 :language: python
 ```
 

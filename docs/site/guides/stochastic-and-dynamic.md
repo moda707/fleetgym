@@ -2,12 +2,12 @@
 
 ## Stochastic demands with recourse
 
-```{literalinclude} ../../../examples/02_stochastic_demands.py
+```{literalinclude} ../../../examples/02_stochastic_demands/stochastic_demands.py
 :language: python
 ```
 
 ## A dynamic day
 
-```{literalinclude} ../../../examples/03_dynamic_day.py
+```{literalinclude} ../../../examples/03_dynamic_day/dynamic_day.py
 :language: python
 ```

@@ -79,8 +79,9 @@ perfect-information benchmark) run through the same evaluation harness, on fixed
 
 The [documentation](https://fleetgym.readthedocs.io) (source in `docs/site`) covers
 the concepts, every environment, and a step-by-step guide to building your own VRP variant. The
-[`examples/`](https://github.com/moda707/fleetgym/tree/main/examples) folder has runnable scripts,
-from a first environment to a custom variant, training and multi-agent routing.
+[`examples/`](https://github.com/moda707/fleetgym/tree/main/examples) folder has one folder per example, each with a
+script and a matching notebook, from a first environment to a custom variant, training and
+multi-agent routing.
 
 ## Install (development)
 

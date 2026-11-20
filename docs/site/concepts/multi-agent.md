@@ -10,6 +10,6 @@ environment (`fleetgym.make_multi`):
 - **Rewards**: `global`, `individual` (each vehicle's own costs plus a share of the rest) or `mixed`.
 - `env.state()` gives the global state for a centralized critic.
 
-```{literalinclude} ../../../examples/07_multi_agent.py
+```{literalinclude} ../../../examples/07_multi_agent/multi_agent.py
 :language: python
 ```
