@@ -160,7 +160,7 @@ def test_resolve_raw_orders_sections_and_records_layers(registry: ConfigRegistry
     raw = resolve_raw("Child-v0", registry=registry)
     assert list(raw)[:2] == ["id", "fleet"]
     resolved = resolve("Child-v0", overrides=["agents.mode=multi"], registry=registry)
-    assert [s.rsplit("/", 1)[-1] for s, _ in resolved.layers] == [
+    assert [s if s.startswith("<") else Path(s).name for s, _ in resolved.layers] == [
         "Base-v0.yaml",
         "Child-v0.yaml",
         "<override agents.mode=multi>",
