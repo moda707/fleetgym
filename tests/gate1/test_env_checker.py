@@ -7,7 +7,7 @@ from fleetgym.spec import load_spec
 from fleetgym.testing.validator import ValidationReport, Violation
 
 
-@pytest.mark.parametrize("env_id", fg.REGISTRY.ids())
+@pytest.mark.parametrize("env_id", fg.REGISTRY.ids(agents="single"))
 def test_registered_configs_pass(env_id: str):
     checker.check_env(env_id, n_rollouts=3)
 

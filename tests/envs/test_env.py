@@ -18,7 +18,7 @@ from fleetgym.testing.strategies import random_masked_rollout
 from tests.sim.helpers import LINE_XS, env_for, line_instance, play
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "instances"
-REGISTERED = fg.REGISTRY.ids()
+REGISTERED = fg.REGISTRY.ids(agents="single")
 
 
 def rollout_digest(env_id: str, seed: int) -> tuple[str, float]:

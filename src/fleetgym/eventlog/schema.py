@@ -46,6 +46,9 @@ Event kinds and the columns they use
     ``overflow``).
 ``cancel``
     ``node``, ``time``: the customer cancels its request.
+``conflict``
+    ``vehicle``, ``node``, ``time``, ``component`` (the conflict rule): in the multi-agent Parallel
+    API, ``vehicle`` lost ``node`` to another vehicle (or the joint action was rejected).
 ``cost``
     ``component``, ``amount``, ``time``, optional ``vehicle`` and ``node``.
 ``epoch``
@@ -81,6 +84,7 @@ EVENT_KINDS = (
     "accept",
     "reject",
     "cancel",
+    "conflict",
     "cost",
     "epoch",
     "episode_end",

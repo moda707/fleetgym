@@ -35,7 +35,7 @@ from fleetgym.sim.engine import Epoch, Simulator
 from fleetgym.sim.info_state import DEPOT
 from fleetgym.sim.state import RequestStatus
 
-__all__ = ["NODE_FEATURES", "PaddedGraphObservation"]
+__all__ = ["GLOBAL_FEATURES", "NODE_FEATURES", "VEHICLE_FEATURES", "PaddedGraphObservation"]
 
 NODE_FEATURES = 10
 VEHICLE_FEATURES = 6

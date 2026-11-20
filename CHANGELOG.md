@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M7 multi-agent (ADR 0016): `FleetGymAECEnv` and `FleetGymParallelEnv` (one agent per vehicle),
+  conflict rules (priority, distance, lottery, reject), global, individual and mixed rewards,
+  `state()` for a centralized critic, per-vehicle cost attribution, `Simulator.apply_many` and
+  `ready_epochs`, `fleetgym.make_multi`, `REGISTRY.ids(agents=...)`; configs `MA-CVRP-v0` and
+  `MA-DVRP-v0`.
+
+### Added
 - M6b dynamic requests with `next_node` (ADR 0015): requests accepted automatically as they arrive;
   a wait action (`Discrete(max_nodes + 1)`) that resumes at the next event or at the vehicle's
   wake-up time; mid-day depot reloads; terminating a route at the depot while another vehicle works.

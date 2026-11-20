@@ -21,7 +21,7 @@ from fleetgym.interfaces.observations import PaddedGraphObservation
 from fleetgym.interfaces.rewards import RewardModel
 from fleetgym.network.base import Network, build_network
 from fleetgym.sim.decisions import RecourseChoice, Wait
-from fleetgym.sim.engine import Epoch, Simulator
+from fleetgym.sim.engine import Epoch, Simulator, Transition
 from fleetgym.sim.invariants import InvariantMonitor
 from fleetgym.sim.planned import PlannedRoutingSimulator
 from fleetgym.sim.state import RequestStatus, SimState
@@ -55,6 +55,7 @@ class EnvState:
     np_random_state: Mapping[str, Any]
     carry_costs: dict[str, float]
     final_step_pending: bool
+    carry_vehicle_costs: dict[int, dict[str, float]] | None = None
     scenario: Scenario | None = None
     base_problem: BoundProblem | None = None
 
@@ -234,6 +235,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         self._episode_seed = 0
         self._network_cache: tuple[str, Network] | None = None
         self._carry_costs: dict[str, float] = {}
+        self._carry_vehicle_costs: dict[int, dict[str, float]] = {}
         self._final_step_pending = False
         self._base_problem: BoundProblem | None = None
 
@@ -369,6 +371,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         self._epoch = self._sim.start()
         # Costs realized before the first decision count in the first step's reward.
         self._carry_costs = self._sim.state.take_pending_costs()
+        self._carry_vehicle_costs = self._sim.state.take_pending_vehicle_costs()
         # An episode has at least one step: if nothing can be decided, action 0 ends it.
         self._final_step_pending = self._epoch is None
         self._mask = self._current_mask()
@@ -422,8 +425,77 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             "decision", vehicle=epoch.vehicle, action=chosen, epoch=sim.state.epoch_count, **target
         )
         transition = sim.apply(decision)
+        return self._finish_step(transition, chosen != int(action), chosen)
+
+    def step_joint(
+        self, actions: Mapping[int, int]
+    ) -> tuple[dict[str, NDArray[Any]], SupportsFloat, bool, bool, dict[str, Any]]:
+        """Simultaneous decisions of vehicles that are ready now (multi-agent Parallel API).
+
+        ``actions`` maps vehicles of `Simulator.ready_epochs` to actions; conflicts must
+        be resolved by the caller. Invalid actions follow ``invalid_action`` (``penalize`` is not
+        supported here).
+        """
+        sim = self.simulator
+        if self._epoch is None and self._final_step_pending:
+            return self._final_step(0)
+        if self._epoch is None:
+            raise ResetNeeded("the episode has ended; call reset()")
+        epochs = {e.vehicle: e for e in sim.ready_epochs()}
+        decisions = []
+        for vehicle, action in sorted(actions.items()):
+            if vehicle not in epochs:
+                raise InfeasibleActionError(f"vehicle {vehicle} has no decision now")
+            epoch = epochs[vehicle]
+            mask = self.interface.mask(sim, epoch)
+            chosen = int(action)
+            if not (0 <= chosen < mask.size and mask[chosen]):
+                if self.invalid_action != "repair":
+                    raise InfeasibleActionError(self.interface.explain(chosen, mask, sim, epoch))
+                chosen = int(self.interface.repair(chosen, mask, sim, epoch))
+            decision = self.interface.decode(chosen, sim, epoch)
+            target = (
+                {}
+                if isinstance(decision, (RecourseChoice, Wait))
+                else {"node": getattr(decision, "node", 0)}
+            )
+            sim.log.append(
+                "decision", vehicle=vehicle, action=chosen, epoch=sim.state.epoch_count, **target
+            )
+            decisions.append(decision)
+        transition = sim.apply_many(decisions)
+        return self._finish_step(transition, False, None)
+
+    def ready_vehicles(self) -> list[int]:
+        """Vehicles that must decide now (all of them act together in the Parallel API)."""
+        if self._epoch is None:
+            return []
+        return [e.vehicle for e in self.simulator.ready_epochs() if e.vehicle is not None]
+
+    def vehicle_mask(self, vehicle: int) -> NDArray[np.bool_]:
+        """Valid actions of ``vehicle`` now (all False if it has no decision now)."""
+        sim = self.simulator
+        for epoch in sim.ready_epochs() if self._epoch is not None else []:
+            if epoch.vehicle == vehicle:
+                return self.interface.mask(sim, epoch)
+        return np.zeros(self.interface.n_actions, dtype=bool)
+
+    def observe_vehicle(self, vehicle: int, mask: NDArray[np.bool_]) -> dict[str, NDArray[Any]]:
+        """The observation from ``vehicle``'s point of view, with ``mask`` as its action mask."""
+        sim = self.simulator
+        perspective = Epoch(sim.state.time, "vehicle_idle", vehicle)
+        return self.observations.build(sim, perspective, mask)
+
+    def _finish_step(
+        self, transition: Transition, repaired: bool, chosen: int | None
+    ) -> tuple[dict[str, NDArray[Any]], SupportsFloat, bool, bool, dict[str, Any]]:
+        sim = self.simulator
         costs = _merge_costs(self._carry_costs, transition.costs)
+        vehicle_costs = dict(self._carry_vehicle_costs)
+        for vehicle, part in transition.vehicle_costs.items():
+            vehicle_costs[vehicle] = _merge_costs(vehicle_costs.get(vehicle, {}), part)
         self._carry_costs = {}
+        self._carry_vehicle_costs = {}
         reward = self.reward_model(costs)
         sim.log.append("epoch", epoch=sim.state.epoch_count, reward=reward, time=sim.state.time)
         self._epoch = transition.epoch
@@ -431,7 +503,8 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         if self.debug:
             self._monitor.check(sim)
         info = self._info(costs)
-        if chosen != int(action):
+        info["vehicle_costs"] = vehicle_costs
+        if repaired:
             info["repaired_action"] = chosen
         return self._observation(), reward, transition.terminated, False, info
 
@@ -447,11 +520,14 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
                 )
             action = 0
         costs, self._carry_costs = self._carry_costs, {}
+        vehicle_costs, self._carry_vehicle_costs = self._carry_vehicle_costs, {}
         self._final_step_pending = False
         reward = self.reward_model(costs)
         sim.log.append("decision", action=0, epoch=sim.state.epoch_count)
         sim.log.append("epoch", epoch=sim.state.epoch_count, reward=reward, time=sim.state.time)
-        return self._observation(), reward, True, False, self._info(costs)
+        info = self._info(costs)
+        info["vehicle_costs"] = vehicle_costs
+        return self._observation(), reward, True, False, info
 
     def action_masks(self) -> NDArray[np.bool_]:
         """Valid actions now (the sb3-contrib ``MaskablePPO`` convention)."""
@@ -486,6 +562,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             np_random_state=copy.deepcopy(self.np_random.bit_generator.state),
             carry_costs=dict(self._carry_costs),
             final_step_pending=self._final_step_pending,
+            carry_vehicle_costs={k: dict(v) for k, v in self._carry_vehicle_costs.items()},
             scenario=sim.scenario,
             base_problem=self._base_problem,
         )
@@ -507,6 +584,9 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         self.np_random.bit_generator.state = copy.deepcopy(state.np_random_state)
         self._carry_costs = dict(state.carry_costs)
         self._final_step_pending = state.final_step_pending
+        self._carry_vehicle_costs = {
+            k: dict(v) for k, v in (state.carry_vehicle_costs or {}).items()
+        }
         self._base_problem = state.base_problem
         self._monitor.reset()
 

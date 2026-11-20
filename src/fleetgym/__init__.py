@@ -12,7 +12,14 @@ Examples
 """
 
 from fleetgym._version import __version__
-from fleetgym.envs import FleetGymEnv, make, make_vec
+from fleetgym.envs import (
+    FleetGymAECEnv,
+    FleetGymEnv,
+    FleetGymParallelEnv,
+    make,
+    make_multi,
+    make_vec,
+)
 from fleetgym.sim.recourse import RecourseRule, register_recourse
 from fleetgym.spec import REGISTRY, ProblemSpec, load_spec
 from fleetgym.uncertainty.distributions import Distribution, register_distribution
@@ -21,13 +28,16 @@ from fleetgym.uncertainty.scenario import Scenario
 __all__ = [
     "REGISTRY",
     "Distribution",
+    "FleetGymAECEnv",
     "FleetGymEnv",
+    "FleetGymParallelEnv",
     "ProblemSpec",
     "RecourseRule",
     "Scenario",
     "__version__",
     "load_spec",
     "make",
+    "make_multi",
     "make_vec",
     "register_distribution",
     "register_recourse",

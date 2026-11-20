@@ -41,7 +41,8 @@ Dynamic requests with ``next_node`` (ADR 0015)
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import numpy as np
@@ -101,6 +102,7 @@ class Transition:
 
     epoch: Epoch | None
     costs: dict[str, float]
+    vehicle_costs: dict[int, dict[str, float]] = field(default_factory=dict)
 
     @property
     def terminated(self) -> bool:
@@ -524,6 +526,68 @@ class Simulator:
             raise InfeasibleActionError(
                 f"vehicle {vehicle} has no pending decision (current: {state.active_vehicle})"
             )
+        self._execute(decision)
+        state.active_vehicle = None
+        return self._transition()
+
+    def apply_many(self, decisions: Sequence[Decision]) -> Transition:
+        """Apply simultaneous decisions of the vehicles in `ready_epochs`, then advance.
+
+        Decisions are executed in the given order, each against the state left by the previous ones
+        (multi-agent Parallel API; conflicts are resolved by the caller).
+
+        Raises
+        ------
+        InfeasibleActionError
+            If a decision is for a vehicle without a decision now, or is infeasible.
+        """
+        state = self.state
+        if state.terminated:
+            raise InfeasibleActionError("the episode has ended")
+        ready = {e.vehicle for e in self.ready_epochs()}
+        for decision in decisions:
+            if not isinstance(decision, (Dispatch, EndRoute, RecourseChoice, Wait)):
+                raise InfeasibleActionError(f"{type(decision).__name__} is not a vehicle decision")
+            if decision.vehicle not in ready:
+                raise InfeasibleActionError(f"vehicle {decision.vehicle} has no decision now")
+            self._execute(decision)
+        state.active_vehicle = None
+        return self._transition()
+
+    def ready_epochs(self) -> list[Epoch]:
+        """Every vehicle that needs a decision at the current time (in index order).
+
+        `apply`'s epoch is one of them; the Parallel multi-agent API asks all of them at once.
+        """
+        state = self.state
+        out = []
+        for v in sorted(state.vehicles, key=lambda v: v.index):
+            if v.status != VehicleStatus.IDLE or v.waiting or v.time > state.time + _TOL:
+                continue
+            if v.awaiting_recourse is not None:
+                out.append(Epoch(state.time, "recourse", v.index, v.awaiting_recourse))
+            elif v.node != DEPOT or self._depot_vehicle_decides(v):
+                out.append(Epoch(state.time, "vehicle_idle", v.index))
+        return out
+
+    def _depot_vehicle_decides(self, v: VehicleState) -> bool:
+        if self.dynamic:
+            return self._work_left() and bool(self.mask(v.index).any() or self.can_wait(v.index))
+        return bool(self.state.pending_mask().any()) and bool(self.mask(v.index)[1:].any())
+
+    def _transition(self) -> Transition:
+        epoch = self._advance()
+        return Transition(
+            epoch=epoch,
+            costs=self.state.take_pending_costs(),
+            vehicle_costs=self.state.take_pending_vehicle_costs(),
+        )
+
+    def _execute(self, decision: Decision) -> None:
+        """Validate and carry out one vehicle decision (no advancing)."""
+        assert isinstance(decision, (Dispatch, EndRoute, RecourseChoice, Wait))
+        state = self.state
+        vehicle = decision.vehicle
         v = state.vehicles[vehicle]
         if v.awaiting_recourse is not None:
             if not isinstance(decision, RecourseChoice):
@@ -573,9 +637,6 @@ class Simulator:
                 if not mask[decision.node]:
                     raise InfeasibleActionError(self._explain(vehicle, decision.node))
                 self._dispatch(v, decision.node)
-        state.active_vehicle = None
-        epoch = self._advance()
-        return Transition(epoch=epoch, costs=state.take_pending_costs())
 
     def snapshot(self) -> tuple[SimState, list[Any]]:
         """Deep copy of the full state (simulator and constraints)."""
@@ -658,7 +719,7 @@ class Simulator:
         if v.route_start is None:
             v.route_start = v.time
             v.route = [DEPOT]
-            self.state.add_cost("vehicles", 1.0)
+            self.state.add_cost("vehicles", 1.0, v.index)
             self.log.append("cost", time=v.time, vehicle=v.index, component="vehicles", amount=1.0)
         if node != DEPOT:
             self.state.request_status[node] = RequestStatus.ASSIGNED
@@ -690,7 +751,7 @@ class Simulator:
     ) -> None:
         if amount == 0:
             return
-        self.state.add_cost(component, amount)
+        self.state.add_cost(component, amount, vehicle)
         where = {"node": node} if node is not None else {}
         self.log.append(
             "cost", time=time, vehicle=vehicle, component=component, amount=amount, **where

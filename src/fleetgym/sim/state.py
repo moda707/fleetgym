@@ -120,6 +120,8 @@ class SimState:
         Index of the vehicle whose decision is pending, if any.
     pending_costs
         Costs realized since the last decision epoch, by component.
+    pending_vehicle_costs
+        The part of ``pending_costs`` attributed to each vehicle (multi-agent rewards).
     total_costs
         Costs realized since the start of the episode, by component.
     remaining_demand
@@ -145,17 +147,26 @@ class SimState:
     epoch_count: int = 0
     terminated: bool = False
     fleet_exhausted: bool = False
+    pending_vehicle_costs: dict[int, dict[str, float]] = field(default_factory=dict)
     remaining_demand: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0))
     outsourced: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0))
     revealed: dict[str, NDArray[np.bool_]] = field(default_factory=dict)
     known_values: dict[str, NDArray[np.float64]] = field(default_factory=dict)
 
-    def add_cost(self, component: str, amount: float) -> None:
-        """Record a realized cost (zero amounts are ignored)."""
+    def add_cost(self, component: str, amount: float, vehicle: int | None = None) -> None:
+        """Record a realized cost (zero amounts are ignored), attributed to ``vehicle`` if given."""
         if amount == 0:
             return
         self.pending_costs[component] = self.pending_costs.get(component, 0.0) + amount
         self.total_costs[component] = self.total_costs.get(component, 0.0) + amount
+        if vehicle is not None:
+            own = self.pending_vehicle_costs.setdefault(vehicle, {})
+            own[component] = own.get(component, 0.0) + amount
+
+    def take_pending_vehicle_costs(self) -> dict[int, dict[str, float]]:
+        """Return and clear the per-vehicle part of the costs realized since the last epoch."""
+        costs, self.pending_vehicle_costs = self.pending_vehicle_costs, {}
+        return costs
 
     def take_pending_costs(self) -> dict[str, float]:
         """Return and clear the costs realized since the last epoch."""

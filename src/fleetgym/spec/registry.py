@@ -128,15 +128,26 @@ class ConfigRegistry:
             )
         return ConfigEntry(id=env_id, path=path, status=status, origin=origin)
 
-    def ids(self, *, include_planned: bool = False) -> tuple[str, ...]:
-        """Return registered IDs, sorted; planned configs only if ``include_planned``."""
-        return tuple(
-            sorted(
-                env_id
-                for env_id, entry in self._scan().items()
-                if include_planned or entry.status != "planned"
-            )
+    def ids(
+        self,
+        *,
+        include_planned: bool = False,
+        agents: Literal["single", "multi"] | None = None,
+    ) -> tuple[str, ...]:
+        """Return registered IDs, sorted; planned configs only if ``include_planned``.
+
+        ``agents`` keeps only single-agent or multi-agent configs (``agents.mode``).
+        """
+        ids = sorted(
+            env_id
+            for env_id, entry in self._scan().items()
+            if include_planned or entry.status != "planned"
         )
+        if agents is not None:
+            from fleetgym.spec.loader import load_spec  # loader imports this module
+
+            ids = [i for i in ids if load_spec(i, registry=self).agents.mode == agents]
+        return tuple(ids)
 
     def entries(self, *, include_planned: bool = True) -> tuple[ConfigEntry, ...]:
         """Return registered entries, sorted by ID."""

@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# Multi-agent CVRP: one agent per vehicle (PettingZoo), all vehicles routing concurrently.
+id: MA-CVRP-v0
+extends: CVRP-v0
+meta:
+  name: Multi-agent CVRP
+  status: experimental
+  references: [dantzig1959]
+fleet:
+  sizing: fixed
+  types: [{name: truck, capacity: from_instance, count: 4}]
+decisions: {interface: next_node, epochs: on_event}
+objective: {distance: 1.0, unserved: 100.0}
+agents: {mode: multi, api: parallel, reward: global, conflict: priority}

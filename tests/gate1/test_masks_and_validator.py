@@ -53,7 +53,7 @@ def test_validator_accepts_random_problem_rollouts(problem, seed):
     validate(env.event_log, spec, instance).raise_if_invalid()
 
 
-@pytest.mark.parametrize("env_id", fg.REGISTRY.ids())
+@pytest.mark.parametrize("env_id", fg.REGISTRY.ids(agents="single"))
 def test_validator_accepts_registered_config_rollouts(env_id: str):
     env = fg.make(env_id)
     for seed in range(10):
@@ -67,7 +67,7 @@ def test_validator_accepts_registered_config_rollouts(env_id: str):
 def test_gate1_ten_thousand_rollouts():
     """Gate 1: 10,000 random masked rollouts across configs and random problems, all valid."""
     count = 0
-    for env_id in fg.REGISTRY.ids():
+    for env_id in fg.REGISTRY.ids(agents="single"):
         env = fg.make(env_id)
         for seed in range(2_000):
             random_masked_rollout(env, np.random.default_rng(seed), seed=seed)

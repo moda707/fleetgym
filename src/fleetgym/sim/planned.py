@@ -259,7 +259,11 @@ class PlannedRoutingSimulator(Simulator):
             )
         state.active_vehicle = None
         epoch = self._advance()
-        return Transition(epoch=epoch, costs=state.take_pending_costs())
+        return Transition(
+            epoch=epoch,
+            costs=state.take_pending_costs(),
+            vehicle_costs=state.take_pending_vehicle_costs(),
+        )
 
     # ------------------------------------------------------------------ internals
 
@@ -410,7 +414,7 @@ class PlannedRoutingSimulator(Simulator):
                 if v.route_start is None:
                     v.route_start = v.time
                     v.route = [DEPOT]
-                    state.add_cost("vehicles", 1.0)
+                    state.add_cost("vehicles", 1.0, v.index)
                     self.log.append(
                         "cost", time=v.time, vehicle=v.index, component="vehicles", amount=1.0
                     )

@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# Multi-agent dynamic VRP: requests arrive during the day and are accepted automatically until the
+# cutoff (the last 20% of the 480-minute day takes no new requests); each vehicle is an agent that
+# chooses its next customer, waits, reloads at the depot or ends its route (ADR 0015).
+# Parameter values are illustrative.
+id: MA-DVRP-v0
+extends: DVRP-StochReq-v0
+meta:
+  name: Multi-agent dynamic VRP
+  status: experimental
+  references: [bent2004, hvattum2006]
+dynamics:
+  cutoff: 384
+decisions: {interface: next_node, epochs: on_event}
+objective: {distance: 1.0, unserved: 50.0}
+agents: {mode: multi, api: parallel, reward: global, conflict: priority}

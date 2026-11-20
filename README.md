@@ -35,6 +35,7 @@ with a focus on stochastic and dynamic variants where information arrives during
 | `DVRP-StochReq-v0` | experimental (requests arriving during the day, accept/reject) |
 | `VRPSD-v0` | experimental (stochastic demands, return-to-depot recourse) |
 | `VRPSD-Outsource-v0` | planned (stochastic demands with outsourcing) |
+| `MA-CVRP-v0`, `MA-DVRP-v0` | experimental (multi-agent, PettingZoo: one agent per vehicle) |
 
 ## Quick start
 
