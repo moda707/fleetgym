@@ -16,7 +16,8 @@ conventions or benchmark values from them or from your own memory. Use the actua
 files, or ask the user.
 
 ## Scope
-Phase 0 and v0.1 only (M0 to M11). Not in scope: EV module, time-dependent travel, GPU backend, C++ core,
+Phase 0 and v0.1 only (M0 to M11). Not in scope: EV module, VRP-SDO (deferred by the user on 2026-11-20:
+its decision is selection on top of routing), time-dependent travel, GPU backend, C++ core,
 OSM networks, web replay viewer, leaderboard. For those, leave only a registry entry type, an abstract
 base class, or a reserved spec field that raises `NotInScopeError`. No stub implementations.
 
@@ -58,7 +59,7 @@ base class, or a reserved spec field that raises `NotInScopeError`. No stub impl
   **Ask the user before adding any other dependency.**
 - Ruff excludes Markdown (it would reformat code blocks; `docs/DESIGN.md` is a verbatim copy).
 - Unanswered plan questions: adopt the plan's recommendation when its milestone starts and record an ADR.
-  Exceptions that need the user: Q18/Q19 (Gate 1 data), Q20 (recourse design, discuss before M5), M11.
+  Exceptions that need the user: Q18/Q19 (Gate 1 data), Q20 (recourse design, discuss before M5), Gate 2.
 
 ## Commands
 ```bash
@@ -82,8 +83,8 @@ uv run fleetgym validate <config> # CLI (from M1)
 - One milestone at a time, in order. At the end of each: run the full suite, update `STATUS.md` and
   `CHANGELOG.md`, add ADRs, commit with a conventional commit message (`feat(spec): ...`), then give
   the user a short summary.
-- **Stop and wait for user approval at Gate 1 (end of M4) and Gate 2 (M11).** Before M11, ask the user for
-  the VRP-SDO model, parameters, instances and published results.
+- **Stop and wait for user approval at Gate 1 (end of M4) and Gate 2 (M11).** Gate 2 is the review of v0.1
+  (`docs/gates/gate2.md`); VRP-SDO is deferred until the user brings it back, with its model and data.
 - Record each non-obvious design decision as `docs/adr/NNNN-kebab-title.md` (Context, Decision,
   Alternatives, Consequences).
 - If the design is ambiguous or seems wrong, ask. Never invent behavior silently. Small naming

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- VRP-SDO (`VRPSD-Outsource-v0`) is deferred after v0.1 by the user: its decision is a selection on
+  top of routing. Gate 2 is the review of v0.1 (`docs/gates/gate2.md`).
+
 ### Added
 - M10b documentation (ADR 0020): Sphinx site (`docs/site`, extra `docs`, Read the Docs config) with
   concepts, an environment catalog, guides (notably *Build your own VRP variant*) and API reference;

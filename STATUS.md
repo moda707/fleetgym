@@ -1,7 +1,7 @@
 # Status
 
-**Current milestone:** M10b Documentation and examples done (2026-11-20). Next: M11 Gate 2, which needs
-the VRP-SDO model, parameters, instances and published results from the user.
+**Current milestone:** v0.1 built (M0 to M10b). **Stopped at Gate 2 for user approval**
+(`docs/gates/gate2.md`). VRP-SDO is deferred by the user (2026-11-20).
 Repository: <https://github.com/moda707/fleetgym>. Release `v0.1.0.dev0` tagged on `main` (the
 GitHub release and PyPI upload are done by the user).
 
@@ -21,7 +21,7 @@ GitHub release and PyPI upload are done by the user).
 | M9 Training stack | Done | MaskablePPO learns a tiny instance optimally; MaskableDQN masks verified (ADR 0018) |
 | M10 Visualization | Done | Map and Gantt views, rgb_array and human modes, `fleetgym render` (ADR 0019) |
 | M10b Documentation and examples | Done | Sphinx site, build-your-own-variant guide, 8 tested examples (ADR 0020) |
-| M11 Gate 2 | Waiting for the user | VRP-SDO model, parameters, instances and published results needed |
+| M11 Gate 2 | Awaiting approval | Review of v0.1; VRP-SDO deferred by the user |
 
 ## Tests (M6)
 - Default run: 723 passed (with the sb3, solvers and viz extras), coverage 96% (core-only 95%);
@@ -47,7 +47,7 @@ GitHub release and PyPI upload are done by the user).
 | MA-CVRP-v0 | experimental | Multi-agent CVRP (Parallel, priority conflicts) |
 | MA-DVRP-v0 | experimental | Multi-agent dynamic VRP with wait (Parallel) |
 | VRPSD-v0 | experimental | Poisson demands revealed on arrival, return-to-depot recourse |
-| VRPSD-Outsource-v0 | planned | until Gate 2 (M11); outsourcing cost provisional |
+| VRPSD-Outsource-v0 | planned | VRP-SDO, deferred after v0.1 (selection on top of routing) |
 | EVRP-NL-v0 | planned | EV module out of scope |
 
 ## Known issues

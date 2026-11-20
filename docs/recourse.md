@@ -95,7 +95,7 @@ class NearDepot(fg.RecourseRule):
 3. **Time-window failures**: serve late at a penalty, or skip (failure type `time_window_failure`).
 4. **Battery shortfall**: emergency charging or towing (`energy_failure`; EV module, out of scope).
 5. **Outsourcing variants**: carrier capacity, per-unit vs per-customer fees, partial outsourcing
-   (to be aligned with the VRP-SDO model at M11).
+   (to be aligned with the VRP-SDO model, deferred after v0.1).
 6. **Duration limits with recourse** (Goodson et al. 2013), where a detour can break the route duration.
 7. **Multiple depots or replenishment points**: restock at the nearest facility.
 8. **Stochastic customers** (VRPSC): skip absent customers.

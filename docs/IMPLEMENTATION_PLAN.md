@@ -808,6 +808,9 @@ M7 and M8 are independent; M8 needs M5 (`fork`) and M6. Each milestone ends with
   if the examples gallery uses it. Hosting needs a Read the Docs project linked by the user.
 
 ### M11 Gate 2
+- **Changed by the user (2026-11-20):** VRP-SDO is out of scope for v0.1, because its decision is a
+  selection on top of routing and needs its own interface; it will come back with its model and data.
+  Gate 2 is the review of v0.1 as built (`docs/gates/gate2.md`). The original plan follows.
 - Ask you first for the exact VRP-SDO model, parameters, instances and published results. Then
   implement `VRPSD-Outsource-v0` and its recourse, plus replication tests against your published
   numbers.
@@ -853,7 +856,7 @@ Gate 2 = M11). Q6: `meta.status`; start with a few configs and expand. Q7: `obje
 merged; `meta` is not inherited; a discriminator change replaces the subtree. Q20: standard plus custom
 recourse, design to be discussed before M5 (see below).
 **Adopted in M1 (recommendations, user unavailable):** Q8, Q9, Q10, Q11, Q12, Q24, Q28 (ADRs 0006,
-0007). Adopted in M3: Q13 to Q17 (ADR 0009). M4: Q18/Q19 resolved for CVRPLIB X from the conventions CVRPLIB publishes (ADR 0010), and for Solomon from SINTEF TOP's published route files and conventions (ADR 0011). Adopted in M5: Q20 (implemented as agreed, ADR 0013), Q21 to Q23 (ADR 0012). Adopted in M6: Q24 to Q27 (ADR 0014). Adopted in M7: Q28 (ADR 0016). Adopted in M8: Q29, Q30 checked (ADR 0017). Adopted in M9: Q31 (ADR 0018). All plan questions except Q-M11 are now settled.
+0007). Adopted in M3: Q13 to Q17 (ADR 0009). M4: Q18/Q19 resolved for CVRPLIB X from the conventions CVRPLIB publishes (ADR 0010), and for Solomon from SINTEF TOP's published route files and conventions (ADR 0011). Adopted in M5: Q20 (implemented as agreed, ADR 0013), Q21 to Q23 (ADR 0012). Adopted in M6: Q24 to Q27 (ADR 0014). Adopted in M7: Q28 (ADR 0016). Adopted in M8: Q29, Q30 checked (ADR 0017). Adopted in M9: Q31 (ADR 0018). All plan questions are settled (Q-M11: VRP-SDO deferred by the user).
 **Gate 1 approved by the user (2026-11-20).** Q4: the repository is `github.com/moda707/fleetgym`
 (personal account); the PyPI name is taken by the first release through trusted publishing
 (`.github/workflows/release.yml`, set up by the user). Q20: the user asked to start M5 with the agreed
@@ -1017,4 +1020,5 @@ require the user: Q18 and Q19 (Gate 1 data), Q20 (recourse design), Q-M11.
 
 ### M11
 - **Q-M11.** Exact VRP-SDO model, parameters, instances and published results (requested in the build
-  instructions; asked before M11 starts).
+  instructions; asked before M11 starts). **Resolved (2026-11-20): deferred by the user**; VRP-SDO is
+  not part of v0.1.
