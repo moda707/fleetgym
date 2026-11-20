@@ -65,6 +65,12 @@ dev = [
     "pre-commit>=4.0",
     "jsonschema>=4.23",
 ]
+docs = [
+    "myst-parser>=4.0",
+    "pydata-sphinx-theme>=0.16",
+    "sphinx>=8.1",
+    "sphinx-autodoc-typehints>=2.5",
+]
 
 [project.scripts]
 fleetgym = "fleetgym.cli.__main__:main"

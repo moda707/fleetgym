@@ -65,6 +65,17 @@ jobs:
         if: failure()
         run: uv run python .github/scripts/junit_annotations.py junit.xml
 
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --extra docs --extra viz
+      - run: uv run sphinx-build -W --keep-going -b html docs/site docs/_build/html
+
   slow:
     name: Slow suites (gates)
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')

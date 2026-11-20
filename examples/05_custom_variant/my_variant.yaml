@@ -1,0 +1,19 @@
+# A new VRP variant from YAML alone: stochastic demands from a custom distribution, a limit on
+# stops per route (a custom constraint) and a custom recourse rule. See plugins.py.
+id: MyVariant-v0
+extends: VRPSD-v0
+meta:
+  name: Stochastic demands with a stop limit
+  status: experimental
+fleet:
+  sizing: fixed
+  types: [{name: van, capacity: 15, count: 6}]
+decisions: {interface: next_node, epochs: on_event}
+uncertainty:
+  demand: {dist: triangular_demand, low: 0, mode: from_instance, high: 12, revealed: on_arrival}
+constraints:
+  capacity: {}
+  max_stops: {max: 5}
+recourse:
+  capacity_failure: {rule: near_depot_restock, radius: 40, per_unit: 3.0}
+objective: {distance: 1.0, outsourcing: 1.0, unserved: 200.0}

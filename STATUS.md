@@ -1,6 +1,7 @@
 # Status
 
-**Current milestone:** M10 Visualization done (2026-11-20). Next: M10b documentation site and examples.
+**Current milestone:** M10b Documentation and examples done (2026-11-20). Next: M11 Gate 2, which needs
+the VRP-SDO model, parameters, instances and published results from the user.
 Repository: <https://github.com/moda707/fleetgym>. Release `v0.1.0.dev0` tagged on `main` (the
 GitHub release and PyPI upload are done by the user).
 
@@ -19,11 +20,11 @@ GitHub release and PyPI upload are done by the user).
 | M8 Baselines and evaluation | Done | Oracle bounds every non-anticipative baseline on tiny instances (ADR 0017) |
 | M9 Training stack | Done | MaskablePPO learns a tiny instance optimally; MaskableDQN masks verified (ADR 0018) |
 | M10 Visualization | Done | Map and Gantt views, rgb_array and human modes, `fleetgym render` (ADR 0019) |
-| M10b Documentation and examples | Not started | Added at the user's request; needs dependency approval |
-| M11 Gate 2 | Not started | Before M11, ask for the VRP-SDO model and data |
+| M10b Documentation and examples | Done | Sphinx site, build-your-own-variant guide, 8 tested examples (ADR 0020) |
+| M11 Gate 2 | Waiting for the user | VRP-SDO model, parameters, instances and published results needed |
 
 ## Tests (M6)
-- Default run: 713 passed (with the sb3, solvers and viz extras), coverage 96% (core-only 95%);
+- Default run: 723 passed (with the sb3, solvers and viz extras), coverage 96% (core-only 95%);
   ruff and pyright (standard) clean.
 - M6: KS and chi-square tests of the arrival processes; accept mask equal to the independent route
   oracle; property tests on random dynamic problems (validator, determinism, non-anticipativity).

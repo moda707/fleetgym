@@ -12,6 +12,7 @@ Examples
 """
 
 from fleetgym._version import __version__
+from fleetgym.constraints.base import Constraint, register_constraint
 from fleetgym.envs import (
     FleetGymAECEnv,
     FleetGymEnv,
@@ -27,6 +28,7 @@ from fleetgym.uncertainty.scenario import Scenario
 
 __all__ = [
     "REGISTRY",
+    "Constraint",
     "Distribution",
     "FleetGymAECEnv",
     "FleetGymEnv",
@@ -39,6 +41,7 @@ __all__ = [
     "make",
     "make_multi",
     "make_vec",
+    "register_constraint",
     "register_distribution",
     "register_recourse",
 ]

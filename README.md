@@ -74,6 +74,13 @@ or `render_mode="rgb_array"` (needs `fleetgym[viz]`).
 Baselines (random, nearest neighbor, cheapest insertion, rollout, PyVRP re-optimization and a
 perfect-information benchmark) run through the same evaluation harness, on fixed test scenarios.
 
+## Documentation and examples
+
+The documentation (`docs/site`, build with `uv run sphinx-build docs/site docs/_build/html`) covers
+the concepts, every environment, and a step-by-step guide to building your own VRP variant. The
+[`examples/`](https://github.com/moda707/fleetgym/tree/main/examples) folder has runnable scripts,
+from a first environment to a custom variant, training and multi-agent routing.
+
 ## Install (development)
 
 ```bash

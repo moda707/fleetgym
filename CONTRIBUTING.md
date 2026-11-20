@@ -21,6 +21,17 @@ uv run ruff check . && uv run ruff format --check .
 uv run pyright
 ```
 
+Reproduce the default CI test job (no optional extras) before pushing changes that touch optional
+modules, since a module that imports an extra must not break installs without it:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-core uv sync --extra dev
+UV_PROJECT_ENVIRONMENT=.venv-core uv run --no-sync pytest -n auto --cov --cov-config=.github/coverage-core.toml
+```
+
+Build the documentation with `uv sync --extra docs --extra viz` and
+`uv run sphinx-build -W -b html docs/site docs/_build/html`.
+
 ## Ground rules
 - Read [`docs/DESIGN.md`](docs/DESIGN.md) for the architecture and [`docs/adr/`](docs/adr/) for
   decisions already made. To change a decision, propose a new ADR instead of editing code around it.

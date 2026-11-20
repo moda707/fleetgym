@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M10b documentation (ADR 0020): Sphinx site (`docs/site`, extra `docs`, Read the Docs config) with
+  concepts, an environment catalog, guides (notably *Build your own VRP variant*) and API reference;
+  `examples/` with eight runnable examples, all run by the tests; `fleetgym.register_constraint`.
+
+### Added
 - M10 visualization (ADR 0019): map and vehicle Gantt views from the event log (`fleetgym.viz`),
   `rgb_array` and `human` render modes (with the `viz` extra), and `fleetgym render`.
 
