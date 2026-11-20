@@ -66,7 +66,7 @@ def _manifest_files() -> dict[str, Path]:
     root = Path(str(resources.files("fleetgym.data"))) / "manifests"
     out = {}
     for path in sorted(root.glob("*.json")):
-        name = json.loads(path.read_text())["collection"]
+        name = json.loads(path.read_text(encoding="utf-8"))["collection"]
         out[name] = path
     return out
 
@@ -81,7 +81,7 @@ def load_collection(name: str) -> Collection:
     files = _manifest_files()
     if name not in files:
         raise InstanceError(f"unknown collection {name!r}; known: {', '.join(files)}")
-    data = json.loads(files[name].read_text())
+    data = json.loads(files[name].read_text(encoding="utf-8"))
     return Collection(
         name=data["collection"],
         base_url=data["base_url"],

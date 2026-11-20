@@ -1,0 +1,4 @@
+# Keep LF line endings on every platform (fixtures and manifests are checksummed or compared).
+* text=auto eol=lf
+*.zip binary
+*.parquet binary

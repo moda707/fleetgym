@@ -45,7 +45,10 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: uv sync --extra dev
       - name: Tests
-        run: uv run pytest -n auto --cov --cov-report=term --hypothesis-profile=ci
+        run: uv run pytest -n auto --cov --cov-report=term --hypothesis-profile=ci --junitxml=junit.xml
+      - name: Annotate failed tests
+        if: failure()
+        run: uv run python .github/scripts/junit_annotations.py junit.xml
 
   slow:
     name: Slow suites (gates)
