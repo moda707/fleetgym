@@ -8,16 +8,18 @@ rule (for example ``return_to_depot``) repairs failures. The exact-expectation t
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 
+from fleetgym.baselines.protocol import PolicyBase
 from fleetgym.envs.env import FleetGymEnv
 from fleetgym.errors import InfeasibleActionError
 
 __all__ = ["AprioriRoute"]
 
 
-class AprioriRoute:
+class AprioriRoute(PolicyBase):
     """Visit customers in ``order``; return to the depot when no listed customer is allowed.
 
     Parameters
@@ -29,15 +31,17 @@ class AprioriRoute:
     Examples
     --------
     >>> policy = AprioriRoute([3, 1, 2])  # doctest: +SKIP
-    >>> obs, info = env.reset(seed=0)  # doctest: +SKIP
-    >>> obs, reward, terminated, truncated, info = env.step(policy.act(env))  # doctest: +SKIP
+    >>> cost = policy.run(env, seed=0)  # doctest: +SKIP
     """
 
+    name = "apriori_route"
+
     def __init__(self, order: Sequence[int]) -> None:
+        super().__init__()
         self.order = [int(node) for node in order]
 
-    def act(self, env: FleetGymEnv) -> int:
-        """The next action for ``env``'s current epoch.
+    def act(self, obs: dict[str, Any], info: dict[str, Any]) -> int:
+        """The next action for the bound environment's current epoch.
 
         Raises
         ------
@@ -45,8 +49,9 @@ class AprioriRoute:
             At a recourse epoch: an a priori route needs a fixed recourse rule, not
             ``agent_decides``.
         """
+        env = self.env
         mask = env.action_masks()
-        epoch = env._epoch  # pyright: ignore[reportPrivateUsage]
+        epoch = env.epoch
         if epoch is not None and epoch.kind == "recourse":
             raise InfeasibleActionError("AprioriRoute needs a fixed recourse rule")
         for node in self.order:
@@ -58,10 +63,11 @@ class AprioriRoute:
 
     def run(self, env: FleetGymEnv, **reset_kwargs: object) -> float:
         """Play one episode from ``env.reset(**reset_kwargs)`` and return its total cost."""
-        env.reset(**reset_kwargs)  # pyright: ignore[reportArgumentType]
+        obs, info = env.reset(**reset_kwargs)  # pyright: ignore[reportArgumentType]
+        self.reset(env)
         total = 0.0
         while True:
-            _, reward, terminated, truncated, _ = env.step(self.act(env))
+            obs, reward, terminated, truncated, info = env.step(self.act(obs, info))
             total -= float(reward)
             if terminated or truncated:
                 return total

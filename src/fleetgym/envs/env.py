@@ -264,6 +264,11 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         return self.simulator.problem
 
     @property
+    def epoch(self) -> Epoch | None:
+        """The current decision epoch (``None`` once the episode has ended)."""
+        return self._epoch
+
+    @property
     def episode_seed(self) -> int:
         """Seed of the current episode."""
         return self._episode_seed

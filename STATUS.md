@@ -1,6 +1,6 @@
 # Status
 
-**Current milestone:** M7 Multi-agent done (2026-11-20). Next: M8 Baselines and evaluation.
+**Current milestone:** M8 Baselines and evaluation done (2026-11-20). Next: M9 Training stack.
 Repository: <https://github.com/moda707/fleetgym>. Release `v0.1.0.dev0` tagged on `main` (the
 GitHub release and PyPI upload are done by the user).
 
@@ -16,12 +16,13 @@ GitHub release and PyPI upload are done by the user).
 | M6 Dynamic requests | Done | Accept mask equals the independent route oracle; 2,000 random dynamic problems validate (ADR 0014) |
 | M6b Dynamic next_node | Done | Wait, reload and terminate as decided with the user (ADR 0015) |
 | M7 Multi-agent | Done | PettingZoo AEC and Parallel pass the API tests (ADR 0016) |
-| M8 to M10 | Not started | |
+| M8 Baselines and evaluation | Done | Oracle bounds every non-anticipative baseline on tiny instances (ADR 0017) |
+| M9 to M10 | Not started | |
 | M10b Documentation and examples | Not started | Added at the user's request; needs dependency approval |
 | M11 Gate 2 | Not started | Before M11, ask for the VRP-SDO model and data |
 
 ## Tests (M6)
-- Default run: 659 passed, coverage 96%; ruff and pyright (standard) clean.
+- Default run: 694 passed, coverage 96%; ruff and pyright (standard) clean.
 - M6: KS and chi-square tests of the arrival processes; accept mask equal to the independent route
   oracle; property tests on random dynamic problems (validator, determinism, non-anticipativity).
 - M5: KS and chi-square tests for every sampler; exact expectation (1,024 scenarios, 6 recourse

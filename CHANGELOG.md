@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M8 baselines and evaluation (ADR 0017): `Policy` protocol and `run_episode`; random, nearest
+  neighbor, cheapest insertion, a priori route, rollout over forks, PyVRP re-optimization (extra
+  `solvers`), perfect-information benchmark (exact bound or heuristic); `fleetgym.eval` with fixed
+  scenario seeds, validated evaluation, CI, CVaR, paired tests and JSON report cards;
+  `check_policy_non_anticipative`; `FleetGymEnv.epoch`.
+
+### Added
 - M7 multi-agent (ADR 0016): `FleetGymAECEnv` and `FleetGymParallelEnv` (one agent per vehicle),
   conflict rules (priority, distance, lottery, reject), global, individual and mixed rewards,
   `state()` for a centralized critic, per-vehicle cost attribution, `Simulator.apply_many` and

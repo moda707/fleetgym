@@ -853,7 +853,7 @@ Gate 2 = M11). Q6: `meta.status`; start with a few configs and expand. Q7: `obje
 merged; `meta` is not inherited; a discriminator change replaces the subtree. Q20: standard plus custom
 recourse, design to be discussed before M5 (see below).
 **Adopted in M1 (recommendations, user unavailable):** Q8, Q9, Q10, Q11, Q12, Q24, Q28 (ADRs 0006,
-0007). Adopted in M3: Q13 to Q17 (ADR 0009). M4: Q18/Q19 resolved for CVRPLIB X from the conventions CVRPLIB publishes (ADR 0010), and for Solomon from SINTEF TOP's published route files and conventions (ADR 0011). Adopted in M5: Q20 (implemented as agreed, ADR 0013), Q21 to Q23 (ADR 0012). Adopted in M6: Q24 to Q27 (ADR 0014). Adopted in M7: Q28 (ADR 0016). Not adopted yet: Q29 to Q31.
+0007). Adopted in M3: Q13 to Q17 (ADR 0009). M4: Q18/Q19 resolved for CVRPLIB X from the conventions CVRPLIB publishes (ADR 0010), and for Solomon from SINTEF TOP's published route files and conventions (ADR 0011). Adopted in M5: Q20 (implemented as agreed, ADR 0013), Q21 to Q23 (ADR 0012). Adopted in M6: Q24 to Q27 (ADR 0014). Adopted in M7: Q28 (ADR 0016). Adopted in M8: Q29, Q30 checked (ADR 0017). Not adopted yet: Q31.
 **Gate 1 approved by the user (2026-11-20).** Q4: the repository is `github.com/moda707/fleetgym`
 (personal account); the PyPI name is taken by the first release through trusted publishing
 (`.github/workflows/release.yml`, set up by the user). Q20: the user asked to start M5 with the agreed

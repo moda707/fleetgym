@@ -64,6 +64,7 @@ SAME_LAYER_ALLOWED: frozenset[tuple[str, str]] = frozenset(
         ("cli", "viz"),
         ("cli", "testing"),
         ("viz", "eval"),
+        ("eval", "testing"),  # the harness validates every episode (ADR 0017)
     }
 )
 
