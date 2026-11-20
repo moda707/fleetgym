@@ -19,6 +19,7 @@ __all__ = [
     "OutsourceRequest",
     "RecourseChoice",
     "Reject",
+    "Wait",
 ]
 
 
@@ -78,4 +79,11 @@ class OutsourceRequest:
     node: int
 
 
-Decision = Dispatch | EndRoute | RecourseChoice | Accept | Assign | Reject | OutsourceRequest
+@dataclass(frozen=True)
+class Wait:
+    """``vehicle`` waits where it is until the next event (or its latest safe departure)."""
+
+    vehicle: int
+
+
+Decision = Dispatch | EndRoute | RecourseChoice | Wait | Accept | Assign | Reject | OutsourceRequest

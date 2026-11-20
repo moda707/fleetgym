@@ -21,7 +21,8 @@ the design and are flagged for the user: the cancellation timing and `initial_re
   cancelling request cancels at a time uniform between its release and its deadline (window close,
   or the end of the arrival window). The design names the option but not the timing. A cancellation
   after the service has started has no effect. A vehicle already driving to a cancelled request
-  arrives, serves nothing and continues.
+  arrives, serves nothing and continues. The user (2026-11-20) has no reference model either: the
+  timing stays as is and is listed as future work (a cancellation hazard or patience model).
 - **Overflow** (Q24): `max_requests` is required; `overflow: error` (default) raises
   `RequestOverflowError`; `overflow: reject` rejects extra requests on arrival (`reject` rows with
   `component: overflow`, one `rejected` cost each). Their release times are the scenario's

@@ -20,7 +20,7 @@ from fleetgym.interfaces.base import INTERFACE_CLASSES, ActionInterface
 from fleetgym.interfaces.observations import PaddedGraphObservation
 from fleetgym.interfaces.rewards import RewardModel
 from fleetgym.network.base import Network, build_network
-from fleetgym.sim.decisions import RecourseChoice
+from fleetgym.sim.decisions import RecourseChoice, Wait
 from fleetgym.sim.engine import Epoch, Simulator
 from fleetgym.sim.invariants import InvariantMonitor
 from fleetgym.sim.planned import PlannedRoutingSimulator
@@ -207,13 +207,17 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             self.max_vehicles = known_fleet
         else:
             self.max_vehicles = max(self.max_nodes, known_fleet)
-        if spec.dynamics is not None and spec.decisions.interface not in INTERFACES_NEEDING_ROUTING:
+        if spec.dynamics is not None and spec.decisions.interface not in (
+            *INTERFACES_NEEDING_ROUTING,
+            "next_node",
+        ):
             raise NotInScopeError(
-                "dynamic requests need the accept_reject or assign interface in this version "
-                "(next_node with waiting and repositioning is on the backlog)"
+                f"dynamic requests are not supported with {spec.decisions.interface!r}"
             )
         self.interface: ActionInterface = INTERFACE_CLASSES.get(spec.decisions.interface)(
-            self.max_nodes, self.max_vehicles
+            self.max_nodes,
+            self.max_vehicles,
+            wait=spec.dynamics is not None and spec.decisions.interface == "next_node",
         )
         self.observations = PaddedGraphObservation(
             self.max_nodes, self.max_vehicles, self.interface.n_actions
@@ -410,7 +414,9 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             chosen = int(self.interface.repair(chosen, self._mask, sim, epoch))
         decision = self.interface.decode(chosen, sim, epoch)
         target = (
-            {} if isinstance(decision, RecourseChoice) else {"node": getattr(decision, "node", 0)}
+            {}
+            if isinstance(decision, (RecourseChoice, Wait))
+            else {"node": getattr(decision, "node", 0)}
         )
         sim.log.append(
             "decision", vehicle=epoch.vehicle, action=chosen, epoch=sim.state.epoch_count, **target
@@ -543,7 +549,6 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
     def _replace_future(self, seed: int) -> None:
         """Redraw the requests that have not arrived and pending cancellations (dynamic fork)."""
         sim = self.simulator
-        assert isinstance(sim, PlannedRoutingSimulator)
         assert sim.scenario is not None
         assert self._base_problem is not None
         now = sim.state.time
@@ -556,7 +561,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         episode = episode_instance(base.instance, scenario)
         problem = bind(self.spec_, episode)
         snapshot = sim.snapshot()
-        twin = PlannedRoutingSimulator(
+        twin = self._simulator_class()(
             problem, build_network(problem), log=sim.log.copy(), scenario=scenario
         )
         twin.restore(snapshot)

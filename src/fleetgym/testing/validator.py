@@ -214,6 +214,8 @@ def validate(
         if scenario.spec_hash != spec.content_hash() or scenario.instance_hash != base_hash:
             fail("identity", "the scenario belongs to a different spec or instance")
     planned = spec.decisions.interface in ("accept_reject", "assign")
+    dynamic = spec.dynamics is not None
+    waits = planned or dynamic  # vehicles may stay idle before departing or ending
     release_times = np.asarray(
         instance.extra.get("release", np.zeros(instance.n_nodes)), dtype=float
     )
@@ -379,14 +381,14 @@ def validate(
                     row,
                     vehicle=index,
                 )
-            if planned and time < v.free_at - tol * max(1.0, abs(time)):
+            if waits and time < v.free_at - tol * max(1.0, abs(time)):
                 fail(
                     "depart",
                     f"vehicle {index} departs at {time}, before it is free at {v.free_at}",
                     row,
                     vehicle=index,
                 )
-            elif not planned and not _close(time, v.free_at, tol):
+            elif not waits and not _close(time, v.free_at, tol):
                 fail(
                     "depart",
                     f"vehicle {index} departs at {time}, but is free at {v.free_at}",
@@ -427,6 +429,8 @@ def validate(
                     vehicle=index,
                 )
             v.expected_target = None
+            if dynamic and not planned and target != DEPOT and target not in released:
+                fail("request", f"vehicle {index} drives to {target} before it is released", row)
             if planned and target != DEPOT and accepted.get(target) != index:
                 fail(
                     "assignment",
@@ -723,7 +727,13 @@ def validate(
             if v is None:
                 continue
             index, time = row["vehicle"], row["time"]
-            if v.node != DEPOT or v.arrival is None or not _close(time, v.free_at, tol):
+            early = time < v.free_at - tol * max(1.0, abs(time))
+            if (
+                v.node != DEPOT
+                or v.arrival is None
+                or early
+                or (not waits and not _close(time, v.free_at, tol))
+            ):
                 fail("route_end", f"vehicle {index} ends its route away from the depot", row)
             if v.come_back_to is not None or v.must_go is not None:
                 fail("recourse", f"vehicle {index} ends its route during a recourse trip", row)
@@ -779,11 +789,14 @@ def validate(
                 )
             )
     customers = set(range(instance.n_depots, n))
+    if dynamic and not planned:
+        customers = released - cancelled
     if planned:
         customers = released - cancelled - (released - accepted.keys())
         undecided = released - decided - cancelled
         if undecided and any(r["kind"] == "episode_end" for r in log.rows):
             found.append(Violation("request", f"requests {sorted(undecided)} were never decided"))
+    if dynamic:
         if overflow_seen != len(overflow_times) and any(
             r["kind"] == "episode_end" for r in log.rows
         ):

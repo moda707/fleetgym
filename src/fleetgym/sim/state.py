@@ -76,6 +76,8 @@ class VehicleState:
         Customer whose capacity failure waits for the policy's recourse decision.
     plan
         Accepted customers still to visit after the current destination (planned routing).
+    waiting
+        Waiting for the next event (``next_node`` with dynamic requests).
     """
 
     index: int
@@ -92,6 +94,7 @@ class VehicleState:
     recourse_target: int | None = None
     awaiting_recourse: int | None = None
     plan: list[int] = field(default_factory=list)
+    waiting: bool = False
 
     @property
     def used(self) -> bool:

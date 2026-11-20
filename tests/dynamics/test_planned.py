@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 import fleetgym as fg
 from fleetgym.data import Instance
 from fleetgym.envs.env import FleetGymEnv
-from fleetgym.errors import ConfigError, InfeasibleActionError, NotInScopeError
+from fleetgym.errors import ConfigError, InfeasibleActionError
 from fleetgym.sim.decisions import Accept, Dispatch
 from fleetgym.spec import load_spec
 from fleetgym.testing.non_anticipativity import check_non_anticipativity
@@ -150,8 +150,8 @@ def test_planned_routing_scope_checks():
         "extends": "DVRP-StochReq-v0",
         "decisions": {"epochs": "on_event", "interface": "next_node"},
     }
-    with pytest.raises(NotInScopeError, match="accept_reject or assign"):
-        fg.make(dyn_next)
+    env_next = fg.make(dyn_next)
+    assert env_next.action_space.n == env_next.max_nodes + 1  # pyright: ignore[reportAttributeAccessIssue]
     env = FleetGymEnv(static_spec(), instance=LINE)
     env.reset(seed=0)
     with pytest.raises(InfeasibleActionError, match="vehicle decision"):

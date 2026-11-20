@@ -777,6 +777,19 @@ M7 and M8 are independent; M8 needs M5 (`fork`) and M6. Each milestone ends with
   rendering does not change the trajectory (digest equal with and without rendering); image smoke
   tests (no pixel-exact comparisons, which are brittle across matplotlib versions).
 
+### M6b Dynamic requests with next_node (added at the user's request, 2026-11-20)
+- Requests arriving during the day are accepted automatically (until the cutoff, for example the
+  last 20% of the shift) and become customers the policy can choose; the set of nodes grows.
+- `next_node` gains a last action, **wait**, under dynamics: the vehicle is asked again at the next
+  event (a request arriving or cancelling, another vehicle arriving or finishing a service) or at its
+  latest safe departure time. Waiting is allowed only on known information (the clock and the
+  arrival window), never on whether more requests will come.
+- At the depot during the day the vehicle is reloaded and may leave again, wait, or **terminate**
+  (choosing the depot), terminating only if another vehicle is still working (as in the user's
+  VRP-SDO paper).
+- User decisions (2026-11-20): wait until the next event; depot visits reload, with leave, wait and
+  terminate options. Cancellation timing stays an open item for the future (backlog).
+
 ### M10b Documentation site and examples (added at the user's request, 2026-11-20)
 - A documentation site in the style of Grid2Op's (https://grid2op.readthedocs.io): getting started,
   concepts (specs and `extends`, scenarios and revelation, recourse, dynamic requests and planned
@@ -790,8 +803,9 @@ M7 and M8 are independent; M8 needs M5 (`fork`) and M6. Each milestone ends with
 - An `examples/` folder of runnable scripts and notebooks: first environment; stochastic demands with
   recourse; a dynamic day with accept/reject; comparing policies on fixed scenario sets; a custom
   variant end to end.
-- Needs dependencies (Sphinx and a theme, MyST, an API extension, possibly a gallery extension) and
-  a Read the Docs project: ask the user before adding them.
+- Dependencies approved by the user (2026-11-20) for a `[docs]` extra: `sphinx`, a theme
+  (`pydata-sphinx-theme` or `furo`), `myst-parser`, `sphinx-autodoc-typehints`, and `sphinx-gallery`
+  if the examples gallery uses it. Hosting needs a Read the Docs project linked by the user.
 
 ### M11 Gate 2
 - Ask you first for the exact VRP-SDO model, parameters, instances and published results. Then

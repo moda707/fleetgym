@@ -9,6 +9,10 @@ else is feasible).
 At a recourse epoch (``agent_decides``), the vehicle is at the failing customer ``i``: action 0
 (the depot) means ``return_to_depot`` (restock and come back), and action ``i`` (stay) means
 ``outsource`` the rest. The mask allows only the rule's options.
+
+With dynamic requests (ADR 0015) there is one more action, ``max_nodes``: **wait** until the next
+event. Choosing the depot from a customer returns there to reload (the route goes on); choosing the
+depot at the depot ends the vehicle's route.
 """
 
 from __future__ import annotations
@@ -21,7 +25,7 @@ from numpy.typing import NDArray
 
 from fleetgym.errors import InfeasibleActionError
 from fleetgym.interfaces.base import INTERFACE_CLASSES, ActionInterface
-from fleetgym.sim.decisions import Decision, Dispatch, EndRoute, RecourseChoice
+from fleetgym.sim.decisions import Decision, Dispatch, EndRoute, RecourseChoice, Wait
 from fleetgym.sim.engine import Epoch, Simulator
 from fleetgym.sim.info_state import DEPOT
 
@@ -36,30 +40,35 @@ def _vehicle(epoch: Epoch) -> int:
 
 @INTERFACE_CLASSES.register("next_node")
 class NextNode(ActionInterface):
-    """``Discrete(max_nodes)``: the next node of the vehicle that triggered the epoch."""
+    """``Discrete(max_nodes)`` (``+ 1`` with the wait action): the next node of the vehicle."""
 
     name = "next_node"
 
     @property
     def action_space(self) -> gym.spaces.Discrete:
-        """``Discrete(max_nodes)``."""
-        return gym.spaces.Discrete(self.max_nodes)
+        """``Discrete(max_nodes)``, or ``Discrete(max_nodes + 1)`` with the wait action."""
+        return gym.spaces.Discrete(self.n_actions)
 
     @property
     def n_actions(self) -> int:
-        """Equal to ``max_nodes``."""
-        return self.max_nodes
+        """``max_nodes``, plus one with the wait action."""
+        return self.max_nodes + int(self.wait)
 
     def mask(self, sim: Simulator, epoch: Epoch) -> NDArray[np.bool_]:
-        """The simulator's node mask, padded to ``max_nodes``."""
-        node_mask = sim.mask(_vehicle(epoch))
-        out = np.zeros(self.max_nodes, dtype=bool)
+        """The simulator's node mask, padded to ``max_nodes``, then the wait action if offered."""
+        vehicle = _vehicle(epoch)
+        node_mask = sim.mask(vehicle)
+        out = np.zeros(self.n_actions, dtype=bool)
         out[: node_mask.size] = node_mask
+        if self.wait:
+            out[self.max_nodes] = epoch.kind == "vehicle_idle" and sim.can_wait(vehicle)
         return out
 
     def decode(self, action: Any, sim: Simulator, epoch: Epoch) -> Decision:
         """Node index to `Dispatch`, or `EndRoute` for the depot when the vehicle has not left."""
         node = int(action)
+        if self.wait and node == self.max_nodes:
+            return Wait(_vehicle(epoch))
         if not 0 <= node < sim.problem.instance.n_nodes:
             raise InfeasibleActionError(f"action {node} is a padding slot, not a node")
         vehicle = _vehicle(epoch)
@@ -98,6 +107,8 @@ class NextNode(ActionInterface):
         """Padding slot, recourse epoch, retiring an unlimited fleet, or the violated constraint."""
         node = int(action)
         n = sim.problem.instance.n_nodes
+        if self.wait and node == self.max_nodes:
+            return "this vehicle cannot wait now (past its wake-up time)"
         if node >= n:
             return f"action {node} is a padding slot (the instance has {n} nodes)"
         if epoch.kind == "recourse":

@@ -29,13 +29,16 @@ class ActionInterface(ABC):
         Number of node slots (observations and actions are padded to it).
     max_vehicles
         Number of vehicle slots.
+    wait
+        Offer a wait action (``next_node`` with dynamic requests).
     """
 
     name: ClassVar[str]
 
-    def __init__(self, max_nodes: int, max_vehicles: int = 0) -> None:
+    def __init__(self, max_nodes: int, max_vehicles: int = 0, *, wait: bool = False) -> None:
         self.max_nodes = max_nodes
         self.max_vehicles = max_vehicles
+        self.wait = wait
 
     @property
     @abstractmethod

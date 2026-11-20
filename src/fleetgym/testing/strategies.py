@@ -210,7 +210,7 @@ def stochastic_problems(draw: st.DrawFn, *, max_customers: int = 6) -> tuple[Pro
 
 @st.composite
 def dynamic_problems(draw: st.DrawFn) -> tuple[ProblemSpec, Instance]:
-    """A random dynamic-request ``(spec, instance)`` pair (accept_reject or assign routing)."""
+    """A random dynamic-request ``(spec, instance)`` pair (accept_reject, assign or next_node)."""
     instance = draw(instances(max_customers=5))
     with_tw = instance.time_windows is not None
     constraints: dict[str, Any] = {"capacity": {}}
@@ -235,7 +235,10 @@ def dynamic_problems(draw: st.DrawFn) -> tuple[ProblemSpec, Instance]:
     }
     if draw(st.booleans()):
         dynamics["cancellations"] = {"dist": "bernoulli", "p": 0.3}
-    interface = draw(st.sampled_from(["accept_reject", "assign"]))
+    interface = draw(st.sampled_from(["accept_reject", "assign", "next_node"]))
+    decisions: dict[str, Any] = {"epochs": "on_event", "interface": interface}
+    if interface != "next_node":
+        decisions["routing"] = "cheapest_insertion"
     spec = {
         "fleet": {
             "sizing": draw(st.sampled_from(["fixed", "limited"])),
@@ -247,11 +250,7 @@ def dynamic_problems(draw: st.DrawFn) -> tuple[ProblemSpec, Instance]:
         },
         "constraints": constraints,
         "dynamics": dynamics,
-        "decisions": {
-            "epochs": "on_event",
-            "interface": interface,
-            "routing": "cheapest_insertion",
-        },
+        "decisions": decisions,
         "objective": {"distance": 1.0, "rejected": 20.0, "lateness": 1.0, "unserved": 100.0},
     }
     return load_spec(spec), instance

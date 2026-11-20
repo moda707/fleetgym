@@ -273,8 +273,8 @@ def test_simulator_rejects_invalid_decisions():
                 "dynamics": {"arrivals": {"process": "poisson", "rate": 1}, "max_requests": 3},
                 "decisions": {"epochs": "on_event"},
             },
-            NotInScopeError,
-            "accept_reject or assign",
+            ConfigError,
+            "arrivals need an end",
         ),
         ({"decisions": {"epochs": "periodic", "period": 5}}, NotInScopeError, "M6"),
         (

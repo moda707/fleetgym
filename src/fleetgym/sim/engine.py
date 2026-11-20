@@ -23,6 +23,19 @@ Semantics (ADRs 0009 and 0013)
 * Uncertain values come from the episode's `Scenario`; they are revealed to the agent per the
   spec's ``revealed`` setting (``reveal`` rows in the log).
 * At the end, every pending request becomes ``UNSERVED`` and costs 1 ``unserved``.
+
+Dynamic requests with ``next_node`` (ADR 0015)
+-----------------------------------------------
+* Requests are released at their arrival time and become pending customers (accepted
+  automatically); a cancellation removes a pending request; a vehicle driving to a cancelled request
+  arrives, serves nothing, and decides again.
+* ``Wait(v)``: the vehicle is asked again at the next event (a request arrives or cancels, a vehicle
+  arrives or finishes a service) or at its wake-up time: the earlier of the end of the arrival
+  window and its latest departure for the depot (depot closing time, shift end, route duration).
+  Waiting is allowed before that time only, so it depends on known information only.
+* Returning to the depot during the day reloads the vehicle (``restock``); at the depot it may leave
+  again, wait, or end its route (``EndRoute``), which is allowed only while another vehicle is still
+  working or when nothing is left to do.
 """
 
 from __future__ import annotations
@@ -38,13 +51,14 @@ from fleetgym.constraints.base import CONSTRAINT_CLASSES, Constraint
 from fleetgym.errors import ConfigError, FleetGymError, InfeasibleActionError, NotInScopeError
 from fleetgym.eventlog import EventLog
 from fleetgym.network.base import Network
-from fleetgym.sim.decisions import Decision, Dispatch, EndRoute, RecourseChoice
+from fleetgym.sim.decisions import Decision, Dispatch, EndRoute, RecourseChoice, Wait
 from fleetgym.sim.events import Event, EventKind
 from fleetgym.sim.info_state import DEPOT, InformationState, TimingRules
 from fleetgym.sim.recourse import RECOURSE_CLASSES, CapacityFailure, RecourseAction, RecourseRule
 from fleetgym.sim.state import RequestStatus, SimState, VehicleState, VehicleStatus
 from fleetgym.spec.binding import BoundProblem
 from fleetgym.spec.models import Revelation
+from fleetgym.uncertainty.requests import arrival_window
 from fleetgym.uncertainty.revelation import AT_START, check_revelations
 from fleetgym.uncertainty.sampling import deterministic_values, distributions, realize
 from fleetgym.uncertainty.scenario import Scenario
@@ -164,13 +178,26 @@ class Simulator:
         self.state: SimState = self._initial_state()
         self.constraint_states: list[Any] = []
         self._info = self._make_info()
+        self.dynamic = spec.dynamics is not None
+        self._init_requests(scenario)
 
     # ------------------------------------------------------------------ setup
 
     def _check_scope(self) -> None:
         spec = self.problem.spec
         if spec.dynamics is not None:
-            raise NotInScopeError("dynamic requests are implemented in M6")
+            if spec.uncertainty or spec.recourse.rules:
+                raise NotInScopeError(
+                    "uncertain parameters or recourse together with dynamic requests are after "
+                    "v0.1 (ADR 0015)"
+                )
+            if spec.decisions.epochs != "on_event" or spec.fleet.sizing == "unlimited":
+                raise ConfigError(
+                    "dynamic requests need `decisions.epochs: on_event` and a fixed or limited "
+                    "fleet",
+                    source=spec.source,
+                    key_path="decisions.epochs",
+                )
         if spec.decisions.epochs not in ("sequential", "on_event"):
             raise NotInScopeError(f"{spec.decisions.epochs!r} epochs are implemented in M6")
         check_revelations(spec)
@@ -303,6 +330,113 @@ class Simulator:
             self.problem, self.network, self.state, self.timing, self._forecasts
         )
 
+    def _init_requests(self, scenario: Scenario | None) -> None:
+        """Release and cancellation times of requests (all at the start without dynamics)."""
+        instance = self.problem.instance
+        n = instance.n_nodes
+        extra = instance.extra
+        self.release = np.asarray(extra.get("release", np.full(n, self.shift_start)), dtype=float)
+        self.cancel = np.asarray(extra.get("cancel", np.full(n, np.inf)), dtype=float)
+        self.overflow = (
+            np.asarray(scenario["request.overflow"], dtype=float)
+            if scenario is not None and "request.overflow" in scenario.values
+            else np.zeros(0)
+        )
+        self.window_end = (
+            arrival_window(self.problem)[1] if self.problem.spec.dynamics is not None else -np.inf
+        )
+        if scenario is not None and "request.release" in scenario.values:
+            base_hash = extra.get("base_instance_hash")
+            if scenario.instance_hash != base_hash or scenario.spec_hash != self.problem.spec_hash:
+                from fleetgym.errors import ScenarioMismatchError
+
+                raise ScenarioMismatchError("the scenario belongs to another spec or instance")
+        status = self.state.request_status
+        late = ~(self.release <= self.shift_start + _TOL)
+        status[late] = RequestStatus.NOT_RELEASED
+        status[: instance.n_depots] = RequestStatus.NOT_A_REQUEST
+
+    def _push_exogenous(self, now: float, *, strict: bool) -> None:
+        """Schedule request arrivals, cancellations and overflow rejections after ``now``."""
+        queue = self.state.queue
+        status = self.state.request_status
+        for node in range(self.problem.instance.n_depots, self.release.size):
+            t = float(self.release[node])
+            if status[node] == RequestStatus.NOT_RELEASED and np.isfinite(t) and t > now:
+                queue.push(t, EventKind.REQUEST_ARRIVAL, -1, node)
+            c = float(self.cancel[node])
+            live = status[node] in (
+                RequestStatus.NOT_RELEASED,
+                RequestStatus.PENDING,
+                RequestStatus.ASSIGNED,
+            )
+            if live and np.isfinite(c) and (c > now if strict else c >= now):
+                queue.push(c, EventKind.CANCELLATION, -1, node)
+        for k, t in enumerate(self.overflow):
+            if t > now:
+                queue.push(float(t), EventKind.OVERFLOW_ARRIVAL, -1, k)
+
+    def reschedule_exogenous(self, now: float) -> None:
+        """Replace future arrival, overflow and cancellation events with this scenario's.
+
+        Used after restoring a snapshot into a simulator with a redrawn future (a fork). The demand
+        still to deliver of requests not released yet is reset to the new scenario's.
+        """
+        import heapq
+
+        exogenous = (EventKind.REQUEST_ARRIVAL, EventKind.OVERFLOW_ARRIVAL, EventKind.CANCELLATION)
+        queue = self.state.queue
+        queue.heap = [e for e in queue.heap if e.kind not in exogenous]
+        heapq.heapify(queue.heap)
+        future = self.state.request_status == RequestStatus.NOT_RELEASED
+        self.state.remaining_demand[future] = self._truth["demand"][future]
+        self._push_exogenous(now, strict=True)
+
+    def _release(self, node: int, time: float) -> None:
+        self.state.request_status[node] = RequestStatus.PENDING
+        self.log.append("request", time=time, node=node)
+
+    def latest_departure(self, vehicle: int) -> float:
+        """Latest time ``vehicle`` can leave for the depot without breaking a hard limit."""
+        v = self.state.vehicles[vehicle]
+        travel = float(self._info.travel_times[v.node, DEPOT])
+        limits = [np.inf]
+        tw = self.problem.instance.time_windows
+        tw_spec = self.problem.spec.constraints.items.get("time_windows")
+        if tw is not None and tw_spec is not None and not tw_spec.model_dump()["soft"]:
+            limits.append(float(tw[DEPOT, 1]) - travel)
+        if self.shift_end is not None:
+            limits.append(self.shift_end - travel)
+        if "route_duration" in self.problem.spec.constraints and v.route_start is not None:
+            limits.append(
+                v.route_start + float(self.problem.value("constraints.route_duration.max")) - travel
+            )
+        return float(min(limits))
+
+    def _wake_time(self, vehicle: int) -> float:
+        return min(self.window_end, self.latest_departure(vehicle))
+
+    def can_wait(self, vehicle: int) -> bool:
+        """Whether ``vehicle`` may wait now (dynamic requests, before its wake-up time)."""
+        if not self.dynamic:
+            return False
+        v = self.state.vehicles[vehicle]
+        if v.awaiting_recourse is not None:
+            return False
+        return self.state.time < self._wake_time(vehicle) - _TOL
+
+    def _work_left(self) -> bool:
+        """Customers are pending, or requests can still arrive (known: the arrival window)."""
+        return bool(self.state.pending_mask().any()) or self.state.time < self.window_end - _TOL
+
+    def _can_end(self, v: VehicleState) -> bool:
+        """With dynamic requests: another vehicle still works, or nothing is left to do."""
+        if not self._work_left():
+            return True
+        return any(
+            w.index != v.index and w.status != VehicleStatus.DONE for w in self.state.vehicles
+        )
+
     def _new_vehicle(self, index: int, type_index: int, status: VehicleStatus) -> VehicleState:
         capacity = self.problem.vehicle_types[type_index].capacity
         return VehicleState(
@@ -328,6 +462,11 @@ class Simulator:
         if self.mode == "on_event":
             for v in self.state.vehicles:
                 self._log_activation(v)
+        if self.dynamic:
+            for node in range(self.problem.instance.n_depots, self.release.size):
+                if self.release[node] <= self.shift_start + _TOL:
+                    self._release(node, self.shift_start)
+            self._push_exogenous(self.shift_start, strict=False)
         return self._advance()
 
     def mask(self, vehicle: int) -> NDArray[np.bool_]:
@@ -348,7 +487,11 @@ class Simulator:
         if candidates.size:
             ok = self._customer_feasibility(vehicle, candidates)
             mask[candidates[ok]] = True
-        if v.node != DEPOT or v.used:
+        if v.node != DEPOT:
+            mask[DEPOT] = True
+        elif self.dynamic:
+            mask[DEPOT] = self._can_end(v)
+        elif v.used:
             mask[DEPOT] = True
         else:
             mask[DEPOT] = (not self.unlimited) or not mask.any()
@@ -371,7 +514,7 @@ class Simulator:
         state = self.state
         if state.terminated:
             raise InfeasibleActionError("the episode has ended")
-        if not isinstance(decision, (Dispatch, EndRoute, RecourseChoice)):
+        if not isinstance(decision, (Dispatch, EndRoute, RecourseChoice, Wait)):
             raise InfeasibleActionError(
                 f"{type(decision).__name__} decides on a request; it needs the accept_reject or "
                 "assign interface"
@@ -398,7 +541,14 @@ class Simulator:
             self._resolve(v, node, decision.action)
         elif isinstance(decision, RecourseChoice):
             raise InfeasibleActionError(f"vehicle {vehicle} has no capacity failure to resolve")
+        elif isinstance(decision, Wait):
+            if not self.can_wait(vehicle):
+                raise InfeasibleActionError(f"vehicle {vehicle} cannot wait now")
+            v.time = max(v.time, state.time)
+            v.waiting = True
+            state.queue.push(self._wake_time(vehicle), EventKind.TIMER, v.index, v.node)
         else:
+            v.time = max(v.time, state.time)
             mask = self.mask(vehicle)
             if isinstance(decision, EndRoute):
                 if v.node != DEPOT or not mask[DEPOT]:
@@ -409,6 +559,10 @@ class Simulator:
                     self._end_route(v, v.time)
                 else:
                     self._retire(v)
+            elif self.dynamic and decision.node == DEPOT and v.node != DEPOT:
+                v.restocking = True  # back to the depot to reload; the route goes on
+                v.recourse_target = None
+                self._travel(v, DEPOT)
             else:
                 if not 0 <= decision.node < mask.size:
                     raise InfeasibleActionError(f"node {decision.node} does not exist")
@@ -557,6 +711,51 @@ class Simulator:
     def _process(self, event: Event) -> None:
         state = self.state
         state.time = event.time
+        if self.dynamic:
+            self._process_dynamic(event)
+            return
+        self._process_vehicle(event)
+
+    def _process_dynamic(self, event: Event) -> None:
+        state = self.state
+        kind = event.kind
+        if kind == EventKind.TIMER:
+            v = state.vehicles[event.vehicle]
+            if v.waiting and abs(self._wake_time(v.index) - event.time) <= _TOL * max(
+                1.0, event.time
+            ):
+                v.waiting = False
+            return
+        for w in state.vehicles:  # any other event wakes the waiting vehicles
+            w.waiting = False
+        if kind == EventKind.REQUEST_ARRIVAL:
+            self._release(event.node, event.time)
+        elif kind == EventKind.OVERFLOW_ARRIVAL:
+            self.log.append("reject", time=event.time, component="overflow")
+            self._charge(event.time, "rejected", 1.0)
+        elif kind == EventKind.CANCELLATION:
+            node = event.node
+            status = RequestStatus(int(state.request_status[node]))
+            serving = any(
+                w.node == node and w.status == VehicleStatus.SERVING for w in state.vehicles
+            )
+            if status in (RequestStatus.PENDING, RequestStatus.ASSIGNED) and not serving:
+                state.request_status[node] = RequestStatus.CANCELLED
+                self.log.append("cancel", time=event.time, node=node)
+        elif (
+            kind == EventKind.VEHICLE_ARRIVAL
+            and event.node != DEPOT
+            and state.request_status[event.node] == RequestStatus.CANCELLED
+        ):
+            v = state.vehicles[event.vehicle]
+            self.log.append("arrive", time=event.time, vehicle=v.index, node=event.node)
+            v.time = event.time
+            v.status = VehicleStatus.IDLE
+        else:
+            self._process_vehicle(event)
+
+    def _process_vehicle(self, event: Event) -> None:
+        state = self.state
         v = state.vehicles[event.vehicle]
         if event.kind == EventKind.VEHICLE_ARRIVAL:
             self.log.append("arrive", time=event.time, vehicle=v.index, node=event.node)
@@ -713,14 +912,24 @@ class Simulator:
 
     def _next_epoch(self) -> Epoch | None:
         idle = sorted(
-            (v for v in self.state.vehicles if v.status == VehicleStatus.IDLE),
+            (v for v in self.state.vehicles if v.status == VehicleStatus.IDLE and not v.waiting),
             key=lambda v: (v.time, v.index),
         )
         for v in idle:
             if v.awaiting_recourse is not None:
                 return Epoch(v.time, "recourse", v.index, v.awaiting_recourse)
+            if self.dynamic:
+                v.time = max(v.time, self.state.time)  # idle until now: masks use the present
             if v.node != DEPOT:
                 return Epoch(v.time, "vehicle_idle", v.index)
+            if self.dynamic:
+                if self._work_left() and (self.mask(v.index).any() or self.can_wait(v.index)):
+                    return Epoch(v.time, "vehicle_idle", v.index)
+                if v.used:
+                    self._end_route(v, v.time)
+                else:
+                    self._retire(v)
+                continue
             if not self.state.pending_mask().any() or not self.mask(v.index)[1:].any():
                 if self.unlimited and self.state.pending_mask().any():
                     self.state.fleet_exhausted = True

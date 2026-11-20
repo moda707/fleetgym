@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M6b dynamic requests with `next_node` (ADR 0015): requests accepted automatically as they arrive;
+  a wait action (`Discrete(max_nodes + 1)`) that resumes at the next event or at the vehicle's
+  wake-up time; mid-day depot reloads; terminating a route at the depot while another vehicle works.
+
+### Added
 - M6 dynamic requests:
   - arrival processes (`poisson`, `nhpp` by thinning), request classes (KDE or uniform locations,
     demand, time-window width, service time), cutoff, cancellations, overflow handling, and
