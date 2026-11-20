@@ -23,7 +23,6 @@ LAYERS: dict[str, int] = {
     "errors": 0,
     "plugins": 0,
     "_hashing": 0,
-    "_typing": 0,
     "_version": 0,
     "eventlog": 0,
     "data": 1,
