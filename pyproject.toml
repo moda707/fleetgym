@@ -45,6 +45,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/moda707/fleetgym"
+Documentation = "https://fleetgym.readthedocs.io"
 Repository = "https://github.com/moda707/fleetgym"
 Issues = "https://github.com/moda707/fleetgym/issues"
 Changelog = "https://github.com/moda707/fleetgym/blob/main/CHANGELOG.md"

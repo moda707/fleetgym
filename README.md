@@ -1,6 +1,7 @@
 # FleetGym
 
 [![CI](https://github.com/moda707/fleetgym/actions/workflows/ci.yml/badge.svg)](https://github.com/moda707/fleetgym/actions/workflows/ci.yml)
+[![Docs](https://readthedocs.org/projects/fleetgym/badge/?version=latest)](https://fleetgym.readthedocs.io/en/latest/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/moda707/fleetgym/blob/main/LICENSE)
 ![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)
 
@@ -76,7 +77,7 @@ perfect-information benchmark) run through the same evaluation harness, on fixed
 
 ## Documentation and examples
 
-The documentation (`docs/site`, build with `uv run sphinx-build docs/site docs/_build/html`) covers
+The [documentation](https://fleetgym.readthedocs.io) (source in `docs/site`) covers
 the concepts, every environment, and a step-by-step guide to building your own VRP variant. The
 [`examples/`](https://github.com/moda707/fleetgym/tree/main/examples) folder has runnable scripts,
 from a first environment to a custom variant, training and multi-agent routing.
