@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- M5 uncertainty and recourse:
+  - samplers for every spec distribution (`fleetgym.uncertainty.distributions`) with mean, quantile
+    and finite support; `register_distribution` for custom ones;
+  - `Scenario` (per-source realized values, Parquet I/O, content id), sampling from per-source
+    streams, replay through `reset(options={"scenario": ...})`, mismatch errors;
+  - revelation of demand and service times (`a_priori`, `on_request`, `on_departure`,
+    `on_arrival`, `on_completion`) with forecasts for unrevealed values;
+  - recourse rules `return_to_depot`, `outsource` and `agent_decides` (recourse epochs), custom
+    rules via `register_recourse`; restock trips; outsourcing costs;
+  - `FleetGymEnv.fork(seed)` (non-anticipative copy) and `env.scenario`;
+  - `VRPSD-v0` (experimental); `AprioriRoute` policy; `fleetgym.testing.exact` (scenario
+    enumeration, exact expected cost); `fleetgym.testing.non_anticipativity`;
+  - validator support for scenarios, partial service, restocks, outsourcing and rule behavior;
+  - `Registry.unregister`.
+- ADRs 0012 (uncertainty, scenarios, non-anticipativity) and 0013 (recourse semantics).
+
+### Changed
+- Observations: node features grow from 8 to 9 (demand-known flag). `info` gains `epoch_kind`.
+- Event log schema version 2: `reveal`, `failure`, `restock` and `outsource` rows.
+- `presence` is a reserved uncertainty source; the `split` recourse rule is reserved.
+- Recourse rules have parameters; `VRPSD-Outsource-v0` (planned) states its provisional outsourcing
+  cost, which changes its hash.
+- The validator requires a `service_start` before a `service_end`.
+
 ## [0.1.0.dev0] - 2026-11-20
 
 First pre-release (milestones M0 to M4, Gate 1 approved). Takes the `fleetgym` name on PyPI.

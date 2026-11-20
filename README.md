@@ -18,6 +18,10 @@ with a focus on stochastic and dynamic variants where information arrives during
   and an event log of everything that happened.
 - **An independent validator** that re-checks any episode from its event log, so a simulator bug
   cannot hide itself.
+- **Uncertainty and recourse.** Uncertain demands and service times are pre-sampled into a scenario,
+  revealed to the agent when the spec says, and replayed exactly. Capacity failures are handled by
+  standard or user-written recourse rules; `fork(seed)` gives planners a copy that cannot see the
+  future.
 - **Verified against benchmarks.** `CVRP-v0` reproduces all 100 CVRPLIB X best-known solutions
   exactly; `VRPTW-v0` reproduces all 56 Solomon (100-customer) best-known solutions from SINTEF.
 
@@ -26,7 +30,8 @@ with a focus on stochastic and dynamic variants where information arrives during
 | `CVRP-v0` | stable |
 | `VRPTW-v0` | stable |
 | `DVRP-StochReq-v0` | planned (dynamic requests) |
-| `VRPSD-Outsource-v0` | planned (stochastic demands with recourse) |
+| `VRPSD-v0` | experimental (stochastic demands, return-to-depot recourse) |
+| `VRPSD-Outsource-v0` | planned (stochastic demands with outsourcing) |
 
 ## Quick start
 

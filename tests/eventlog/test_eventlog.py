@@ -5,6 +5,7 @@ import pytest
 
 from fleetgym.errors import FleetGymError
 from fleetgym.eventlog import EVENT_KINDS, LOG_SCHEMA, EventLog
+from fleetgym.eventlog.schema import LOG_SCHEMA_VERSION
 
 
 def test_append_validates_kinds_and_columns():
@@ -25,7 +26,7 @@ def test_append_validates_kinds_and_columns():
         log.append("teleport")
     with pytest.raises(FleetGymError, match="unknown event log column"):
         log.append("arrive", colour="red")
-    assert log.metadata["fleetgym_log_version"] == "1"
+    assert log.metadata["fleetgym_log_version"] == LOG_SCHEMA_VERSION == "2"
     assert len(log) == 1
     assert [r["kind"] for r in log] == ["depart"]
 

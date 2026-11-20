@@ -24,6 +24,19 @@ Event kinds and the columns they use
     ``vehicle``, ``time``: the vehicle ends without leaving the depot.
 ``unserved``
     ``node``: a request left unserved at the end of the episode.
+``reveal``
+    ``node``, ``component`` (the uncertainty source), ``value`` (the realization), ``time``,
+    optional ``vehicle``: the value becomes known to the agent.
+``failure``
+    ``vehicle``, ``node``, ``time``, ``quantity`` (demand still to deliver), ``load``,
+    ``component`` (the resolution: ``return_to_depot`` or ``outsource``): a capacity failure and
+    how it was resolved.
+``restock``
+    ``vehicle``, ``node`` (the depot), ``time``: the vehicle is emptied (load 0) without ending its
+    route.
+``outsource``
+    ``vehicle``, ``node``, ``time``, ``quantity``, ``amount`` (its cost): demand handed to a third
+    party.
 ``cost``
     ``component``, ``amount``, ``time``, optional ``vehicle`` and ``node``.
 ``epoch``
@@ -38,7 +51,7 @@ import pyarrow as pa
 
 __all__ = ["EVENT_KINDS", "LOG_SCHEMA", "LOG_SCHEMA_VERSION", "METADATA_KEYS"]
 
-LOG_SCHEMA_VERSION = "1"
+LOG_SCHEMA_VERSION = "2"
 
 EVENT_KINDS = (
     "episode_start",
@@ -51,6 +64,10 @@ EVENT_KINDS = (
     "route_end",
     "vehicle_retire",
     "unserved",
+    "reveal",
+    "failure",
+    "restock",
+    "outsource",
     "cost",
     "epoch",
     "episode_end",

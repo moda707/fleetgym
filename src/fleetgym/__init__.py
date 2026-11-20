@@ -13,6 +13,22 @@ Examples
 
 from fleetgym._version import __version__
 from fleetgym.envs import FleetGymEnv, make, make_vec
+from fleetgym.sim.recourse import RecourseRule, register_recourse
 from fleetgym.spec import REGISTRY, ProblemSpec, load_spec
+from fleetgym.uncertainty.distributions import Distribution, register_distribution
+from fleetgym.uncertainty.scenario import Scenario
 
-__all__ = ["REGISTRY", "FleetGymEnv", "ProblemSpec", "__version__", "load_spec", "make", "make_vec"]
+__all__ = [
+    "REGISTRY",
+    "Distribution",
+    "FleetGymEnv",
+    "ProblemSpec",
+    "RecourseRule",
+    "Scenario",
+    "__version__",
+    "load_spec",
+    "make",
+    "make_vec",
+    "register_distribution",
+    "register_recourse",
+]

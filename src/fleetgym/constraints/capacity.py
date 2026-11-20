@@ -15,13 +15,19 @@ __all__ = ["Capacity"]
 
 @CONSTRAINT_CLASSES.register("capacity")
 class Capacity(Constraint):
-    """A customer is feasible if its demand fits in the vehicle's remaining capacity."""
+    """A customer is feasible if its known demand fits in the vehicle's remaining capacity.
+
+    A customer whose demand is not revealed yet is feasible: its demand may turn out to fit, and
+    the spec's ``recourse.capacity_failure`` rule handles it if it does not (the simulator rejects
+    specs where unrevealed demand meets the capacity constraint without a recourse rule).
+    """
 
     name = "capacity"
 
     def mask(
         self, state: Any, info: InformationState, vehicle: int, candidates: NDArray[np.int64]
     ) -> NDArray[np.bool_]:
-        """Demand of each candidate must not exceed ``capacity - load``."""
+        """Known demand of each candidate must not exceed ``capacity - load``."""
         v = info.vehicle(vehicle)
-        return info.demands[candidates] <= v.capacity - v.load
+        fits = info.demands[candidates] <= v.capacity - v.load
+        return fits | ~info.demand_known[candidates]

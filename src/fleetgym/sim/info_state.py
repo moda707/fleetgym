@@ -1,12 +1,15 @@
 """Read-only, non-anticipative view of the simulator state.
 
-Constraints, observation builders and policies read the simulator only through this view. It
-exposes what is known at the current time: in static problems that is the whole instance; with
-uncertainty (M5) unrevealed values are hidden behind forecasts.
+Constraints, observation builders, recourse rules and policies read the simulator only through this
+view. It exposes what is known at the current time: in static problems that is the whole instance;
+for an uncertain source, revealed values are exact and unrevealed values are replaced by the
+forecast (the distribution's mean with ``forecast: mean``, 0 with ``forecast: none``). The
+``*_known`` masks tell them apart.
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import numpy as np
@@ -50,25 +53,62 @@ class InformationState:
         The simulator state (read through this view only; do not mutate).
     timing
         Service-start rules.
+    forecasts
+        Per uncertain source, what the agent assumes for unrevealed values.
     """
 
     def __init__(
-        self, problem: BoundProblem, network: Network, state: SimState, timing: TimingRules
+        self,
+        problem: BoundProblem,
+        network: Network,
+        state: SimState,
+        timing: TimingRules,
+        forecasts: Mapping[str, NDArray[np.float64]] | None = None,
     ) -> None:
         self.problem = problem
         self.network = network
         self._state = state
         self.timing = timing
+        self._forecasts = dict(forecasts or {})
         instance = problem.instance
         n = instance.n_nodes
         self.n_nodes = n
-        self.demands: NDArray[np.float64] = instance.demands
-        self.service_times: NDArray[np.float64] = (
+        self._static_demands: NDArray[np.float64] = instance.demands
+        self._static_service: NDArray[np.float64] = (
             instance.service_times if instance.service_times is not None else np.zeros(n)
         )
+        self._all_known = np.ones(n, dtype=bool)
+        self._all_known.setflags(write=False)
         self.time_windows: NDArray[np.float64] | None = instance.time_windows
         self.travel_times = network.time_matrix()
         self.distances = network.distance_matrix()
+
+    def _known(self, source: str, static: NDArray[np.float64]) -> NDArray[np.float64]:
+        if source not in self._forecasts:
+            return static
+        revealed = self._state.revealed[source]
+        return np.where(revealed, self._state.known_values[source], self._forecasts[source])
+
+    @property
+    def demands(self) -> NDArray[np.float64]:
+        """Demand per node: revealed values, forecasts elsewhere."""
+        return self._known("demand", self._static_demands)
+
+    @property
+    def service_times(self) -> NDArray[np.float64]:
+        """Service time per node: revealed values, forecasts elsewhere."""
+        return self._known("service_time", self._static_service)
+
+    def known(self, source: str) -> NDArray[np.bool_]:
+        """Mask of nodes whose ``source`` value is revealed (all nodes for certain sources)."""
+        if source not in self._forecasts:
+            return self._all_known
+        return self._state.revealed[source]
+
+    @property
+    def demand_known(self) -> NDArray[np.bool_]:
+        """Mask of nodes whose demand is revealed."""
+        return self.known("demand")
 
     @property
     def time(self) -> float:

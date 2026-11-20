@@ -53,7 +53,12 @@ def check_env(env: str | Path | ProblemSpec, *, n_rollouts: int = 20, seed: int 
     instance_env = make(spec)
     for k in range(n_rollouts):
         random_masked_rollout(instance_env, np.random.default_rng(seed + k), seed=seed + k)
-        report = validate(instance_env.event_log, spec, instance_env.problem.instance)
+        report = validate(
+            instance_env.event_log,
+            spec,
+            instance_env.problem.instance,
+            scenario=instance_env.scenario,
+        )
         if not report.ok:
             raise ValidationFailure(
                 f"rollout with seed {seed + k} is invalid: {report.violations[:5]}"

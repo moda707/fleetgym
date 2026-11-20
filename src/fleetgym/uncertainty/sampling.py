@@ -1,1 +1,126 @@
-"""Sample scenarios from a bound problem; resample the unrevealed future. Implemented in M5."""
+"""Sampling scenarios from a bound problem (architecture rules 5 and 6).
+
+Each source draws from its own stream, ``StreamFactory(seed).generator("uncertainty.<source>")``,
+keyed by the source name, so adding or changing one source never changes another source's draws.
+A source draws one value per node; depot values are then set to their deterministic values
+(demand 0, the instance's service time), and customer values are checked for validity.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+
+import numpy as np
+from numpy.typing import NDArray
+
+from fleetgym.errors import ConfigError
+from fleetgym.spec.binding import BoundProblem
+from fleetgym.uncertainty.distributions import Distribution, build_distribution
+from fleetgym.uncertainty.scenario import Scenario
+from fleetgym.uncertainty.streams import StreamFactory
+
+__all__ = [
+    "deterministic_values",
+    "distributions",
+    "realize",
+    "resample_unrevealed",
+    "sample_scenario",
+]
+
+
+def distributions(problem: BoundProblem) -> dict[str, Distribution]:
+    """The sampler of every uncertainty source, with instance references resolved."""
+    out: dict[str, Distribution] = {}
+    for name, uncertain in problem.spec.uncertainty.items():
+        fields = uncertain.dist.params.model_dump()
+        params = {
+            key: problem.value(f"uncertainty.{name}.{key}") if value is not None else None
+            for key, value in fields.items()
+        }
+        params = {k: (np.asarray(v, dtype=float) if _numeric(v) else v) for k, v in params.items()}
+        out[name] = build_distribution(uncertain.dist.name, params)
+    return out
+
+
+def _numeric(value: object) -> bool:
+    if isinstance(value, (int, float, np.ndarray)) and not isinstance(value, bool):
+        return True
+    return isinstance(value, (list, tuple)) and all(
+        isinstance(x, (int, float)) and not isinstance(x, bool) for x in value
+    )
+
+
+def deterministic_values(problem: BoundProblem, source: str) -> NDArray[np.float64]:
+    """The instance's value of ``source`` per node (used at depots and when a source is fixed)."""
+    instance = problem.instance
+    n = instance.n_nodes
+    if source == "demand":
+        return np.asarray(instance.demands, dtype=float)
+    if source == "service_time":
+        return (
+            np.asarray(instance.service_times, dtype=float)
+            if instance.service_times is not None
+            else np.zeros(n)
+        )
+    raise KeyError(source)
+
+
+def realize(problem: BoundProblem, source: str, draws: NDArray[np.float64]) -> NDArray[np.float64]:
+    """Turn raw draws (one per node) into realized values.
+
+    Depot values are replaced by their deterministic values.
+
+    Raises
+    ------
+    ConfigError
+        If a customer value is negative or not finite (the distribution's support is wrong for
+        this source).
+    """
+    values = np.array(draws, dtype=float)
+    depots = problem.instance.n_depots
+    values[:depots] = deterministic_values(problem, source)[:depots]
+    bad = ~np.isfinite(values) | (values < 0)
+    if np.any(bad):
+        node = int(np.flatnonzero(bad)[0])
+        raise ConfigError(
+            f"{source} drew {values[node]} at node {node}; {source} values must be finite and "
+            "non-negative, so use a distribution with that support (for example truncated_normal "
+            "with low: 0)",
+            source=problem.spec.source,
+            key_path=f"uncertainty.{source}",
+        )
+    return values
+
+
+def _draw(
+    problem: BoundProblem, dists: Mapping[str, Distribution], streams: StreamFactory
+) -> dict[str, NDArray[np.float64]]:
+    n = problem.instance.n_nodes
+    out = {}
+    for name, dist in dists.items():
+        rng = streams.generator(f"uncertainty.{name}")
+        out[name] = realize(problem, name, dist.sample(rng, n))
+    return out
+
+
+def sample_scenario(problem: BoundProblem, seed: int) -> Scenario:
+    """Sample the scenario of an episode from its seed."""
+    values = _draw(problem, distributions(problem), StreamFactory(seed))
+    return Scenario(problem.spec_hash, problem.instance_hash, values, seed=seed)
+
+
+def resample_unrevealed(
+    problem: BoundProblem,
+    scenario: Scenario,
+    revealed: Mapping[str, NDArray[np.bool_]],
+    seed: int,
+) -> Scenario:
+    """A scenario that keeps revealed values and redraws the others from ``seed``.
+
+    This is what a non-anticipative planner may assume about the future (`FleetGymEnv.fork`).
+    """
+    fresh = _draw(problem, distributions(problem), StreamFactory(seed))
+    values = {
+        name: np.where(revealed[name], scenario[name], fresh[name]) for name in scenario.sources
+    }
+    return Scenario(problem.spec_hash, problem.instance_hash, values, seed=None)

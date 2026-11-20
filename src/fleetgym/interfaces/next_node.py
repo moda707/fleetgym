@@ -2,8 +2,13 @@
 
 The agent picks the next node for the vehicle of the current epoch. Action ``i`` is node ``i``;
 slots beyond the instance's nodes are padding and always masked. Choosing the depot returns to it
-from a customer, or retires a vehicle that has not left the depot (only allowed for fixed and
-limited fleets, or when nothing else is feasible).
+from a customer, ends the route of a vehicle waiting at the depot after a restock, or retires a
+vehicle that has not left the depot (only allowed for fixed and limited fleets, or when nothing
+else is feasible).
+
+At a recourse epoch (``agent_decides``), the vehicle is at the failing customer ``i``: action 0
+(the depot) means ``return_to_depot`` (restock and come back), and action ``i`` (stay) means
+``outsource`` the rest. The mask allows only the rule's options.
 """
 
 from __future__ import annotations
@@ -16,7 +21,7 @@ from numpy.typing import NDArray
 
 from fleetgym.errors import InfeasibleActionError
 from fleetgym.interfaces.base import INTERFACE_CLASSES, ActionInterface
-from fleetgym.sim.decisions import Decision, Dispatch, EndRoute
+from fleetgym.sim.decisions import Decision, Dispatch, EndRoute, RecourseChoice
 from fleetgym.sim.engine import Epoch, Simulator
 from fleetgym.sim.info_state import DEPOT
 
@@ -52,7 +57,15 @@ class NextNode(ActionInterface):
         if not 0 <= node < sim.problem.instance.n_nodes:
             raise InfeasibleActionError(f"action {node} is a padding slot, not a node")
         v = sim.state.vehicles[epoch.vehicle]
-        if node == DEPOT and v.node == DEPOT and not v.used:
+        if epoch.kind == "recourse":
+            if node == DEPOT:
+                return RecourseChoice(epoch.vehicle, "return_to_depot")
+            if node == epoch.node:
+                return RecourseChoice(epoch.vehicle, "outsource")
+            raise InfeasibleActionError(
+                f"at a recourse epoch the action is 0 (return to depot) or {epoch.node} (outsource)"
+            )
+        if node == DEPOT and v.node == DEPOT:
             return EndRoute(epoch.vehicle)
         return Dispatch(epoch.vehicle, node)
 

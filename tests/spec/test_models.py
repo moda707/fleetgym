@@ -368,9 +368,41 @@ def test_reserved_decisions(decisions, feature):
 def test_recourse_shorthand_and_full_form():
     spec = make(recourse={"capacity_failure": "return_to_depot"})
     assert spec.recourse.rules["capacity_failure"].name == "return_to_depot"
-    assert spec.to_dict()["recourse"] == {"capacity_failure": "return_to_depot"}
+    assert spec.to_dict()["recourse"] == {
+        "capacity_failure": {
+            "rule": "return_to_depot",
+            "partial_service": True,
+            "on_exact_depletion": "continue",
+        }
+    }
     rule = RecourseRuleSpec.model_validate({"rule": "split"})
     assert rule.model_dump() == "split"
+
+
+def test_recourse_rule_parameters():
+    rule = RecourseRuleSpec.model_validate({"rule": "outsource", "per_unit": 2})
+    assert rule.model_dump() == {
+        "rule": "outsource",
+        "per_customer": 0.0,
+        "per_unit": 2.0,
+        "partial_service": True,
+    }
+    with pytest.raises(ValidationError, match="outsourcing needs its cost"):
+        RecourseRuleSpec.model_validate("outsource")
+    with pytest.raises(ValidationError, match="outsourcing needs its cost"):
+        RecourseRuleSpec.model_validate("agent_decides")
+    only_restock = RecourseRuleSpec.model_validate(
+        {"rule": "agent_decides", "options": ["return_to_depot"]}
+    )
+    assert only_restock.params.options == ("return_to_depot",)  # pyright: ignore[reportAttributeAccessIssue]
+    with pytest.raises(ValidationError, match="twice"):
+        RecourseRuleSpec.model_validate(
+            {"rule": "agent_decides", "options": ["outsource", "outsource"], "per_unit": 1}
+        )
+    with pytest.raises(ValidationError, match="on_exact_depletion"):
+        RecourseRuleSpec.model_validate({"rule": "return_to_depot", "on_exact_depletion": "maybe"})
+    with pytest.raises(ValidationError, match=r"recourse\.capacity_failure"):
+        make(recourse={"capacity_failure": "split"})
 
 
 def test_recourse_errors():

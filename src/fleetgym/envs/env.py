@@ -20,11 +20,14 @@ from fleetgym.interfaces.base import INTERFACE_CLASSES, ActionInterface
 from fleetgym.interfaces.observations import PaddedGraphObservation
 from fleetgym.interfaces.rewards import RewardModel
 from fleetgym.network.base import Network, build_network
+from fleetgym.sim.decisions import RecourseChoice
 from fleetgym.sim.engine import Epoch, Simulator
 from fleetgym.sim.invariants import InvariantMonitor
 from fleetgym.sim.state import SimState
 from fleetgym.spec.binding import BoundProblem, bind, instance_from_source
 from fleetgym.spec.models import FilesSource, GeneratorSource, ProblemSpec
+from fleetgym.uncertainty.sampling import resample_unrevealed, sample_scenario
+from fleetgym.uncertainty.scenario import Scenario
 from fleetgym.uncertainty.streams import StreamFactory
 
 __all__ = ["EnvState", "FleetGymEnv", "InvalidActionMode"]
@@ -49,6 +52,7 @@ class EnvState:
     np_random_state: Mapping[str, Any]
     carry_costs: dict[str, float]
     final_step_pending: bool
+    scenario: Scenario | None = None
 
 
 def _derive_seed(root: int, index: int) -> int:
@@ -134,8 +138,9 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
     Notes
     -----
     ``info`` contains ``costs`` (components realized in the step), ``total_costs``,
-    ``action_mask``, ``vehicle`` (the vehicle that must decide next, or ``None``), ``time``,
-    ``spec_hash`` and ``episode_seed``.
+    ``action_mask``, ``vehicle`` (the vehicle that must decide next, or ``None``), ``epoch_kind``
+    (``"vehicle_idle"`` or ``"recourse"``), ``time``, ``spec_hash`` and ``episode_seed``. The
+    scenario is deliberately absent (its id would identify the future); see `scenario`.
     """
 
     metadata = {"render_modes": ["ansi"], "render_fps": 4}  # noqa: RUF012 - Gymnasium convention
@@ -247,6 +252,8 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             the last seed given.
         options
             ``{"instance": Instance}`` uses that instance for this episode only.
+            ``{"scenario": Scenario}`` replays that scenario instead of sampling one from the seed
+            (it must belong to this spec and instance).
         """
         if seed is not None and seed < 0:
             raise ValueError(f"seeds must be non-negative, got {seed}")
@@ -263,7 +270,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         self._episode_index += 1
 
         options = options or {}
-        unknown = set(options) - {"instance"}
+        unknown = set(options) - {"instance", "scenario"}
         if unknown:
             raise ValueError(f"unknown reset options {sorted(unknown)}")
         instance = options.get("instance") or self._fixed_instance
@@ -285,6 +292,11 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
                 source=self.spec_.source,
                 key_path="fleet",
             )
+        scenario: Scenario | None = options.get("scenario")
+        if scenario is None and self.spec_.uncertainty:
+            scenario = sample_scenario(problem, self._episode_seed)
+        elif scenario is not None and not self.spec_.uncertainty:
+            raise ValueError("this spec has no uncertain parameters; do not pass a scenario")
         log = EventLog(
             {
                 "fleetgym_version": __version__,
@@ -293,10 +305,10 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
                 "instance_hash": problem.instance_hash,
                 "instance_name": instance.name,
                 "episode_seed": str(self._episode_seed),
-                "scenario_id": "",
+                "scenario_id": scenario.id if scenario is not None else "",
             }
         )
-        self._sim = Simulator(problem, self._network_for(problem), log=log)
+        self._sim = Simulator(problem, self._network_for(problem), log=log, scenario=scenario)
         self._monitor.reset()
         self._epoch = self._sim.start()
         # Costs realized before the first decision count in the first step's reward.
@@ -345,9 +357,11 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
                 return self._observation(), -penalty, False, False, info
             chosen = int(self.interface.repair(chosen, self._mask, sim, epoch))
         decision = self.interface.decode(chosen, sim, epoch)
-        node = getattr(decision, "node", 0)
+        target = (
+            {} if isinstance(decision, RecourseChoice) else {"node": getattr(decision, "node", 0)}
+        )
         sim.log.append(
-            "decision", vehicle=epoch.vehicle, action=chosen, node=node, epoch=sim.state.epoch_count
+            "decision", vehicle=epoch.vehicle, action=chosen, epoch=sim.state.epoch_count, **target
         )
         transition = sim.apply(decision)
         costs = _merge_costs(self._carry_costs, transition.costs)
@@ -414,13 +428,14 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             np_random_state=copy.deepcopy(self.np_random.bit_generator.state),
             carry_costs=dict(self._carry_costs),
             final_step_pending=self._final_step_pending,
+            scenario=sim.scenario,
         )
 
     def set_state(self, state: EnvState) -> None:
         """Restore a snapshot from `get_state` (of this or an identically configured env)."""
         if state.problem.spec_hash != self.spec_.content_hash():
             raise ValueError("the snapshot belongs to a different spec")
-        sim = Simulator(state.problem, state.network, log=state.log.copy())
+        sim = Simulator(state.problem, state.network, log=state.log.copy(), scenario=state.scenario)
         sim.restore(state.sim)
         self._sim = sim
         self._epoch = state.epoch
@@ -452,6 +467,24 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             twin.set_state(self.get_state())
         return twin
 
+    def fork(self, seed: int) -> FleetGymEnv:
+        """A non-anticipative copy: same state, with every unrevealed value redrawn from ``seed``.
+
+        Planners (rollout, scenario sampling) must use forks, not `clone`, which shares the true
+        future. Without uncertainty a fork equals a clone.
+        """
+        twin = self.clone()
+        sim = self.simulator
+        if sim.scenario is not None:
+            fresh = resample_unrevealed(sim.problem, sim.scenario, sim.revealed_masks(), seed)
+            twin.simulator.replace_scenario(fresh)
+        return twin
+
+    @property
+    def scenario(self) -> Scenario | None:
+        """The scenario of the current episode (``None`` without uncertainty)."""
+        return self.simulator.scenario
+
     # ------------------------------------------------------------------ helpers
 
     def _network_for(self, problem: BoundProblem) -> Network:
@@ -476,6 +509,11 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             n = sim.problem.instance.n_nodes
             return f"action {action} is a padding slot (the instance has {n} nodes)"
         v = sim.state.vehicles[self._epoch.vehicle]
+        if self._epoch.kind == "recourse":
+            return (
+                f"at a recourse epoch the valid actions are {np.flatnonzero(self._mask).tolist()}"
+                " (0: return to the depot; the failing customer: outsource)"
+            )
         if action == 0 and v.node == 0:
             return "this vehicle cannot retire: the fleet is unlimited and customers are feasible"
         return sim._explain(self._epoch.vehicle, action)  # pyright: ignore[reportPrivateUsage]
@@ -490,6 +528,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             "total_costs": dict(sim.state.total_costs),
             "action_mask": self._mask.copy(),
             "vehicle": None if self._epoch is None else self._epoch.vehicle,
+            "epoch_kind": None if self._epoch is None else self._epoch.kind,
             "time": sim.state.time,
             "spec_hash": sim.problem.spec_hash,
             "episode_seed": self._episode_seed,

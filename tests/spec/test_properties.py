@@ -54,7 +54,7 @@ specs = st.fixed_dictionaries(
     {"fleet": fleets, "objective": objectives, "constraints": constraints},
     optional={
         "uncertainty": st.dictionaries(
-            st.sampled_from(["demand", "service_time", "presence"]),
+            st.sampled_from(["demand", "service_time"]),
             st.builds(lambda d, r: {**d, "revealed": r}, distributions, revealed),
             max_size=3,
         ),
@@ -73,7 +73,12 @@ specs = st.fixed_dictionaries(
             ]
         ),
         "recourse": st.sampled_from(
-            [{}, {"capacity_failure": "return_to_depot"}, {"capacity_failure": "agent_decides"}]
+            [
+                {},
+                {"capacity_failure": "return_to_depot"},
+                {"capacity_failure": {"rule": "outsource", "per_unit": 1.5}},
+                {"capacity_failure": {"rule": "agent_decides", "options": ["return_to_depot"]}},
+            ]
         ),
     },
 )

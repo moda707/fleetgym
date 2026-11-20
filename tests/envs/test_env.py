@@ -155,7 +155,7 @@ def test_same_seed_same_episode_and_seed_sequence():
     with pytest.raises(ValueError, match="non-negative"):
         unseeded.reset(seed=-1)
     with pytest.raises(ValueError, match="unknown reset options"):
-        unseeded.reset(options={"scenario": None})
+        unseeded.reset(options={"bogus": None})
 
 
 @pytest.mark.parametrize("env_id", REGISTERED)
@@ -328,7 +328,7 @@ def test_vehicle_slots_must_fit_the_fleet():
 def test_make_vec():
     vec = fg.make_vec("CVRP-v0", 3, invalid_action="repair")
     obs, _ = vec.reset(seed=0)
-    assert obs["nodes"].shape == (3, 21, 8)
+    assert obs["nodes"].shape == (3, 21, 9)
     obs, rewards, *_ = vec.step(np.array([1, 2, 3]))
     assert rewards.shape == (3,)
     vec.close()

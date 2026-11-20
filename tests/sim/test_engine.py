@@ -237,10 +237,37 @@ def test_simulator_rejects_invalid_decisions():
         ),
         (
             {"uncertainty": {"demand": {"dist": "poisson", "mean": 1, "revealed": "on_arrival"}}},
-            NotInScopeError,
-            "M5",
+            ConfigError,
+            "recourse.capacity_failure",
         ),
-        ({"recourse": {"capacity_failure": "return_to_depot"}}, NotInScopeError, "M5"),
+        (
+            {
+                "uncertainty": {"demand": {"dist": "poisson", "mean": 1, "revealed": "on_arrival"}},
+                "recourse": {"capacity_failure": "return_to_depot"},
+                "constraints": {"capacity": {}, "route_duration": {"max": 100}},
+            },
+            NotInScopeError,
+            "recourse backlog",
+        ),
+        (
+            {
+                "uncertainty": {
+                    "service_time": {"dist": "exponential", "mean": 1, "revealed": "on_arrival"}
+                },
+                "constraints": {"capacity": {}, "route_duration": {"max": 100}},
+            },
+            NotInScopeError,
+            "time-window recourse",
+        ),
+        (
+            {
+                "uncertainty": {
+                    "demand": {"dist": "poisson", "mean": 1, "revealed": "on_completion"}
+                }
+            },
+            ConfigError,
+            "cannot be revealed",
+        ),
         (
             {
                 "dynamics": {"arrivals": {"process": "poisson", "rate": 1}, "max_requests": 3},

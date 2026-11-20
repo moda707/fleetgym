@@ -521,17 +521,102 @@ for _name, _description in (
 ):
     FAILURE_TYPES.register(_name, PluginEntry(_NoParams, reserved=True, description=_description))
 
-for _name, _description in (
-    ("return_to_depot", "Serve what fits, restock at the depot, return to finish"),
-    ("agent_decides", "Hand the failure to the policy as a recourse decision epoch"),
-    ("outsource", "Outsource the remaining demand"),
-    ("split", "Serve what fits and leave the rest as a new request"),
+
+class ReturnToDepotParams(FrozenModel):
+    """Classical detour-to-depot recourse (docs/recourse.md).
+
+    Attributes
+    ----------
+    partial_service
+        ``True``: serve what fits, restock at the depot, come back and finish. ``False``: restock
+        first, then come back and serve (demand above capacity still needs several trips).
+    on_exact_depletion
+        ``continue``: a vehicle emptied exactly by a customer continues, and fails at the next
+        customer with positive demand. ``restock``: it restocks at the depot right away (when
+        customers are still pending) and decides its next customer from there.
+    """
+
+    partial_service: bool = True
+    on_exact_depletion: Literal["continue", "restock"] = "continue"
+
+
+class _OutsourceCosts(FrozenModel):
+    per_customer: NonNegativeOrRef = 0.0
+    per_unit: NonNegativeOrRef = 0.0
+
+    def _require_costs(self) -> None:
+        if not {"per_customer", "per_unit"} & self.model_fields_set:
+            raise ValueError(
+                "outsourcing needs its cost: give `per_customer` and/or `per_unit` (provisional "
+                "until the VRP-SDO model is fixed at Gate 2)"
+            )
+
+
+class OutsourceParams(_OutsourceCosts):
+    """Outsource the demand that does not fit; the vehicle continues its route.
+
+    The cost (component ``outsourcing``) is ``per_customer + per_unit * quantity`` for each
+    outsourced customer.
+
+    Attributes
+    ----------
+    partial_service
+        ``True``: serve what fits and outsource the rest. ``False``: outsource the whole remaining
+        demand of the failing customer.
+    """
+
+    partial_service: bool = True
+
+    @model_validator(mode="after")
+    def _costs(self) -> OutsourceParams:
+        self._require_costs()
+        return self
+
+
+class AgentDecidesParams(_OutsourceCosts):
+    """Hand each failure to the policy at a recourse decision epoch.
+
+    Attributes
+    ----------
+    options
+        What the policy may choose: ``return_to_depot`` (restock and come back) and/or
+        ``outsource`` (priced like the ``outsource`` rule).
+    partial_service
+        Serve what fits before the recourse epoch.
+    """
+
+    options: tuple[Literal["return_to_depot", "outsource"], ...] = Field(
+        default=("return_to_depot", "outsource"), min_length=1
+    )
+    partial_service: bool = True
+
+    @model_validator(mode="after")
+    def _costs(self) -> AgentDecidesParams:
+        if len(set(self.options)) != len(self.options):
+            raise ValueError("`options` lists an option twice")
+        if "outsource" in self.options:
+            self._require_costs()
+        return self
+
+
+for _name, _model, _description in (
+    ("return_to_depot", ReturnToDepotParams, "Restock at the depot and come back"),
+    ("outsource", OutsourceParams, "Outsource the demand that does not fit"),
+    ("agent_decides", AgentDecidesParams, "The policy chooses at a recourse decision epoch"),
 ):
-    RECOURSE_RULES.register(_name, PluginEntry(_NoParams, description=_description))
+    RECOURSE_RULES.register(_name, PluginEntry(_model, description=_description))
+RECOURSE_RULES.register(
+    "split",
+    PluginEntry(
+        _NoParams,
+        reserved=True,
+        description="Leave the rest as a new request (needs dynamic requests)",
+    ),
+)
 
 
 class RecourseRuleSpec(FlatPluginModel):
-    """A recourse rule: a name, or ``{rule: <name>, <params>}`` (provisional until M5)."""
+    """A recourse rule: a name, or ``{rule: <name>, <params>}``."""
 
     discriminator: ClassVar[str] = "rule"
     registry = RECOURSE_RULES

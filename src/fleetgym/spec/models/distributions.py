@@ -229,10 +229,10 @@ class _NoParams(FrozenModel):
 for _name, _description in (
     ("demand", "Customer demand"),
     ("service_time", "Service duration at a customer"),
-    ("presence", "Whether a known customer requests service"),
 ):
     UNCERTAINTY_SOURCES.register(_name, PluginEntry(_NoParams, description=_description))
 for _name, _description in (
+    ("presence", "Whether a known customer requests service (stochastic customers, after v0.1)"),
     ("travel_time", "Stochastic travel times (deferred until after v0.1)"),
     ("station_wait", "Waiting time at a charging station (EV module)"),
     ("energy_consumption", "Noise on energy consumption (EV module)"),

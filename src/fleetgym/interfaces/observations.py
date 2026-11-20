@@ -2,9 +2,11 @@
 
 Layout of `PaddedGraphObservation` (all ``float32`` except masks, which are ``int8``):
 
-``nodes`` ``(max_nodes, 8)``
-    x, y, demand, window open, window close, service time, pending flag, depot flag. Coordinates are
-    0 for matrix instances; window columns are 0 without time windows.
+``nodes`` ``(max_nodes, 9)``
+    x, y, demand, window open, window close, service time, pending flag, depot flag, demand-known
+    flag. Coordinates are 0 for matrix instances; window columns are 0 without time windows. Demand
+    and service time are the revealed values where known and forecasts elsewhere (the last column
+    says which, for demand).
 ``node_valid`` ``(max_nodes,)``
     1 for real nodes, 0 for padding.
 ``vehicle`` ``(6,)``
@@ -35,7 +37,7 @@ from fleetgym.sim.state import RequestStatus
 
 __all__ = ["NODE_FEATURES", "PaddedGraphObservation"]
 
-NODE_FEATURES = 8
+NODE_FEATURES = 9
 VEHICLE_FEATURES = 6
 GLOBAL_FEATURES = 4
 
@@ -103,6 +105,7 @@ class PaddedGraphObservation:
         nodes[:n, 5] = info.service_times
         nodes[:n, 6] = state.request_status == RequestStatus.PENDING
         nodes[:n, 7] = np.arange(n) < instance.n_depots
+        nodes[:n, 8] = info.demand_known
         node_valid = np.zeros(self.max_nodes, dtype=np.int8)
         node_valid[:n] = 1
 

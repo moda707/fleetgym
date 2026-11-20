@@ -39,7 +39,7 @@ def test_show_raw_and_with_defaults(capsys):
 def test_validate(capsys, tmp_path: Path):
     code, out, _ = run(capsys, "validate", "--all")
     assert code == 0
-    assert out.count("OK ") == 5
+    assert out.count("OK ") == 6
     assert "reserved: ev, constraints.energy" in out
     bad = tmp_path / "bad.yaml"
     bad.write_text("extends: CVRP-v0\nobjective: {bogus: 1}\n")

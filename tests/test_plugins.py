@@ -65,3 +65,14 @@ def test_failing_plugin_raises_with_its_name(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(plugins, "import_module", boom)
     with pytest.raises(PluginError, match=r"'bad'.*missing dependency"):
         plugins.load_plugins()
+
+
+def test_unregister_removes_an_entry():
+    from fleetgym.plugins import PluginError, Registry
+
+    reg: Registry[int] = Registry("number")
+    reg.register("one", 1)
+    assert reg.unregister("one") == 1
+    assert "one" not in reg
+    with pytest.raises(PluginError, match="unknown number"):
+        reg.unregister("one")

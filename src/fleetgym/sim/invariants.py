@@ -25,8 +25,9 @@ class InvariantMonitor:
     """Check simulator invariants after every step.
 
     Checks: loads within capacity (when the capacity constraint is on), per-vehicle clocks never go
-    back, route start before vehicle time, request statuses consistent with service records, and
-    every assigned request has a vehicle heading to it.
+    back, route start before vehicle time, request statuses consistent with service records, every
+    assigned request has a vehicle heading to it (or coming back after a restock), and served
+    requests have nothing left to deliver.
     """
 
     def __init__(self) -> None:
@@ -67,6 +68,12 @@ class InvariantMonitor:
             for v in state.vehicles
             if v.status in (VehicleStatus.TRAVELING, VehicleStatus.SERVING)
         }
+        heading |= {v.recourse_target for v in state.vehicles if v.recourse_target is not None}
+        heading |= {v.awaiting_recourse for v in state.vehicles if v.awaiting_recourse is not None}
+        if np.any(state.remaining_demand < -_TOL):
+            raise InvariantViolation("negative remaining demand")
+        if np.any(state.remaining_demand[status == RequestStatus.SERVED] > _TOL):
+            raise InvariantViolation("a served request still has demand to deliver")
         for node in np.flatnonzero(status == RequestStatus.ASSIGNED):
             if int(node) not in heading:
                 raise InvariantViolation(

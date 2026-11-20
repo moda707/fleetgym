@@ -2014,7 +2014,7 @@
         },
         "presence": {
           "$ref": "#/$defs/UncertainSpec",
-          "description": "Whether a known customer requests service"
+          "description": "Whether a known customer requests service (stochastic customers, after v0.1)"
         },
         "service_time": {
           "$ref": "#/$defs/UncertainSpec",

@@ -98,6 +98,18 @@ class Registry[T]:
             )
         self._entries[name] = obj
 
+    def unregister(self, name: str) -> T:
+        """Remove and return the plugin registered under ``name`` (for tests and reloading).
+
+        Raises
+        ------
+        PluginError
+            If no plugin has that name.
+        """
+        if name not in self._entries:
+            raise PluginError(f"unknown {self.kind} {name!r}")
+        return self._entries.pop(name)
+
     def get(self, name: str) -> T:
         """Return the plugin registered under ``name``.
 

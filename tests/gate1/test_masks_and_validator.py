@@ -58,7 +58,9 @@ def test_validator_accepts_registered_config_rollouts(env_id: str):
     env = fg.make(env_id)
     for seed in range(10):
         random_masked_rollout(env, np.random.default_rng(seed), seed=seed)
-        validate(env.event_log, env.problem_spec, env.problem.instance).raise_if_invalid()
+        validate(
+            env.event_log, env.problem_spec, env.problem.instance, scenario=env.scenario
+        ).raise_if_invalid()
 
 
 @pytest.mark.slow
@@ -69,7 +71,9 @@ def test_gate1_ten_thousand_rollouts():
         env = fg.make(env_id)
         for seed in range(2_000):
             random_masked_rollout(env, np.random.default_rng(seed), seed=seed)
-            validate(env.event_log, env.problem_spec, env.problem.instance).raise_if_invalid()
+            validate(
+                env.event_log, env.problem_spec, env.problem.instance, scenario=env.scenario
+            ).raise_if_invalid()
             count += 1
 
     @settings(

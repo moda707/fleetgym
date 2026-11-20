@@ -28,6 +28,7 @@ from fleetgym.spec.registries import (
     COST_COMPONENTS,
     FAILURE_TYPES,
     INTERFACES,
+    RECOURSE_RULES,
     UNCERTAINTY_SOURCES,
 )
 
@@ -129,7 +130,11 @@ class ProblemSpec(FrozenModel):
             for n, u in self.uncertainty.items()
             if u.correlated_with
         ]
-        found += [f"recourse.{n}" for n in self.recourse.rules if FAILURE_TYPES.get(n).reserved]
+        found += [
+            f"recourse.{n}"
+            for n, rule in self.recourse.rules.items()
+            if FAILURE_TYPES.get(n).reserved or RECOURSE_RULES.get(rule.name).reserved
+        ]
         if INTERFACES.get(self.decisions.interface).reserved:
             found.append("decisions.interface")
         if self.decisions.epochs == "hybrid":

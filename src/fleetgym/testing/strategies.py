@@ -29,7 +29,14 @@ except ImportError as exc:  # pragma: no cover - dev dependency
         "fleetgym.testing.strategies needs hypothesis: pip install fleetgym[dev]"
     ) from exc
 
-__all__ = ["instances", "problems", "random_masked_rollout", "spec_dicts"]
+__all__ = [
+    "instances",
+    "problems",
+    "random_masked_rollout",
+    "spec_dicts",
+    "stochastic_problems",
+    "stochastic_spec_dicts",
+]
 
 
 @st.composite
@@ -127,6 +134,77 @@ def problems(draw: st.DrawFn, *, max_customers: int = 6) -> tuple[ProblemSpec, I
     instance = draw(instances(max_customers=max_customers))
     spec = load_spec(draw(spec_dicts(time_windows=instance.time_windows is not None)))
     return spec, instance
+
+
+@st.composite
+def stochastic_spec_dicts(draw: st.DrawFn) -> dict[str, Any]:
+    """Random valid specs with uncertain demands (and service times) and a recourse rule.
+
+    No time constraints: recourse with time windows or duration limits is not in this version.
+    """
+    epochs = draw(st.sampled_from(["sequential", "on_event"]))
+    sizing = (
+        "unlimited"
+        if epochs == "sequential" and draw(st.booleans())
+        else draw(st.sampled_from(["fixed", "limited"]))
+    )
+    vehicle: dict[str, Any] = {"name": "v", "capacity": "from_instance"}
+    if sizing != "unlimited":
+        vehicle["count"] = draw(st.integers(1, 3))
+    demand = draw(
+        st.sampled_from(
+            [
+                {"dist": "poisson", "mean": "from_instance"},
+                {
+                    "dist": "categorical",
+                    "values": [0, 1, 3, 7, 16],
+                    "probs": [0.1, 0.3, 0.3, 0.2, 0.1],
+                },
+                {"dist": "fixed", "value": "from_instance"},
+            ]
+        )
+    )
+    demand["revealed"] = draw(st.sampled_from(["a_priori", "on_departure", "on_arrival"]))
+    demand["forecast"] = draw(st.sampled_from(["mean", "none"]))
+    uncertainty: dict[str, Any] = {"demand": demand}
+    if draw(st.booleans()):
+        uncertainty["service_time"] = {
+            "dist": "exponential",
+            "mean": 2.0,
+            "revealed": draw(st.sampled_from(["on_arrival", "on_completion"])),
+        }
+    rule = draw(
+        st.sampled_from(
+            [
+                "return_to_depot",
+                {"rule": "return_to_depot", "partial_service": False},
+                {"rule": "return_to_depot", "on_exact_depletion": "restock"},
+                {"rule": "outsource", "per_unit": 2.0, "per_customer": 1.0},
+                {"rule": "outsource", "per_unit": 1.0, "partial_service": False},
+                {"rule": "agent_decides", "per_unit": 3.0},
+                {"rule": "agent_decides", "options": ["return_to_depot"]},
+            ]
+        )
+    )
+    return {
+        "fleet": {"sizing": sizing, "types": [vehicle]},
+        "network": {
+            "type": "euclidean",
+            "rounding": draw(st.sampled_from(["none", "nearest_int"])),
+        },
+        "constraints": {"capacity": {}},
+        "uncertainty": uncertainty,
+        "recourse": {"capacity_failure": rule},
+        "decisions": {"interface": "next_node", "epochs": epochs},
+        "objective": {"distance": 1.0, "outsourcing": 1.0, "unserved": 100.0},
+    }
+
+
+@st.composite
+def stochastic_problems(draw: st.DrawFn, *, max_customers: int = 6) -> tuple[ProblemSpec, Instance]:
+    """A random stochastic ``(spec, instance)`` pair that binds."""
+    instance = draw(instances(max_customers=max_customers, time_windows=False))
+    return load_spec(draw(stochastic_spec_dicts())), instance
 
 
 def random_masked_rollout(

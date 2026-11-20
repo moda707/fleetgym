@@ -62,6 +62,12 @@ class VehicleState:
         Nodes visited on the current route, starting with the depot.
     route_start
         Departure time from the depot, or ``None`` before the first departure.
+    restocking
+        Heading to the depot to restock (the route continues), not to end the route.
+    recourse_target
+        Customer to come back to after restocking.
+    awaiting_recourse
+        Customer whose capacity failure waits for the policy's recourse decision.
     """
 
     index: int
@@ -74,6 +80,9 @@ class VehicleState:
     route: list[int] = field(default_factory=list)
     route_start: float | None = None
     distance: float = 0.0
+    restocking: bool = False
+    recourse_target: int | None = None
+    awaiting_recourse: int | None = None
 
     @property
     def used(self) -> bool:
@@ -101,6 +110,15 @@ class SimState:
         Costs realized since the last decision epoch, by component.
     total_costs
         Costs realized since the start of the episode, by component.
+    remaining_demand
+        True demand still to deliver per node (simulator-internal; the agent sees revealed values
+        only, through `InformationState`).
+    outsourced
+        Quantity outsourced per node.
+    revealed
+        Per uncertainty source, which nodes' values the agent knows.
+    known_values
+        Per uncertainty source, the revealed values (NaN where unknown).
     """
 
     time: float
@@ -115,6 +133,10 @@ class SimState:
     epoch_count: int = 0
     terminated: bool = False
     fleet_exhausted: bool = False
+    remaining_demand: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0))
+    outsourced: NDArray[np.float64] = field(default_factory=lambda: np.zeros(0))
+    revealed: dict[str, NDArray[np.bool_]] = field(default_factory=dict)
+    known_values: dict[str, NDArray[np.float64]] = field(default_factory=dict)
 
     def add_cost(self, component: str, amount: float) -> None:
         """Record a realized cost (zero amounts are ignored)."""

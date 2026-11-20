@@ -1,20 +1,28 @@
 """Independent solution validator (architecture rule 11).
 
-`validate` re-checks an episode from its event log, the spec and the instance only. It never imports
-the simulator, constraints, network or environment code (enforced by the import-layer test): it
-recomputes distances, travel times, service starts, loads and costs with its own short
-implementation of the rules in ADR 0009, so a bug in the simulator cannot hide itself.
+`validate` re-checks an episode from its event log, the spec, the instance and (with uncertainty)
+the scenario only. It never imports the simulator, constraints, network or environment code
+(enforced by the import-layer test): it recomputes distances, travel times, service starts, loads
+and costs with its own short implementation of the rules in ADRs 0009 and 0013, so a bug in the
+simulator cannot hide itself.
 
 What is checked
 ---------------
-* identity: the log was produced for this spec and instance (content hashes);
+* identity: the log was produced for this spec, instance and scenario (content hashes);
 * vehicles start at the depot at the shift start with the right capacity, and the fleet size is
   respected;
 * every departure leaves from where the vehicle is, when it is free, with the right arc distance;
-* arrivals, service starts and service ends follow travel times, time windows and service times;
+* arrivals, service starts and service ends follow travel times, time windows and (realized)
+  service times;
 * hard constraints: capacity, time windows (including the depot), waiting rules, route duration,
   shift end;
-* every customer is served at most once, and served or reported unserved exactly once;
+* deliveries: each service delivers at most what is left and what fits; every customer's realized
+  demand is delivered or outsourced in full, or the customer is reported unserved;
+* recourse: failures report the right remaining demand and load, restocks happen at the depot,
+  a ``return_to_depot`` resolution goes to the depot and back to the same customer, outsourcing is
+  priced by the rule's parameters; for the built-in rules, the rule's behavior itself (which
+  resolution, how much is served first, when preventive restocks are allowed);
+* revealed values equal the scenario's;
 * every route returns to the depot;
 * recomputed costs equal the logged costs, and the sum of logged rewards equals minus the weighted
   recomputed cost (plus any logged invalid-action penalties).
@@ -36,10 +44,12 @@ from fleetgym.errors import ValidationFailure
 from fleetgym.eventlog import EventLog
 from fleetgym.spec.binding import bind
 from fleetgym.spec.models import ProblemSpec
+from fleetgym.uncertainty.scenario import Scenario
 
 __all__ = ["ValidationReport", "Violation", "validate"]
 
 DEPOT = 0
+_BUILTIN_RULES = ("return_to_depot", "outsource", "agent_decides")
 
 
 @dataclass(frozen=True)
@@ -106,9 +116,19 @@ class _Vehicle:
     in_transit: tuple[int, float] | None = None
     arrival: float | None = None
     service: tuple[int, float] | None = None
+    serving: bool = False
+    """A ``service_start`` was logged for the current visit."""
     route_ended: bool = False
     retired: bool = False
     expected_target: int | None = None
+    at_depot_open: bool = False
+    """Arrived at the depot mid-route: a ``restock`` or ``route_end`` must follow."""
+    must_go: int | None = None
+    """Recourse obligation: the next departure must go to this node."""
+    come_back_to: int | None = None
+    """After the next restock, the vehicle must return to this customer."""
+    last_completed_full: bool = False
+    """The last customer it completed left it exactly full (preventive restock allowed)."""
 
 
 def _distances(spec: ProblemSpec, instance: Instance) -> NDArray[np.float64]:
@@ -131,11 +151,17 @@ def _close(a: float, b: float, tol: float) -> bool:
     return abs(a - b) <= tol * max(1.0, abs(a), abs(b))
 
 
+def _at(value: Any, node: int) -> float:
+    arr = np.asarray(value, dtype=float)
+    return float(arr) if arr.ndim == 0 else float(arr[node])
+
+
 def validate(
     log: EventLog | str | Path,
     spec: ProblemSpec,
     instance: Instance,
     *,
+    scenario: Scenario | None = None,
     tol: float = 1e-9,
 ) -> ValidationReport:
     """Re-check a trajectory independently of the simulator.
@@ -148,11 +174,20 @@ def validate(
         The spec the episode was run with.
     instance
         The instance the episode was run on.
+    scenario
+        The episode's scenario (required when the spec has uncertain parameters).
     tol
         Relative tolerance for floating-point comparisons.
+
+    Raises
+    ------
+    ValueError
+        If the spec has uncertain parameters and no scenario is given.
     """
     if not isinstance(log, EventLog):
         log = EventLog.read(log)
+    if spec.uncertainty and scenario is None:
+        raise ValueError("this spec has uncertain parameters: pass the episode's scenario")
     report = ValidationReport()
     found = report.violations
 
@@ -164,6 +199,14 @@ def validate(
         fail("identity", "the log was produced for a different spec")
     if log.metadata.get("instance_hash") != instance.content_hash():
         fail("identity", "the log was produced for a different instance")
+    if scenario is not None:
+        if log.metadata.get("scenario_id") != scenario.id:
+            fail("identity", "the log was produced for a different scenario")
+        if (
+            scenario.spec_hash != spec.content_hash()
+            or scenario.instance_hash != instance.content_hash()
+        ):
+            fail("identity", "the scenario belongs to a different spec or instance")
 
     problem = bind(spec, instance)
     dist = _distances(spec, instance)
@@ -175,6 +218,12 @@ def validate(
         if instance.service_times is not None
         else np.zeros(n)
     )
+    truth: dict[str, NDArray[np.float64]] = {}
+    if scenario is not None:
+        for name in spec.uncertainty:
+            truth[name] = np.asarray(scenario[name], dtype=float)
+        demands = truth.get("demand", demands)
+        service_times = truth.get("service_time", service_times)
     tw = (
         np.asarray(instance.time_windows, dtype=float)
         if instance.time_windows is not None
@@ -199,9 +248,37 @@ def validate(
         type_of_vehicle += [t] * (vt.count or 0)
     fleet_limit = None if spec.fleet.sizing == "unlimited" else len(type_of_vehicle)
 
+    rule_spec = spec.recourse.rules.get("capacity_failure")
+    rule = rule_spec.name if rule_spec is not None else None
+    rule_params = rule_spec.params.model_dump() if rule_spec is not None else {}
+    builtin = rule in _BUILTIN_RULES
+    allowed_actions: set[str] = (
+        {"return_to_depot"}
+        if rule == "return_to_depot"
+        else {"outsource"}
+        if rule == "outsource"
+        else set(rule_params.get("options", ()))
+        if rule == "agent_decides"
+        else {"return_to_depot", "outsource"}
+        if rule is not None
+        else set()
+    )
+    partial_service = bool(rule_params.get("partial_service", True))
+    preventive_ok = (
+        rule == "return_to_depot" and rule_params.get("on_exact_depletion") == "restock"
+    ) or (rule is not None and not builtin)
+
+    def outsourcing_cost(node: int, quantity: float) -> float:
+        per_customer = _at(problem.value("recourse.capacity_failure.per_customer"), node)
+        per_unit = _at(problem.value("recourse.capacity_failure.per_unit"), node)
+        return per_customer + per_unit * quantity
+
     vehicles: dict[int, _Vehicle] = {}
-    served: dict[int, int] = {}
+    remaining = demands.copy()
+    started: set[int] = set()
+    completed: dict[int, int] = {}
     unserved: set[int] = set()
+    revealed: dict[str, set[int]] = {name: set() for name in truth}
     costs: dict[str, float] = {}
     logged: dict[str, float] = {}
     penalties = 0.0
@@ -216,6 +293,10 @@ def validate(
         if v is None:
             fail("unknown_vehicle", f"vehicle {row.get('vehicle')} was never activated", row)
         return v
+
+    def complete(node: int, index: int, v: _Vehicle) -> None:
+        completed[node] = index
+        v.last_completed_full = capacity_on and _close(v.load, v.capacity, tol)
 
     for row in log.rows:
         kind = row["kind"]
@@ -261,6 +342,13 @@ def validate(
             index, origin, target, time = row["vehicle"], row["from_node"], row["node"], row["time"]
             if v.route_ended or v.retired or v.in_transit is not None or v.service is not None:
                 fail("depart", f"vehicle {index} departs while not idle", row, vehicle=index)
+            if v.at_depot_open:
+                fail(
+                    "depart",
+                    f"vehicle {index} leaves the depot without restocking or ending its route",
+                    row,
+                    vehicle=index,
+                )
             if origin != v.node:
                 fail(
                     "depart",
@@ -278,19 +366,42 @@ def validate(
             if not 0 <= target < n:
                 fail("depart", f"node {target} does not exist", row, vehicle=index)
                 continue
-            if v.expected_target is not None and v.expected_target != target:
+            if v.must_go is not None:
+                if target != v.must_go:
+                    fail(
+                        "recourse",
+                        f"vehicle {index} had to go to {v.must_go} but left for {target}",
+                        row,
+                        vehicle=index,
+                    )
+                v.must_go = None
+                v.expected_target = None
+            elif v.expected_target is not None and v.expected_target != target:
                 fail(
                     "decision",
                     f"vehicle {index} was sent to {v.expected_target} but left for {target}",
                     row,
                 )
+            elif (
+                v.expected_target is None
+                and target == DEPOT
+                and v.route_start is not None
+                and not (preventive_ok and v.last_completed_full)
+            ):
+                # A depot trip nobody decided must be a preventive restock by the recourse rule.
+                fail(
+                    "recourse",
+                    f"vehicle {index} returns to the depot without a decision",
+                    row,
+                    vehicle=index,
+                )
             v.expected_target = None
             if origin == DEPOT and target == DEPOT:
                 fail("depart", "depot to depot trip", row, vehicle=index)
-            if target != DEPOT and (target in served or target in unserved):
+            if target != DEPOT and (target in completed or target in unserved):
                 fail(
                     "double_service",
-                    f"node {target} is visited twice",
+                    f"node {target} is visited after it was completed",
                     row,
                     vehicle=index,
                     node=target,
@@ -330,21 +441,24 @@ def validate(
             v.in_transit = None
             v.node = target
             v.arrival = row["time"]
-            if target != DEPOT:
-                start = row["time"]
-                if tw_on:
-                    assert tw is not None
-                    if waiting_allowed:
-                        start = max(start, float(tw[target, 0]))
-                    elif row["time"] < tw[target, 0] - tol:
-                        fail(
-                            "time_window",
-                            f"early arrival at {target} with waiting forbidden",
-                            row,
-                            node=target,
-                        )
-                charge("waiting", start - row["time"])
-                v.service = (target, start)
+            v.free_at = row["time"]
+            if target == DEPOT:
+                v.at_depot_open = True
+                continue
+            start = row["time"]
+            if tw_on:
+                assert tw is not None
+                if waiting_allowed:
+                    start = max(start, float(tw[target, 0]))
+                elif row["time"] < tw[target, 0] - tol:
+                    fail(
+                        "time_window",
+                        f"early arrival at {target} with waiting forbidden",
+                        row,
+                        node=target,
+                    )
+            charge("waiting", start - row["time"])
+            v.service = (target, start)
         elif kind == "service_start":
             v = vehicle_of(row)
             if v is None:
@@ -359,16 +473,35 @@ def validate(
                     f"service at {node} starts at {time}, expected {v.service[1]}",
                     row,
                 )
-            if node in served:
-                fail("double_service", f"node {node} served twice", row, node=node)
-            served[node] = row["vehicle"]
-            v.load += float(demands[node])
-            if not _close(row.get("quantity", math.nan), float(demands[node]), tol):
+            if node in completed:
+                fail("double_service", f"node {node} served after it was completed", row, node=node)
+            quantity = float(row.get("quantity", math.nan))
+            left = float(remaining[node])
+            free = v.capacity - v.load if capacity_on else math.inf
+            fits = left <= free * (1 + tol) + tol
+            expected_q = left if fits else free
+            if not fits and rule is None:
+                fail("capacity", f"demand {left} at {node} exceeds free capacity {free}", row)
+            elif not fits and builtin and not partial_service and v.load > tol:
                 fail(
-                    "quantity",
-                    f"served {row.get('quantity')} at {node}, demand is {demands[node]}",
+                    "recourse",
+                    f"{rule} with partial_service false must not serve before restocking",
                     row,
+                    node=node,
                 )
+            if builtin or rule is None:
+                if not _close(quantity, expected_q, tol):
+                    fail(
+                        "quantity",
+                        f"served {quantity} at {node}, expected {expected_q}",
+                        row,
+                        node=node,
+                    )
+            elif not (0 <= quantity <= min(left, free) * (1 + tol) + tol):
+                fail("quantity", f"served {quantity} at {node}, at most {min(left, free)}", row)
+            started.add(node)
+            v.load += quantity
+            remaining[node] = left - quantity
             if not _close(row.get("load", math.nan), v.load, tol):
                 fail("load", f"logged load {row.get('load')}, recomputed {v.load}", row)
             if capacity_on and v.load > v.capacity * (1 + tol):
@@ -386,28 +519,116 @@ def validate(
                         node=node,
                     )
             v.service = (node, time + float(service_times[node]))
+            v.serving = True
         elif kind == "service_end":
             v = vehicle_of(row)
             if v is None:
                 continue
-            if v.service is None or v.service[0] != row["node"]:
-                fail("service", f"service end at {row['node']} without service", row)
+            node = row["node"]
+            if v.service is None or v.service[0] != node or not v.serving:
+                fail("service", f"service end at {node} without service", row)
                 continue
+            v.serving = False
             if not _close(row["time"], v.service[1], tol):
                 fail(
                     "service_time",
-                    f"service at {row['node']} ends at {row['time']}, expected {v.service[1]}",
+                    f"service at {node} ends at {row['time']}, expected {v.service[1]}",
                     row,
                 )
             v.free_at = row["time"]
             v.service = None
+            if remaining[node] <= tol:
+                remaining[node] = 0.0
+                complete(node, row["vehicle"], v)
+        elif kind == "failure":
+            v = vehicle_of(row)
+            if v is None:
+                continue
+            node, action = row["node"], row.get("component")
+            if v.node != node or v.in_transit is not None:
+                fail("recourse", f"failure at {node} where the vehicle is not", row, node=node)
+                continue
+            if v.service is not None and v.service[0] == node:
+                v.service = None  # failure before any service: no service end follows
+                v.free_at = row["time"]
+            if rule is None:
+                fail("recourse", "a capacity failure without a recourse rule", row, node=node)
+            if not _close(row.get("quantity", math.nan), float(remaining[node]), tol):
+                fail(
+                    "recourse",
+                    f"failure at {node} reports {row.get('quantity')} left, expected "
+                    f"{remaining[node]}",
+                    row,
+                )
+            if remaining[node] <= tol:
+                fail("recourse", f"failure at {node} with nothing left to deliver", row)
+            if not _close(row.get("load", math.nan), v.load, tol):
+                fail("load", f"failure logs load {row.get('load')}, recomputed {v.load}", row)
+            if action not in allowed_actions:
+                fail("recourse", f"resolution {action!r} is not allowed for rule {rule!r}", row)
+            if action == "return_to_depot":
+                v.must_go = DEPOT
+                v.come_back_to = node
+        elif kind == "restock":
+            v = vehicle_of(row)
+            if v is None:
+                continue
+            if v.node != DEPOT or not v.at_depot_open or not _close(row["time"], v.free_at, tol):
+                fail("restock", f"vehicle {row['vehicle']} restocks away from the depot", row)
+            v.at_depot_open = False
+            v.load = 0.0
+            v.free_at = row["time"]
+            v.last_completed_full = False
+            if v.come_back_to is not None:
+                v.must_go, v.come_back_to = v.come_back_to, None
+        elif kind == "outsource":
+            v = vehicle_of(row)
+            if v is None:
+                continue
+            node = row["node"]
+            quantity = float(row.get("quantity", math.nan))
+            if not _close(quantity, float(remaining[node]), tol) or remaining[node] <= tol:
+                fail(
+                    "outsource",
+                    f"outsourced {quantity} at {node}, {remaining[node]} was left",
+                    row,
+                    node=node,
+                )
+            if "outsource" not in allowed_actions:
+                fail("recourse", f"rule {rule!r} cannot outsource", row, node=node)
+            else:
+                amount = outsourcing_cost(node, quantity)
+                if not _close(row.get("amount", math.nan), amount, tol):
+                    fail("outsource", f"logged cost {row.get('amount')}, expected {amount}", row)
+                charge("outsourcing", amount)
+            remaining[node] = 0.0
+            started.add(node)
+            complete(node, row["vehicle"], v)
+        elif kind == "reveal":
+            node, name = row["node"], row.get("component")
+            if name not in truth:
+                fail("reveal", f"reveal of {name!r}, which is not uncertain", row)
+                continue
+            if node in revealed[name]:
+                fail("reveal", f"{name} of node {node} revealed twice", row)
+            revealed[name].add(node)
+            if not _close(row.get("value", math.nan), float(truth[name][node]), tol):
+                fail(
+                    "reveal",
+                    f"{name} of node {node} revealed as {row.get('value')}, scenario has "
+                    f"{truth[name][node]}",
+                    row,
+                )
         elif kind == "route_end":
             v = vehicle_of(row)
             if v is None:
                 continue
             index, time = row["vehicle"], row["time"]
-            if v.node != DEPOT or v.arrival is None or not _close(time, v.arrival, tol):
+            if v.node != DEPOT or v.arrival is None or not _close(time, v.free_at, tol):
                 fail("route_end", f"vehicle {index} ends its route away from the depot", row)
+            if v.come_back_to is not None or v.must_go is not None:
+                fail("recourse", f"vehicle {index} ends its route during a recourse trip", row)
+            v.at_depot_open = False
             assert v.route_start is not None or found
             duration = time - (v.route_start or 0.0)
             if not _close(row.get("value", math.nan), duration, tol):
@@ -438,7 +659,7 @@ def validate(
             v.retired = True
         elif kind == "unserved":
             node = row["node"]
-            if node in served or node in unserved or not 0 < node < n:
+            if node in started or node in unserved or not 0 < node < n:
                 fail("unserved", f"node {node} cannot be reported unserved", row, node=node)
             unserved.add(node)
             charge("unserved", 1.0)
@@ -459,11 +680,19 @@ def validate(
                 )
             )
     customers = set(range(instance.n_depots, n))
-    missing = customers - served.keys() - unserved
-    if missing and any(r["kind"] == "episode_end" for r in log.rows):
-        found.append(
-            Violation("coverage", f"nodes {sorted(missing)} are neither served nor unserved")
-        )
+    ended = any(r["kind"] == "episode_end" for r in log.rows)
+    missing = customers - completed.keys() - unserved
+    if missing and ended:
+        partial = sorted(missing & started)
+        if partial:
+            found.append(
+                Violation("delivery", f"nodes {partial} were not delivered or outsourced in full")
+            )
+        untouched = sorted(missing - started)
+        if untouched:
+            found.append(
+                Violation("coverage", f"nodes {untouched} are neither served nor unserved")
+            )
 
     for component in sorted(costs.keys() | logged.keys()):
         a, b = costs.get(component, 0.0), logged.get(component, 0.0)
