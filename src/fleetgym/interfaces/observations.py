@@ -2,13 +2,13 @@
 
 Layout of `PaddedGraphObservation` (all ``float32`` except masks, which are ``int8``):
 
-``nodes`` ``(max_nodes, 9)``
+``nodes`` ``(max_nodes, 10)``
     x, y, demand, window open, window close, service time, pending flag, depot flag, demand-known
-    flag. Coordinates are 0 for matrix instances; window columns are 0 without time windows. Demand
-    and service time are the revealed values where known and forecasts elsewhere (the last column
-    says which, for demand).
+    flag, under-decision flag (the request of a request epoch). Coordinates are 0 for matrix
+    instances; window columns are 0 without time windows. Demand and service time are the revealed
+    values where known and forecasts elsewhere (column 8 says which, for demand).
 ``node_valid`` ``(max_nodes,)``
-    1 for real nodes, 0 for padding.
+    1 for real nodes, 0 for padding and for requests not released yet (whose rows are all 0).
 ``vehicle`` ``(6,)``
     The deciding vehicle: x, y, remaining capacity, time, elapsed route time, at-depot flag.
 ``vehicles`` ``(max_vehicles, 6)``
@@ -37,7 +37,7 @@ from fleetgym.sim.state import RequestStatus
 
 __all__ = ["NODE_FEATURES", "PaddedGraphObservation"]
 
-NODE_FEATURES = 9
+NODE_FEATURES = 10
 VEHICLE_FEATURES = 6
 GLOBAL_FEATURES = 4
 
@@ -106,8 +106,13 @@ class PaddedGraphObservation:
         nodes[:n, 6] = state.request_status == RequestStatus.PENDING
         nodes[:n, 7] = np.arange(n) < instance.n_depots
         nodes[:n, 8] = info.demand_known
+        if epoch is not None and epoch.kind == "request" and epoch.node is not None:
+            nodes[epoch.node, 9] = 1.0
         node_valid = np.zeros(self.max_nodes, dtype=np.int8)
         node_valid[:n] = 1
+        hidden = np.flatnonzero(state.request_status == RequestStatus.NOT_RELEASED)
+        nodes[hidden] = 0.0
+        node_valid[hidden] = 0
 
         vehicles = np.zeros((self.max_vehicles, VEHICLE_FEATURES), dtype=np.float32)
         vehicle_valid = np.zeros(self.max_vehicles, dtype=np.int8)
@@ -117,7 +122,7 @@ class PaddedGraphObservation:
             vehicle_valid[v.index] = 1
 
         current = np.zeros(VEHICLE_FEATURES, dtype=np.float32)
-        if epoch is not None:
+        if epoch is not None and epoch.vehicle is not None:
             v = state.vehicles[epoch.vehicle]
             remaining = v.capacity - v.load if np.isfinite(v.capacity) else 0.0
             elapsed = v.time - v.route_start if v.route_start is not None else 0.0

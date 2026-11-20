@@ -159,8 +159,8 @@ def test_multiple_depots_are_rejected():
 def test_planned_specs_cannot_be_bound():
     with pytest.raises(NotInScopeError, match=r"EVRP-NL-v0 is planned.*reserved features: ev"):
         bind(load_spec("EVRP-NL-v0"), tiny())
-    with pytest.raises(NotInScopeError, match="DVRP-StochReq-v0 is planned"):
-        bind(load_spec("DVRP-StochReq-v0"), tiny())
+    with pytest.raises(NotInScopeError, match="VRPSD-Outsource-v0 is planned"):
+        bind(load_spec("VRPSD-Outsource-v0"), tiny())
 
 
 def test_build_network_follows_the_spec():

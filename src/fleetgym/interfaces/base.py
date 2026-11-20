@@ -27,12 +27,15 @@ class ActionInterface(ABC):
     ----------
     max_nodes
         Number of node slots (observations and actions are padded to it).
+    max_vehicles
+        Number of vehicle slots.
     """
 
     name: ClassVar[str]
 
-    def __init__(self, max_nodes: int) -> None:
+    def __init__(self, max_nodes: int, max_vehicles: int = 0) -> None:
         self.max_nodes = max_nodes
+        self.max_vehicles = max_vehicles
 
     @property
     @abstractmethod
@@ -55,6 +58,10 @@ class ActionInterface(ABC):
     @abstractmethod
     def repair(self, action: Any, mask: NDArray[np.bool_], sim: Simulator, epoch: Epoch) -> Any:
         """A valid action close to ``action`` (used with ``invalid_action="repair"``)."""
+
+    def explain(self, action: Any, mask: NDArray[np.bool_], sim: Simulator, epoch: Epoch) -> str:
+        """Why ``action`` is not valid now (message of `InfeasibleActionError`)."""
+        return f"action {action} is not valid now; valid actions: {np.flatnonzero(mask).tolist()}"
 
 
 INTERFACE_CLASSES: Registry[type[ActionInterface]] = Registry("action interface implementation")

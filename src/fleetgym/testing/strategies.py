@@ -30,6 +30,7 @@ except ImportError as exc:  # pragma: no cover - dev dependency
     ) from exc
 
 __all__ = [
+    "dynamic_problems",
     "instances",
     "problems",
     "random_masked_rollout",
@@ -205,6 +206,55 @@ def stochastic_problems(draw: st.DrawFn, *, max_customers: int = 6) -> tuple[Pro
     """A random stochastic ``(spec, instance)`` pair that binds."""
     instance = draw(instances(max_customers=max_customers, time_windows=False))
     return load_spec(draw(stochastic_spec_dicts())), instance
+
+
+@st.composite
+def dynamic_problems(draw: st.DrawFn) -> tuple[ProblemSpec, Instance]:
+    """A random dynamic-request ``(spec, instance)`` pair (accept_reject or assign routing)."""
+    instance = draw(instances(max_customers=5))
+    with_tw = instance.time_windows is not None
+    constraints: dict[str, Any] = {"capacity": {}}
+    if with_tw:
+        constraints["time_windows"] = {"soft": draw(st.booleans())}
+    if draw(st.booleans()):
+        constraints["route_duration"] = {"max": float(draw(st.integers(30, 300)))}
+    request_class: dict[str, Any] = {
+        "location": {"dist": "uniform", "low": 0, "high": 20},
+        "demand": {"dist": "categorical", "values": [0, 1, 3, 6], "probs": [0.1, 0.4, 0.3, 0.2]},
+        "service_time": {"dist": "exponential", "mean": 2.0},
+    }
+    if with_tw and draw(st.booleans()):
+        request_class["time_window_width"] = {"dist": "uniform", "low": 5, "high": 60}
+    dynamics: dict[str, Any] = {
+        "arrivals": {"process": "poisson", "rate": draw(st.sampled_from([0.05, 0.2, 0.5]))},
+        "cutoff": float(draw(st.integers(10, 80))),
+        "max_requests": draw(st.integers(1, 12)),
+        "overflow": "reject",
+        "initial_requests": draw(st.sampled_from(["instance", "none"])),
+        "request_class": request_class,
+    }
+    if draw(st.booleans()):
+        dynamics["cancellations"] = {"dist": "bernoulli", "p": 0.3}
+    interface = draw(st.sampled_from(["accept_reject", "assign"]))
+    spec = {
+        "fleet": {
+            "sizing": draw(st.sampled_from(["fixed", "limited"])),
+            "types": [{"name": "v", "capacity": "from_instance", "count": draw(st.integers(1, 3))}],
+        },
+        "network": {
+            "type": "euclidean",
+            "rounding": draw(st.sampled_from(["none", "nearest_int"])),
+        },
+        "constraints": constraints,
+        "dynamics": dynamics,
+        "decisions": {
+            "epochs": "on_event",
+            "interface": interface,
+            "routing": "cheapest_insertion",
+        },
+        "objective": {"distance": 1.0, "rejected": 20.0, "lateness": 1.0, "unserved": 100.0},
+    }
+    return load_spec(spec), instance
 
 
 def random_masked_rollout(

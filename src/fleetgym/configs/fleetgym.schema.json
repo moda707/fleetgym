@@ -682,7 +682,7 @@
     },
     "DynamicsSpec": {
       "additionalProperties": false,
-      "description": "Requests arriving during the day.\n\nAttributes\n----------\ncutoff\n    Time after which no requests arrive.\nmax_requests\n    Upper bound on the number of requests per episode; observations are padded to it.\noverflow\n    What happens if a scenario has more requests than ``max_requests``: ``error`` raises,\n    ``reject`` rejects the extra requests automatically (logged and charged as rejected).",
+      "description": "Requests arriving during the day.\n\nAttributes\n----------\ncutoff\n    Time after which no requests arrive.\nmax_requests\n    Upper bound on the number of requests per episode; observations are padded to it.\noverflow\n    What happens if a scenario has more requests than ``max_requests``: ``error`` raises,\n    ``reject`` rejects the extra requests automatically (logged and charged as rejected).\ninitial_requests\n    ``instance``: the instance's customers are requests known at the start. ``none``: only\n    requests arriving during the day (the instance's customers serve as data, for example\n    for the location distribution).",
       "properties": {
         "arrivals": {
           "$ref": "#/$defs/ArrivalSpec"
@@ -726,6 +726,15 @@
             "reject"
           ],
           "title": "Overflow",
+          "type": "string"
+        },
+        "initial_requests": {
+          "default": "instance",
+          "enum": [
+            "instance",
+            "none"
+          ],
+          "title": "Initial Requests",
           "type": "string"
         }
       },

@@ -36,7 +36,16 @@ Event kinds and the columns they use
     route.
 ``outsource``
     ``vehicle``, ``node``, ``time``, ``quantity``, ``amount`` (its cost): demand handed to a third
-    party.
+    party (``component`` is ``request`` when a whole dynamic request is outsourced).
+``request``
+    ``node``, ``time``: a request is released (known to the agent).
+``accept``
+    ``node``, ``vehicle``, ``time``, ``value`` (insertion cost), ``action`` (plan position).
+``reject``
+    ``node`` (absent for an overflow request), ``time``, ``component`` (``decision`` or
+    ``overflow``).
+``cancel``
+    ``node``, ``time``: the customer cancels its request.
 ``cost``
     ``component``, ``amount``, ``time``, optional ``vehicle`` and ``node``.
 ``epoch``
@@ -68,6 +77,10 @@ EVENT_KINDS = (
     "failure",
     "restock",
     "outsource",
+    "request",
+    "accept",
+    "reject",
+    "cancel",
     "cost",
     "epoch",
     "episode_end",

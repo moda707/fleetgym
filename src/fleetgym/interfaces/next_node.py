@@ -28,6 +28,12 @@ from fleetgym.sim.info_state import DEPOT
 __all__ = ["NextNode"]
 
 
+def _vehicle(epoch: Epoch) -> int:
+    if epoch.vehicle is None:
+        raise InfeasibleActionError("next_node needs a vehicle epoch, not a request epoch")
+    return epoch.vehicle
+
+
 @INTERFACE_CLASSES.register("next_node")
 class NextNode(ActionInterface):
     """``Discrete(max_nodes)``: the next node of the vehicle that triggered the epoch."""
@@ -46,7 +52,7 @@ class NextNode(ActionInterface):
 
     def mask(self, sim: Simulator, epoch: Epoch) -> NDArray[np.bool_]:
         """The simulator's node mask, padded to ``max_nodes``."""
-        node_mask = sim.mask(epoch.vehicle)
+        node_mask = sim.mask(_vehicle(epoch))
         out = np.zeros(self.max_nodes, dtype=bool)
         out[: node_mask.size] = node_mask
         return out
@@ -56,18 +62,19 @@ class NextNode(ActionInterface):
         node = int(action)
         if not 0 <= node < sim.problem.instance.n_nodes:
             raise InfeasibleActionError(f"action {node} is a padding slot, not a node")
-        v = sim.state.vehicles[epoch.vehicle]
+        vehicle = _vehicle(epoch)
+        v = sim.state.vehicles[vehicle]
         if epoch.kind == "recourse":
             if node == DEPOT:
-                return RecourseChoice(epoch.vehicle, "return_to_depot")
+                return RecourseChoice(vehicle, "return_to_depot")
             if node == epoch.node:
-                return RecourseChoice(epoch.vehicle, "outsource")
+                return RecourseChoice(vehicle, "outsource")
             raise InfeasibleActionError(
                 f"at a recourse epoch the action is 0 (return to depot) or {epoch.node} (outsource)"
             )
         if node == DEPOT and v.node == DEPOT:
-            return EndRoute(epoch.vehicle)
-        return Dispatch(epoch.vehicle, node)
+            return EndRoute(vehicle)
+        return Dispatch(vehicle, node)
 
     def repair(self, action: Any, mask: NDArray[np.bool_], sim: Simulator, epoch: Epoch) -> int:
         """The feasible node closest to the chosen node (or to the vehicle, for padding slots).
@@ -82,7 +89,23 @@ class NextNode(ActionInterface):
         origin = (
             node
             if 0 <= node < sim.problem.instance.n_nodes
-            else sim.state.vehicles[epoch.vehicle].node
+            else sim.state.vehicles[_vehicle(epoch)].node
         )
         order = np.lexsort((feasible, distances[origin, feasible]))
         return int(feasible[order[0]])
+
+    def explain(self, action: Any, mask: NDArray[np.bool_], sim: Simulator, epoch: Epoch) -> str:
+        """Padding slot, recourse epoch, retiring an unlimited fleet, or the violated constraint."""
+        node = int(action)
+        n = sim.problem.instance.n_nodes
+        if node >= n:
+            return f"action {node} is a padding slot (the instance has {n} nodes)"
+        if epoch.kind == "recourse":
+            return (
+                f"at a recourse epoch the valid actions are {np.flatnonzero(mask).tolist()}"
+                " (0: return to the depot; the failing customer: outsource)"
+            )
+        vehicle = _vehicle(epoch)
+        if node == DEPOT and sim.state.vehicles[vehicle].node == DEPOT:
+            return "this vehicle cannot retire: the fleet is unlimited and customers are feasible"
+        return sim._explain(vehicle, node)  # pyright: ignore[reportPrivateUsage]

@@ -429,6 +429,10 @@ class DynamicsSpec(FrozenModel):
     overflow
         What happens if a scenario has more requests than ``max_requests``: ``error`` raises,
         ``reject`` rejects the extra requests automatically (logged and charged as rejected).
+    initial_requests
+        ``instance``: the instance's customers are requests known at the start. ``none``: only
+        requests arriving during the day (the instance's customers serve as data, for example
+        for the location distribution).
     """
 
     arrivals: ArrivalSpec
@@ -437,6 +441,7 @@ class DynamicsSpec(FrozenModel):
     cancellations: DistSpec | None = None
     max_requests: PositiveInt
     overflow: Literal["error", "reject"] = "error"
+    initial_requests: Literal["instance", "none"] = "instance"
 
 
 # --------------------------------------------------------------------------- decisions

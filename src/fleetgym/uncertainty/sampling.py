@@ -15,12 +15,14 @@ from numpy.typing import NDArray
 
 from fleetgym.errors import ConfigError
 from fleetgym.spec.binding import BoundProblem
+from fleetgym.spec.models import DistSpec
 from fleetgym.uncertainty.distributions import Distribution, build_distribution
 from fleetgym.uncertainty.scenario import Scenario
 from fleetgym.uncertainty.streams import StreamFactory
 
 __all__ = [
     "deterministic_values",
+    "distribution_at",
     "distributions",
     "realize",
     "resample_unrevealed",
@@ -28,18 +30,23 @@ __all__ = [
 ]
 
 
+def distribution_at(problem: BoundProblem, path: str, dist: DistSpec) -> Distribution:
+    """The sampler of the distribution at spec path ``path``, with instance references resolved."""
+    fields = dist.params.model_dump()
+    params = {
+        key: problem.value(f"{path}.{key}") if value is not None else None
+        for key, value in fields.items()
+    }
+    params = {k: (np.asarray(v, dtype=float) if _numeric(v) else v) for k, v in params.items()}
+    return build_distribution(dist.name, params)
+
+
 def distributions(problem: BoundProblem) -> dict[str, Distribution]:
     """The sampler of every uncertainty source, with instance references resolved."""
-    out: dict[str, Distribution] = {}
-    for name, uncertain in problem.spec.uncertainty.items():
-        fields = uncertain.dist.params.model_dump()
-        params = {
-            key: problem.value(f"uncertainty.{name}.{key}") if value is not None else None
-            for key, value in fields.items()
-        }
-        params = {k: (np.asarray(v, dtype=float) if _numeric(v) else v) for k, v in params.items()}
-        out[name] = build_distribution(uncertain.dist.name, params)
-    return out
+    return {
+        name: distribution_at(problem, f"uncertainty.{name}", uncertain.dist)
+        for name, uncertain in problem.spec.uncertainty.items()
+    }
 
 
 def _numeric(value: object) -> bool:

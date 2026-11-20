@@ -36,7 +36,8 @@ class RequestStatus(IntEnum):
     """Lifecycle of a request (one per customer node in static problems)."""
 
     PENDING = 0
-    """Known and not yet assigned to a vehicle."""
+    """Known and not yet assigned to a vehicle (with ``accept_reject``/``assign``: awaiting the
+    accept decision)."""
     ASSIGNED = 1
     """A vehicle is on its way (committed by a dispatch decision)."""
     SERVED = 2
@@ -44,6 +45,11 @@ class RequestStatus(IntEnum):
     """Still pending when the episode ended."""
     NOT_A_REQUEST = 4
     """Depot nodes."""
+    NOT_RELEASED = 5
+    """A dynamic request slot whose request has not arrived (or never will)."""
+    REJECTED = 6
+    CANCELLED = 7
+    OUTSOURCED = 8
 
 
 @dataclass
@@ -68,6 +74,8 @@ class VehicleState:
         Customer to come back to after restocking.
     awaiting_recourse
         Customer whose capacity failure waits for the policy's recourse decision.
+    plan
+        Accepted customers still to visit after the current destination (planned routing).
     """
 
     index: int
@@ -83,6 +91,7 @@ class VehicleState:
     restocking: bool = False
     recourse_target: int | None = None
     awaiting_recourse: int | None = None
+    plan: list[int] = field(default_factory=list)
 
     @property
     def used(self) -> bool:

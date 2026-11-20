@@ -1,6 +1,6 @@
 # Status
 
-**Current milestone:** M5 Uncertainty and recourse done (2026-11-20). Next: M6 Dynamic requests.
+**Current milestone:** M6 Dynamic requests done (2026-11-20). Next: M7 Multi-agent.
 Repository: <https://github.com/moda707/fleetgym>. Release `v0.1.0.dev0` tagged on `main` (the
 GitHub release and PyPI upload are done by the user).
 
@@ -13,10 +13,15 @@ GitHub release and PyPI upload are done by the user).
 | M3 Simulator core | Done | Event engine, constraints, next_node, Gymnasium env, event log |
 | M4 Validator and Gate 1 | Done, approved | CVRPLIB X (100) and Solomon (56) reproduce published results (ADRs 0010, 0011) |
 | M5 Uncertainty and recourse | Done | Exact expectation equals an independent DP to 1e-9 (ADRs 0012, 0013) |
-| M6 to M11 | Not started | Stops at Gate 2 (M11); before M11, ask for the VRP-SDO model and data |
+| M6 Dynamic requests | Done | Accept mask equals the independent route oracle; 2,000 random dynamic problems validate (ADR 0014) |
+| M7 to M10 | Not started | |
+| M10b Documentation and examples | Not started | Added at the user's request; needs dependency approval |
+| M11 Gate 2 | Not started | Before M11, ask for the VRP-SDO model and data |
 
-## Tests (M5)
-- Default run: 602 passed, coverage 97%; ruff and pyright (standard) clean.
+## Tests (M6)
+- Default run: 633 passed, coverage 96%; ruff and pyright (standard) clean.
+- M6: KS and chi-square tests of the arrival processes; accept mask equal to the independent route
+  oracle; property tests on random dynamic problems (validator, determinism, non-anticipativity).
 - M5: KS and chi-square tests for every sampler; exact expectation (1,024 scenarios, 6 recourse
   configurations) equal to an independent dynamic program to 1e-9; Poisson Monte Carlo within the
   99.9% interval; Hypothesis property tests on random stochastic specs (validator, invariants,
@@ -32,7 +37,7 @@ GitHub release and PyPI upload are done by the user).
 | --- | --- | --- |
 | CVRP-v0 | stable | Reproduces CVRPLIB X exactly |
 | VRPTW-v0 | stable | Reproduces Solomon (SINTEF) best-known solutions; lexicographic objective (Q15) |
-| DVRP-StochReq-v0 | planned | until M6 |
+| DVRP-StochReq-v0 | experimental | NHPP requests, accept_reject with cheapest insertion; illustrative parameters |
 | VRPSD-v0 | experimental | Poisson demands revealed on arrival, return-to-depot recourse |
 | VRPSD-Outsource-v0 | planned | until Gate 2 (M11); outsourcing cost provisional |
 | EVRP-NL-v0 | planned | EV module out of scope |

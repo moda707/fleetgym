@@ -38,7 +38,7 @@ from fleetgym.constraints.base import CONSTRAINT_CLASSES, Constraint
 from fleetgym.errors import ConfigError, FleetGymError, InfeasibleActionError, NotInScopeError
 from fleetgym.eventlog import EventLog
 from fleetgym.network.base import Network
-from fleetgym.sim.decisions import Decision, EndRoute, RecourseChoice
+from fleetgym.sim.decisions import Decision, Dispatch, EndRoute, RecourseChoice
 from fleetgym.sim.events import Event, EventKind
 from fleetgym.sim.info_state import DEPOT, InformationState, TimingRules
 from fleetgym.sim.recourse import RECOURSE_CLASSES, CapacityFailure, RecourseAction, RecourseRule
@@ -60,15 +60,16 @@ class RecourseLoopError(FleetGymError):
 
 @dataclass(frozen=True)
 class Epoch:
-    """A decision epoch: ``vehicle`` must decide at ``time``.
+    """A decision epoch at ``time``.
 
-    ``kind`` is ``"vehicle_idle"`` (choose the next move) or ``"recourse"`` (resolve the capacity
-    failure at ``node``).
+    ``kind`` is ``"vehicle_idle"`` (``vehicle`` chooses its next move), ``"recourse"`` (``vehicle``
+    resolves the capacity failure at ``node``) or ``"request"`` (decide on request ``node``; no
+    vehicle).
     """
 
     time: float
-    kind: Literal["vehicle_idle", "recourse"]
-    vehicle: int
+    kind: Literal["vehicle_idle", "recourse", "request"]
+    vehicle: int | None
     node: int | None = None
 
 
@@ -96,6 +97,9 @@ class Transition:
 class Simulator:
     """Discrete-event simulator of one episode.
 
+    ``option_constraints`` lists spec constraints that are decision options rather than feasibility
+    rules (for example ``outsourcing`` with planned routing); they get no runtime class.
+
     Parameters
     ----------
     problem
@@ -116,6 +120,8 @@ class Simulator:
     ScenarioMismatchError
         If ``scenario`` belongs to another spec or instance.
     """
+
+    option_constraints: frozenset[str] = frozenset()
 
     def __init__(
         self,
@@ -139,6 +145,8 @@ class Simulator:
         self.timing = TimingRules(use_time_windows=tw is not None, waiting_allowed=waiting)
         self.constraints: list[Constraint] = []
         for name in spec.constraints.names():
+            if name in self.option_constraints:
+                continue
             if name not in CONSTRAINT_CLASSES:
                 raise NotInScopeError(f"constraint {name!r} is not implemented in this version")
             self.constraints.append(CONSTRAINT_CLASSES.get(name)(problem, spec.constraints[name]))
@@ -363,6 +371,11 @@ class Simulator:
         state = self.state
         if state.terminated:
             raise InfeasibleActionError("the episode has ended")
+        if not isinstance(decision, (Dispatch, EndRoute, RecourseChoice)):
+            raise InfeasibleActionError(
+                f"{type(decision).__name__} decides on a request; it needs the accept_reject or "
+                "assign interface"
+            )
         vehicle = decision.vehicle
         if vehicle != state.active_vehicle:
             raise InfeasibleActionError(

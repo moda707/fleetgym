@@ -328,7 +328,7 @@ def test_vehicle_slots_must_fit_the_fleet():
 def test_make_vec():
     vec = fg.make_vec("CVRP-v0", 3, invalid_action="repair")
     obs, _ = vec.reset(seed=0)
-    assert obs["nodes"].shape == (3, 21, 9)
+    assert obs["nodes"].shape == (3, 21, 10)
     obs, rewards, *_ = vec.step(np.array([1, 2, 3]))
     assert rewards.shape == (3,)
     vec.close()

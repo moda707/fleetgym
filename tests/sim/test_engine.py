@@ -274,7 +274,7 @@ def test_simulator_rejects_invalid_decisions():
                 "decisions": {"epochs": "on_event"},
             },
             NotInScopeError,
-            "M6",
+            "accept_reject or assign",
         ),
         ({"decisions": {"epochs": "periodic", "period": 5}}, NotInScopeError, "M6"),
         (

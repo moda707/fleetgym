@@ -44,7 +44,7 @@ from fleetgym.errors import ValidationFailure
 from fleetgym.eventlog import EventLog
 from fleetgym.spec.binding import bind
 from fleetgym.spec.models import ProblemSpec
-from fleetgym.uncertainty.scenario import Scenario
+from fleetgym.uncertainty.scenario import Scenario, episode_instance
 
 __all__ = ["ValidationReport", "Violation", "validate"]
 
@@ -186,7 +186,7 @@ def validate(
     """
     if not isinstance(log, EventLog):
         log = EventLog.read(log)
-    if spec.uncertainty and scenario is None:
+    if (spec.uncertainty or spec.dynamics is not None) and scenario is None:
         raise ValueError("this spec has uncertain parameters: pass the episode's scenario")
     report = ValidationReport()
     found = report.violations
@@ -195,18 +195,41 @@ def validate(
         seq = row.get("seq") if row is not None else None
         found.append(Violation(code, message, seq=seq, **where))
 
+    # With dynamic requests the episode instance adds the scenario's request slots; accept either
+    # the base instance or the episode instance.
+    base_hash = str(instance.extra.get("base_instance_hash", "")) or instance.content_hash()
+    if (
+        scenario is not None
+        and "request.release" in scenario.values
+        and "base_instance_hash" not in instance.extra
+    ):
+        instance = episode_instance(instance, scenario)
     if log.metadata.get("spec_hash") != spec.content_hash():
         fail("identity", "the log was produced for a different spec")
-    if log.metadata.get("instance_hash") != instance.content_hash():
+    if log.metadata.get("instance_hash") != base_hash:
         fail("identity", "the log was produced for a different instance")
     if scenario is not None:
         if log.metadata.get("scenario_id") != scenario.id:
             fail("identity", "the log was produced for a different scenario")
-        if (
-            scenario.spec_hash != spec.content_hash()
-            or scenario.instance_hash != instance.content_hash()
-        ):
+        if scenario.spec_hash != spec.content_hash() or scenario.instance_hash != base_hash:
             fail("identity", "the scenario belongs to a different spec or instance")
+    planned = spec.decisions.interface in ("accept_reject", "assign")
+    release_times = np.asarray(
+        instance.extra.get("release", np.zeros(instance.n_nodes)), dtype=float
+    )
+    cancel_times = np.asarray(
+        instance.extra.get("cancel", np.full(instance.n_nodes, np.inf)), dtype=float
+    )
+    overflow_times = (
+        [float(t) for t in scenario["request.overflow"]]
+        if scenario is not None and "request.overflow" in scenario.values
+        else []
+    )
+    released: set[int] = set()
+    accepted: dict[int, int] = {}
+    decided: set[int] = set()
+    cancelled: set[int] = set()
+    overflow_seen = 0
 
     problem = bind(spec, instance)
     dist = _distances(spec, instance)
@@ -356,7 +379,14 @@ def validate(
                     row,
                     vehicle=index,
                 )
-            if not _close(time, v.free_at, tol):
+            if planned and time < v.free_at - tol * max(1.0, abs(time)):
+                fail(
+                    "depart",
+                    f"vehicle {index} departs at {time}, before it is free at {v.free_at}",
+                    row,
+                    vehicle=index,
+                )
+            elif not planned and not _close(time, v.free_at, tol):
                 fail(
                     "depart",
                     f"vehicle {index} departs at {time}, but is free at {v.free_at}",
@@ -383,7 +413,8 @@ def validate(
                     row,
                 )
             elif (
-                v.expected_target is None
+                not planned
+                and v.expected_target is None
                 and target == DEPOT
                 and v.route_start is not None
                 and not (preventive_ok and v.last_completed_full)
@@ -396,6 +427,14 @@ def validate(
                     vehicle=index,
                 )
             v.expected_target = None
+            if planned and target != DEPOT and accepted.get(target) != index:
+                fail(
+                    "assignment",
+                    f"vehicle {index} drives to {target}, which was not accepted for it",
+                    row,
+                    vehicle=index,
+                    node=target,
+                )
             if origin == DEPOT and target == DEPOT:
                 fail("depart", "depot to depot trip", row, vehicle=index)
             if target != DEPOT and (target in completed or target in unserved):
@@ -445,6 +484,8 @@ def validate(
             if target == DEPOT:
                 v.at_depot_open = True
                 continue
+            if target in cancelled:
+                continue  # the request was cancelled on the way: nothing to serve
             start = row["time"]
             if tw_on:
                 assert tw is not None
@@ -475,6 +516,8 @@ def validate(
                 )
             if node in completed:
                 fail("double_service", f"node {node} served after it was completed", row, node=node)
+            if planned and (node not in accepted or node in cancelled):
+                fail("assignment", f"service at {node}, which is not an accepted request", row)
             quantity = float(row.get("quantity", math.nan))
             left = float(remaining[node])
             free = v.capacity - v.load if capacity_on else math.inf
@@ -581,6 +624,62 @@ def validate(
             v.last_completed_full = False
             if v.come_back_to is not None:
                 v.must_go, v.come_back_to = v.come_back_to, None
+        elif kind == "outsource" and row.get("component") == "request":
+            node = row["node"]
+            if node not in released or node in decided:
+                fail("request", f"outsourcing of {node}, which awaits no decision", row)
+            decided.add(node)
+            if "outsourcing" not in spec.constraints:
+                fail("request", "outsourcing without an `outsourcing` constraint", row)
+            else:
+                cost = _at(problem.value("constraints.outsourcing.value"), node)
+                if not _close(row.get("amount", math.nan), cost, tol):
+                    fail("outsource", f"logged cost {row.get('amount')}, expected {cost}", row)
+                charge("outsourcing", cost)
+            completed[node] = -1
+            started.add(node)
+        elif kind == "request":
+            node, time = row["node"], row["time"]
+            if not 0 < node < n or node in released:
+                fail("request", f"request {node} released twice or out of range", row)
+            elif not _close(time, float(release_times[node]), tol):
+                fail(
+                    "request",
+                    f"request {node} released at {time}, scenario says {release_times[node]}",
+                    row,
+                )
+            released.add(node)
+        elif kind == "accept":
+            node, index = row["node"], row.get("vehicle", -1)
+            if node not in released or node in decided or node in cancelled:
+                fail("request", f"accept of {node}, which awaits no decision", row)
+            if index not in vehicles:
+                fail("unknown_vehicle", f"request {node} accepted for vehicle {index}", row)
+            decided.add(node)
+            accepted[node] = index
+        elif kind == "reject":
+            if row.get("component") == "overflow":
+                if overflow_seen >= len(overflow_times) or not _close(
+                    row["time"], overflow_times[overflow_seen], tol
+                ):
+                    fail("request", "an overflow rejection that the scenario does not have", row)
+                overflow_seen += 1
+            else:
+                node = row.get("node")
+                if node is None or node not in released or node in decided or node in cancelled:
+                    fail("request", f"reject of {node}, which awaits no decision", row)
+                else:
+                    decided.add(node)
+            charge("rejected", 1.0)
+        elif kind == "cancel":
+            node, time = row["node"], row["time"]
+            if not _close(time, float(cancel_times[node]), tol):
+                fail(
+                    "cancel", f"{node} cancelled at {time}, scenario says {cancel_times[node]}", row
+                )
+            if node in started or node in completed:
+                fail("cancel", f"{node} cancelled after its service started", row)
+            cancelled.add(node)
         elif kind == "outsource":
             v = vehicle_of(row)
             if v is None:
@@ -680,6 +779,28 @@ def validate(
                 )
             )
     customers = set(range(instance.n_depots, n))
+    if planned:
+        customers = released - cancelled - (released - accepted.keys())
+        undecided = released - decided - cancelled
+        if undecided and any(r["kind"] == "episode_end" for r in log.rows):
+            found.append(Violation("request", f"requests {sorted(undecided)} were never decided"))
+        if overflow_seen != len(overflow_times) and any(
+            r["kind"] == "episode_end" for r in log.rows
+        ):
+            found.append(
+                Violation(
+                    "request",
+                    f"{len(overflow_times)} overflow requests, {overflow_seen} rejected",
+                )
+            )
+        never = {
+            int(i)
+            for i in np.flatnonzero(np.isfinite(release_times))
+            if int(i) >= instance.n_depots
+            and float(release_times[int(i)]) <= float(log.rows[-1].get("time") or 0.0)
+        } - released
+        if never and any(r["kind"] == "episode_end" for r in log.rows):
+            found.append(Violation("request", f"requests {sorted(never)} were never released"))
     ended = any(r["kind"] == "episode_end" for r in log.rows)
     missing = customers - completed.keys() - unserved
     if missing and ended:

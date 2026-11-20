@@ -22,6 +22,9 @@ with a focus on stochastic and dynamic variants where information arrives during
   revealed to the agent when the spec says, and replayed exactly. Capacity failures are handled by
   standard or user-written recourse rules; `fork(seed)` gives planners a copy that cannot see the
   future.
+- **Dynamic requests.** Requests arrive during the day (Poisson or time-of-day rates), can cancel,
+  and are accepted, rejected, outsourced or assigned by the agent while a built-in routing rule
+  drives the vehicles.
 - **Verified against benchmarks.** `CVRP-v0` reproduces all 100 CVRPLIB X best-known solutions
   exactly; `VRPTW-v0` reproduces all 56 Solomon (100-customer) best-known solutions from SINTEF.
 
@@ -29,7 +32,7 @@ with a focus on stochastic and dynamic variants where information arrives during
 | --- | --- |
 | `CVRP-v0` | stable |
 | `VRPTW-v0` | stable |
-| `DVRP-StochReq-v0` | planned (dynamic requests) |
+| `DVRP-StochReq-v0` | experimental (requests arriving during the day, accept/reject) |
 | `VRPSD-v0` | experimental (stochastic demands, return-to-depot recourse) |
 | `VRPSD-Outsource-v0` | planned (stochastic demands with outsourcing) |
 

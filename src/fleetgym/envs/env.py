@@ -23,11 +23,14 @@ from fleetgym.network.base import Network, build_network
 from fleetgym.sim.decisions import RecourseChoice
 from fleetgym.sim.engine import Epoch, Simulator
 from fleetgym.sim.invariants import InvariantMonitor
-from fleetgym.sim.state import SimState
+from fleetgym.sim.planned import PlannedRoutingSimulator
+from fleetgym.sim.state import RequestStatus, SimState
 from fleetgym.spec.binding import BoundProblem, bind, instance_from_source
 from fleetgym.spec.models import FilesSource, GeneratorSource, ProblemSpec
+from fleetgym.spec.models.sections import INTERFACES_NEEDING_ROUTING
+from fleetgym.uncertainty.requests import resample_future_requests, sample_requests
 from fleetgym.uncertainty.sampling import resample_unrevealed, sample_scenario
-from fleetgym.uncertainty.scenario import Scenario
+from fleetgym.uncertainty.scenario import Scenario, episode_instance
 from fleetgym.uncertainty.streams import StreamFactory
 
 __all__ = ["EnvState", "FleetGymEnv", "InvalidActionMode"]
@@ -53,6 +56,7 @@ class EnvState:
     carry_costs: dict[str, float]
     final_step_pending: bool
     scenario: Scenario | None = None
+    base_problem: BoundProblem | None = None
 
 
 def _derive_seed(root: int, index: int) -> int:
@@ -61,6 +65,17 @@ def _derive_seed(root: int, index: int) -> int:
 
 
 def _infer_max_nodes(spec: ProblemSpec, instance: Instance | None) -> int:
+    """Node slots: the instance's nodes, plus ``max_requests`` slots with dynamic requests."""
+    dyn = spec.dynamics
+    if dyn is None:
+        return _instance_nodes(spec, instance)
+    if dyn.initial_requests == "none":
+        depots = instance.n_depots if instance is not None else 1
+        return depots + dyn.max_requests
+    return _instance_nodes(spec, instance) + dyn.max_requests
+
+
+def _instance_nodes(spec: ProblemSpec, instance: Instance | None) -> int:
     if instance is not None:
         return instance.n_nodes
     source = spec.instance_source
@@ -139,7 +154,8 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
     -----
     ``info`` contains ``costs`` (components realized in the step), ``total_costs``,
     ``action_mask``, ``vehicle`` (the vehicle that must decide next, or ``None``), ``epoch_kind``
-    (``"vehicle_idle"`` or ``"recourse"``), ``time``, ``spec_hash`` and ``episode_seed``. The
+    (``"vehicle_idle"``, ``"recourse"`` or ``"request"``), ``time``, ``spec_hash`` and
+    ``episode_seed``. The
     scenario is deliberately absent (its id would identify the future); see `scenario`.
     """
 
@@ -184,13 +200,20 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         self.debug = debug
         self._fixed_instance = instance
         self.max_nodes = max_nodes if max_nodes is not None else _infer_max_nodes(spec, instance)
-        self.max_vehicles = (
-            max_vehicles
-            if max_vehicles is not None
-            else max(self.max_nodes, _known_fleet_size(spec, instance))
-        )
+        known_fleet = _known_fleet_size(spec, instance)
+        if max_vehicles is not None:
+            self.max_vehicles = max_vehicles
+        elif spec.decisions.interface == "assign" and known_fleet:
+            self.max_vehicles = known_fleet
+        else:
+            self.max_vehicles = max(self.max_nodes, known_fleet)
+        if spec.dynamics is not None and spec.decisions.interface not in INTERFACES_NEEDING_ROUTING:
+            raise NotInScopeError(
+                "dynamic requests need the accept_reject or assign interface in this version "
+                "(next_node with waiting and repositioning is on the backlog)"
+            )
         self.interface: ActionInterface = INTERFACE_CLASSES.get(spec.decisions.interface)(
-            self.max_nodes
+            self.max_nodes, self.max_vehicles
         )
         self.observations = PaddedGraphObservation(
             self.max_nodes, self.max_vehicles, self.interface.n_actions
@@ -208,6 +231,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         self._network_cache: tuple[str, Network] | None = None
         self._carry_costs: dict[str, float] = {}
         self._final_step_pending = False
+        self._base_problem: BoundProblem | None = None
 
     # ------------------------------------------------------------------ properties
 
@@ -237,6 +261,17 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
     def episode_seed(self) -> int:
         """Seed of the current episode."""
         return self._episode_seed
+
+    @property
+    def base_instance(self) -> Instance:
+        """The instance the episode was drawn on (without dynamic request slots).
+
+        `problem.instance` is the episode instance, which adds the slots of requests arriving
+        during the day (`fleetgym.uncertainty.scenario.episode_instance`).
+        """
+        if self._base_problem is None:
+            raise ResetNeeded("call reset() first")
+        return self._base_problem.instance
 
     # ------------------------------------------------------------------ gymnasium API
 
@@ -277,14 +312,14 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         if instance is None:
             streams = StreamFactory(self._episode_seed)
             instance = instance_from_source(self.spec_, streams.generator("instance"))
-        if instance.n_nodes > self.max_nodes:
+        if self.spec_.dynamics is None and instance.n_nodes > self.max_nodes:
             raise ConfigError(
                 f"instance {instance.name!r} has {instance.n_nodes} nodes but the environment has "
                 f"{self.max_nodes} node slots; pass a larger max_nodes",
                 source=self.spec_.source,
             )
-        problem = bind(self.spec_, instance)
-        n_vehicles = sum(vt.count or 0 for vt in problem.vehicle_types)
+        base_problem = bind(self.spec_, instance)
+        n_vehicles = sum(vt.count or 0 for vt in base_problem.vehicle_types)
         if n_vehicles > self.max_vehicles:
             raise ConfigError(
                 f"the fleet has {n_vehicles} vehicles but the environment has {self.max_vehicles} "
@@ -293,22 +328,39 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
                 key_path="fleet",
             )
         scenario: Scenario | None = options.get("scenario")
+        stochastic = bool(self.spec_.uncertainty) or self.spec_.dynamics is not None
         if scenario is None and self.spec_.uncertainty:
-            scenario = sample_scenario(problem, self._episode_seed)
-        elif scenario is not None and not self.spec_.uncertainty:
+            scenario = sample_scenario(base_problem, self._episode_seed)
+        elif scenario is None and self.spec_.dynamics is not None:
+            values = sample_requests(base_problem, self._episode_seed)
+            scenario = Scenario(
+                base_problem.spec_hash, base_problem.instance_hash, values, seed=self._episode_seed
+            )
+        elif scenario is not None and not stochastic:
             raise ValueError("this spec has no uncertain parameters; do not pass a scenario")
+        episode = episode_instance(instance, scenario) if scenario is not None else instance
+        if episode.n_nodes > self.max_nodes:
+            raise ConfigError(
+                f"the episode has {episode.n_nodes} node slots but the environment has "
+                f"{self.max_nodes}; pass a larger max_nodes",
+                source=self.spec_.source,
+            )
+        problem = base_problem if episode is instance else bind(self.spec_, episode)
+        self._base_problem = base_problem
         log = EventLog(
             {
                 "fleetgym_version": __version__,
                 "env_id": self.spec_.id or "",
                 "spec_hash": problem.spec_hash,
-                "instance_hash": problem.instance_hash,
+                "instance_hash": base_problem.instance_hash,
                 "instance_name": instance.name,
                 "episode_seed": str(self._episode_seed),
                 "scenario_id": scenario.id if scenario is not None else "",
             }
         )
-        self._sim = Simulator(problem, self._network_for(problem), log=log, scenario=scenario)
+        self._sim = self._simulator_class()(
+            problem, self._network_for(problem), log=log, scenario=scenario
+        )
         self._monitor.reset()
         self._epoch = self._sim.start()
         # Costs realized before the first decision count in the first step's reward.
@@ -429,13 +481,16 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
             carry_costs=dict(self._carry_costs),
             final_step_pending=self._final_step_pending,
             scenario=sim.scenario,
+            base_problem=self._base_problem,
         )
 
     def set_state(self, state: EnvState) -> None:
         """Restore a snapshot from `get_state` (of this or an identically configured env)."""
         if state.problem.spec_hash != self.spec_.content_hash():
             raise ValueError("the snapshot belongs to a different spec")
-        sim = Simulator(state.problem, state.network, log=state.log.copy(), scenario=state.scenario)
+        sim = self._simulator_class()(
+            state.problem, state.network, log=state.log.copy(), scenario=state.scenario
+        )
         sim.restore(state.sim)
         self._sim = sim
         self._epoch = state.epoch
@@ -446,6 +501,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         self.np_random.bit_generator.state = copy.deepcopy(state.np_random_state)
         self._carry_costs = dict(state.carry_costs)
         self._final_step_pending = state.final_step_pending
+        self._base_problem = state.base_problem
         self._monitor.reset()
 
     def clone(self) -> FleetGymEnv:
@@ -475,10 +531,37 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         """
         twin = self.clone()
         sim = self.simulator
-        if sim.scenario is not None:
+        if sim.scenario is None:
+            return twin
+        if self.spec_.dynamics is not None:
+            twin._replace_future(seed)  # pyright: ignore[reportPrivateUsage]
+        else:
             fresh = resample_unrevealed(sim.problem, sim.scenario, sim.revealed_masks(), seed)
             twin.simulator.replace_scenario(fresh)
         return twin
+
+    def _replace_future(self, seed: int) -> None:
+        """Redraw the requests that have not arrived and pending cancellations (dynamic fork)."""
+        sim = self.simulator
+        assert isinstance(sim, PlannedRoutingSimulator)
+        assert sim.scenario is not None
+        assert self._base_problem is not None
+        now = sim.state.time
+        cancelled = sim.state.request_status == RequestStatus.CANCELLED
+        values = resample_future_requests(
+            self._base_problem, dict(sim.scenario.values), now, seed, cancelled
+        )
+        base = self._base_problem
+        scenario = Scenario(base.spec_hash, base.instance_hash, values)
+        episode = episode_instance(base.instance, scenario)
+        problem = bind(self.spec_, episode)
+        snapshot = sim.snapshot()
+        twin = PlannedRoutingSimulator(
+            problem, build_network(problem), log=sim.log.copy(), scenario=scenario
+        )
+        twin.restore(snapshot)
+        twin.reschedule_exogenous(now)
+        self._sim = twin
 
     @property
     def scenario(self) -> Scenario | None:
@@ -486,6 +569,11 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         return self.simulator.scenario
 
     # ------------------------------------------------------------------ helpers
+
+    def _simulator_class(self) -> type[Simulator]:
+        if self.spec_.decisions.interface in INTERFACES_NEEDING_ROUTING:
+            return PlannedRoutingSimulator
+        return Simulator
 
     def _network_for(self, problem: BoundProblem) -> Network:
         key = problem.instance_hash
@@ -503,20 +591,8 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         return self.interface.mask(self.simulator, self._epoch)
 
     def _explain(self, action: int) -> str:
-        sim = self.simulator
         assert self._epoch is not None
-        if action >= sim.problem.instance.n_nodes:
-            n = sim.problem.instance.n_nodes
-            return f"action {action} is a padding slot (the instance has {n} nodes)"
-        v = sim.state.vehicles[self._epoch.vehicle]
-        if self._epoch.kind == "recourse":
-            return (
-                f"at a recourse epoch the valid actions are {np.flatnonzero(self._mask).tolist()}"
-                " (0: return to the depot; the failing customer: outsource)"
-            )
-        if action == 0 and v.node == 0:
-            return "this vehicle cannot retire: the fleet is unlimited and customers are feasible"
-        return sim._explain(self._epoch.vehicle, action)  # pyright: ignore[reportPrivateUsage]
+        return self.interface.explain(action, self._mask, self.simulator, self._epoch)
 
     def _observation(self) -> dict[str, NDArray[Any]]:
         return self.observations.build(self.simulator, self._epoch, self._mask)

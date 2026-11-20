@@ -26,7 +26,8 @@ class InvariantMonitor:
 
     Checks: loads within capacity (when the capacity constraint is on), per-vehicle clocks never go
     back, route start before vehicle time, request statuses consistent with service records, every
-    assigned request has a vehicle heading to it (or coming back after a restock), and served
+    assigned request has a vehicle heading to it (or planning to visit it, or coming back after a
+    restock), and served
     requests have nothing left to deliver.
     """
 
@@ -70,6 +71,7 @@ class InvariantMonitor:
         }
         heading |= {v.recourse_target for v in state.vehicles if v.recourse_target is not None}
         heading |= {v.awaiting_recourse for v in state.vehicles if v.awaiting_recourse is not None}
+        heading |= {node for v in state.vehicles for node in v.plan}
         if np.any(state.remaining_demand < -_TOL):
             raise InvariantViolation("negative remaining demand")
         if np.any(state.remaining_demand[status == RequestStatus.SERVED] > _TOL):

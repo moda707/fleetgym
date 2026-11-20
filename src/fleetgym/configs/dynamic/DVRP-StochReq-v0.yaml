@@ -1,11 +1,15 @@
 # yaml-language-server: $schema=../fleetgym.schema.json
-# Planned for M6. Parameter values are illustrative (design §5.1).
+# Dynamic VRP with stochastic requests. Parameter values are illustrative (design §5.1), not taken
+# from a benchmark: a 480-minute day, requests arriving at a time-of-day rate until minute 360.
 id: DVRP-StochReq-v0
 extends: VRPTW-v0
 meta:
   name: Dynamic VRP with stochastic requests
-  status: planned
+  status: experimental
   references: [bent2004, hvattum2006]
+fleet:
+  sizing: fixed
+  types: [{name: truck, capacity: from_instance, count: 4}]
 dynamics:
   arrivals:
     process: nhpp

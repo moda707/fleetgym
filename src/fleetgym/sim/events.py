@@ -18,9 +18,15 @@ __all__ = ["Event", "EventKind", "EventQueue"]
 class EventKind(IntEnum):
     """Event kinds; the integer value is the tie-break priority (lower runs first)."""
 
+    OVERFLOW_ARRIVAL = 4
+    """A request beyond ``max_requests`` (``overflow: reject``); ``node`` is its overflow index."""
+    REQUEST_ARRIVAL = 5
+    CANCELLATION = 6
     VEHICLE_ARRIVAL = 10
     SERVICE_START = 15
     SERVICE_END = 20
+    TIMER = 30
+    """Wake-up of a waiting vehicle (planned routing: its latest time to head home)."""
 
 
 @dataclass(frozen=True, order=True)

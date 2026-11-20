@@ -1,8 +1,8 @@
 """Interface-agnostic primitive decisions.
 
 Action interfaces translate Gymnasium actions into these primitives; the simulator understands only
-primitives, so it never depends on an interface. More primitives (``Wait``, ``Accept``,
-``Reject``, ``Assign``) arrive with dynamic requests in M6.
+primitives, so it never depends on an interface. ``Accept``, ``Reject``, ``OutsourceRequest`` and
+``Assign`` decide on a request at a request epoch (planned routing, ADR 0014).
 """
 
 from __future__ import annotations
@@ -10,7 +10,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-__all__ = ["Decision", "Dispatch", "EndRoute", "RecourseChoice"]
+__all__ = [
+    "Accept",
+    "Assign",
+    "Decision",
+    "Dispatch",
+    "EndRoute",
+    "OutsourceRequest",
+    "RecourseChoice",
+    "Reject",
+]
 
 
 @dataclass(frozen=True)
@@ -40,4 +49,33 @@ class RecourseChoice:
     action: Literal["return_to_depot", "outsource"]
 
 
-Decision = Dispatch | EndRoute | RecourseChoice
+@dataclass(frozen=True)
+class Accept:
+    """Accept request ``node``; the routing rule inserts it into the best vehicle's plan."""
+
+    node: int
+
+
+@dataclass(frozen=True)
+class Assign:
+    """Accept request ``node`` and insert it into ``vehicle``'s plan."""
+
+    node: int
+    vehicle: int
+
+
+@dataclass(frozen=True)
+class Reject:
+    """Reject request ``node`` (cost component ``rejected``)."""
+
+    node: int
+
+
+@dataclass(frozen=True)
+class OutsourceRequest:
+    """Hand request ``node`` to a third party (cost component ``outsourcing``)."""
+
+    node: int
+
+
+Decision = Dispatch | EndRoute | RecourseChoice | Accept | Assign | Reject | OutsourceRequest

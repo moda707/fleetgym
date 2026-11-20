@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +13,10 @@ __all__ = ["make"]
 
 
 def make(
-    env: str | Path | ProblemSpec, *, overrides: Sequence[str] = (), **env_kwargs: Any
+    env: str | Path | ProblemSpec | Mapping[str, Any],
+    *,
+    overrides: Sequence[str] = (),
+    **env_kwargs: Any,
 ) -> FleetGymEnv:
     """Create an environment from an ID, a YAML file or a spec.
 

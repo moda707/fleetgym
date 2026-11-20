@@ -777,6 +777,22 @@ M7 and M8 are independent; M8 needs M5 (`fork`) and M6. Each milestone ends with
   rendering does not change the trajectory (digest equal with and without rendering); image smoke
   tests (no pixel-exact comparisons, which are brittle across matplotlib versions).
 
+### M10b Documentation site and examples (added at the user's request, 2026-11-20)
+- A documentation site in the style of Grid2Op's (https://grid2op.readthedocs.io): getting started,
+  concepts (specs and `extends`, scenarios and revelation, recourse, dynamic requests and planned
+  routing, rewards, the validator), the environment catalog generated from the configs, the API
+  reference generated from the NumPy docstrings, and the research conventions (replication,
+  non-anticipativity, determinism).
+- The central guide: **build your own VRP variant**, in steps: (1) a new variant from YAML only
+  (`extends`, overrides, `fleetgym validate`); (2) a custom distribution; (3) a custom recourse rule;
+  (4) a custom constraint; (5) a plugin package with entry points. Every code block is executed in
+  the test suite so the guide cannot go stale.
+- An `examples/` folder of runnable scripts and notebooks: first environment; stochastic demands with
+  recourse; a dynamic day with accept/reject; comparing policies on fixed scenario sets; a custom
+  variant end to end.
+- Needs dependencies (Sphinx and a theme, MyST, an API extension, possibly a gallery extension) and
+  a Read the Docs project: ask the user before adding them.
+
 ### M11 Gate 2
 - Ask you first for the exact VRP-SDO model, parameters, instances and published results. Then
   implement `VRPSD-Outsource-v0` and its recourse, plus replication tests against your published
@@ -823,7 +839,7 @@ Gate 2 = M11). Q6: `meta.status`; start with a few configs and expand. Q7: `obje
 merged; `meta` is not inherited; a discriminator change replaces the subtree. Q20: standard plus custom
 recourse, design to be discussed before M5 (see below).
 **Adopted in M1 (recommendations, user unavailable):** Q8, Q9, Q10, Q11, Q12, Q24, Q28 (ADRs 0006,
-0007). Adopted in M3: Q13 to Q17 (ADR 0009). M4: Q18/Q19 resolved for CVRPLIB X from the conventions CVRPLIB publishes (ADR 0010), and for Solomon from SINTEF TOP's published route files and conventions (ADR 0011). Adopted in M5: Q20 (implemented as agreed, ADR 0013), Q21 to Q23 (ADR 0012). Not adopted yet: Q25 to Q27, Q29 to Q31.
+0007). Adopted in M3: Q13 to Q17 (ADR 0009). M4: Q18/Q19 resolved for CVRPLIB X from the conventions CVRPLIB publishes (ADR 0010), and for Solomon from SINTEF TOP's published route files and conventions (ADR 0011). Adopted in M5: Q20 (implemented as agreed, ADR 0013), Q21 to Q23 (ADR 0012). Adopted in M6: Q24 to Q27 (ADR 0014). Not adopted yet: Q29 to Q31.
 **Gate 1 approved by the user (2026-11-20).** Q4: the repository is `github.com/moda707/fleetgym`
 (personal account); the PyPI name is taken by the first release through trusted publishing
 (`.github/workflows/release.yml`, set up by the user). Q20: the user asked to start M5 with the agreed

@@ -7,6 +7,24 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M6 dynamic requests:
+  - arrival processes (`poisson`, `nhpp` by thinning), request classes (KDE or uniform locations,
+    demand, time-window width, service time), cutoff, cancellations, overflow handling, and
+    `initial_requests`; degree of dynamism and effective degree of dynamism;
+  - planned routing: `PlannedRoutingSimulator`, `routing: cheapest_insertion`, the `accept_reject`
+    and `assign` interfaces, outsourcing of requests, drive-first vehicles that wait and head home in
+    time;
+  - scenarios with request sources (`episode_instance`), forks that redraw the future of the day;
+  - validator support for releases, decisions, cancellations, overflow and assignments;
+  - `DVRP-StochReq-v0` is experimental; ADR 0014.
+- The documentation site and an `examples/` folder are planned as milestone M10b.
+
+### Changed
+- Node features grow to 10 (under-decision flag); unreleased requests are hidden. `Epoch.vehicle`
+  can be `None`; interfaces get `max_vehicles` and explain invalid actions.
+- `fleetgym.make` accepts a spec as a dict. Scenario ids hash raw float64 bytes.
+
+### Added
 - M5 uncertainty and recourse:
   - samplers for every spec distribution (`fleetgym.uncertainty.distributions`) with mean, quantile
     and finite support; `register_distribution` for custom ones;
