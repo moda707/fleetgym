@@ -1,0 +1,21 @@
+NAME : tiny-n5
+COMMENT : hand-written FleetGym test instance; node 5 is exactly 2.5 from the depot
+TYPE : CVRP
+DIMENSION : 5
+EDGE_WEIGHT_TYPE : EUC_2D
+CAPACITY : 10
+NODE_COORD_SECTION
+1 0 0
+2 3 4
+3 0 1
+4 1 1
+5 2.5 0
+DEMAND_SECTION
+1 0
+2 3
+3 4
+4 5
+5 2
+DEPOT_SECTION
+1
+-1

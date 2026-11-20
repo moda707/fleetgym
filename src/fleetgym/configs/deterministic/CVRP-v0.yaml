@@ -5,6 +5,11 @@ meta:
   status: experimental
   references: [dantzig1959]
   instances: {source: cvrplib, set: X}
+# Default source for quick experiments; benchmark runs pass CVRPLIB instances explicitly.
+instance_source:
+  type: generator
+  name: uniform
+  params: {n_customers: 20, size: 100, capacity: 50, demand: {low: 1, high: 9}}
 network: {type: euclidean, rounding: nearest_int}
 fleet:
   sizing: unlimited

@@ -820,7 +820,7 @@
     },
     "GeneratorSource": {
       "additionalProperties": false,
-      "description": "Generate a fresh instance per episode with a registered generator.",
+      "description": "Generate a fresh instance per episode with a registered generator.\n\n``params`` are checked against the generator's parameter model when the config is loaded.",
       "properties": {
         "type": {
           "const": "generator",

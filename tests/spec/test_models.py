@@ -451,7 +451,9 @@ def test_ev_section_is_reserved_and_opaque():
 
 
 def test_instance_source_variants():
-    gen = make(instance_source={"type": "generator", "name": "uniform", "params": {"n": 5}})
+    gen = make(
+        instance_source={"type": "generator", "name": "uniform", "params": {"n_customers": 5}}
+    )
     assert gen.instance_source is not None and gen.instance_source.type == "generator"
     files = make(instance_source={"type": "files", "paths": ["a.vrp"], "format": "vrplib"})
     assert files.instance_source is not None and files.instance_source.type == "files"

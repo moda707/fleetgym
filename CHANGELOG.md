@@ -7,6 +7,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M2 network and instances: immutable `Instance` with content hash; VRPLIB/CVRPLIB and Solomon readers
+  (through `vrplib`); `Solution` reader; `uniform` and `clustered` generators with reachable time
+  windows; `EuclideanNetwork` (`none`, `nearest_int` = `floor(d + 0.5)`) and `MatrixNetwork`;
+  `bind(spec, instance)` resolving `from_instance` with documented default keys and compatibility
+  checks; `instance_from_source`. `CVRP-v0` and `VRPTW-v0` gained default generator sources.
+- ADR 0008 (instances, networks and binding).
 - M1 spec and configs: frozen pydantic `ProblemSpec` with a stable content hash (`fg1:` + SHA-256,
   `meta` excluded); flat YAML forms for distributions, uncertain parameters, networks, arrival
   processes, recourse rules and objectives; `from_instance` references; reserved features and

@@ -20,6 +20,8 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
+from fleetgym.data.generators import validate_generator_params
+from fleetgym.plugins import PluginError
 from fleetgym.spec.models.base import (
     FlatPluginModel,
     FrozenJSON,
@@ -30,6 +32,7 @@ from fleetgym.spec.models.base import (
     PositiveOrRef,
     ReservedParams,
     StatusLiteral,
+    deep_thaw,
     reraise_nested,
     validate_plugin_params,
 )
@@ -104,11 +107,34 @@ class Meta(FrozenModel):
 
 
 class GeneratorSource(FrozenModel):
-    """Generate a fresh instance per episode with a registered generator."""
+    """Generate a fresh instance per episode with a registered generator.
+
+    ``params`` are checked against the generator's parameter model when the config is loaded.
+    """
 
     type: Literal["generator"] = "generator"
     name: str
     params: FrozenJSON = None
+
+    @model_validator(mode="after")
+    def _known_generator(self) -> GeneratorSource:
+        try:
+            validate_generator_params(self.name, deep_thaw(self.params) if self.params else {})
+        except PluginError as exc:
+            raise ValidationError.from_exception_data(
+                type(self).__name__,
+                [
+                    {
+                        "type": "value_error",
+                        "loc": ("name",),
+                        "input": self.name,
+                        "ctx": {"error": ValueError(str(exc))},
+                    }
+                ],
+            ) from None
+        except ValidationError as exc:
+            raise reraise_nested(exc, type(self).__name__, ("params",)) from None
+        return self
 
 
 class FilesSource(FrozenModel):

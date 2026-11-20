@@ -1,19 +1,21 @@
 # Status
 
-**Current milestone:** M1 Spec and configs done. Next: M2 Network and instances.
+**Current milestone:** M2 Network and instances done. Next: M3 Simulator core.
 
 | Milestone | State | Notes |
 | --- | --- | --- |
 | Plan | Done | Reviewed by the user on 2026-11-20; resolved questions listed in plan §8 |
 | M0 Scaffolding | Done | Package skeleton, tooling, CI, layer test |
 | M1 Spec and configs | Done | Models, loader, merge rules, overrides, registry, schema, CLI |
-| M2 Network and instances | Next | |
-| M3 to M11 | Not started | Stops at Gate 1 (M4) and Gate 2 (M11) |
+| M2 Network and instances | Done | Instance, readers, generators, networks, binding |
+| M3 Simulator core | Next | |
+| M4 to M11 | Not started | Stops at Gate 1 (M4) and Gate 2 (M11) |
 
-## Tests (M1)
-- 342 tests passing (Python 3.12, macOS), including Hypothesis round-trip properties.
-- Coverage 98% overall (spec package 95% to 100%). ruff and pyright (standard) clean.
-- Golden spec hashes in `tests/golden/spec_hashes.json` for the 5 registered configs.
+## Tests (M2)
+- 406 tests passing (Python 3.12, macOS), including Hypothesis properties for spec round trips and
+  generator time-window reachability.
+- Coverage 98% overall. ruff and pyright (standard) clean.
+- Golden spec hashes updated once in M2 (configs gained `instance_source`); IDs stay `-v0`.
 
 ## Registered configs
 | ID | Status | Notes |
@@ -27,8 +29,6 @@
 ## Known issues
 - `docs/DESIGN.md` was transcribed from the attached design document. Its two embedded diagrams
   (architecture, §26 roadmap) are missing.
-- Configs have no `instance_source` yet (added in M2 with the generators), so the golden hashes will
-  change once in M2. No env has been released, so the IDs stay at `-v0`.
 - The JSON Schema is checked for consistency with the models but not run as a validator over the
   configs: that needs the `jsonschema` package, which is not an approved dependency (ask the user).
 - Git commits use a repo-local identity (user's name and account email). Change it with
