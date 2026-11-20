@@ -1,0 +1,2068 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "AgentsSpec": {
+      "additionalProperties": false,
+      "description": "Single- or multi-agent setup.\n\nAttributes\n----------\nreward\n    ``global``: every agent receives the total reward. ``individual``: each agent receives its\n    own costs. ``mixed``: ``reward_mix * global + (1 - reward_mix) * individual``.\nconflict\n    How to resolve two agents choosing the same request.",
+      "properties": {
+        "mode": {
+          "default": "single",
+          "enum": [
+            "single",
+            "multi"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "api": {
+          "default": "aec",
+          "enum": [
+            "aec",
+            "parallel"
+          ],
+          "title": "Api",
+          "type": "string"
+        },
+        "reward": {
+          "default": "global",
+          "enum": [
+            "global",
+            "individual",
+            "mixed"
+          ],
+          "title": "Reward",
+          "type": "string"
+        },
+        "reward_mix": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reward Mix"
+        },
+        "conflict": {
+          "default": "priority",
+          "enum": [
+            "priority",
+            "distance",
+            "lottery",
+            "reject"
+          ],
+          "title": "Conflict",
+          "type": "string"
+        }
+      },
+      "title": "AgentsSpec",
+      "type": "object"
+    },
+    "ArrivalSpec": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "Nonhomogeneous Poisson process",
+          "properties": {
+            "process": {
+              "const": "nhpp"
+            },
+            "profile": {
+              "$ref": "#/$defs/RateProfile"
+            }
+          },
+          "required": [
+            "process"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Homogeneous Poisson process",
+          "properties": {
+            "process": {
+              "const": "poisson"
+            },
+            "rate": {
+              "exclusiveMinimum": 0.0,
+              "title": "Rate",
+              "type": "number"
+            }
+          },
+          "required": [
+            "process"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ConstraintsSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "capacity": {
+          "additionalProperties": false,
+          "description": "Vehicle capacity",
+          "properties": {},
+          "title": "CapacityParams",
+          "type": "object"
+        },
+        "energy": {
+          "additionalProperties": true,
+          "description": "Battery and energy (EV module)",
+          "properties": {},
+          "title": "ReservedParams",
+          "type": "object"
+        },
+        "outsourcing": {
+          "additionalProperties": false,
+          "description": "Outsourcing at a cost",
+          "properties": {
+            "cost": {
+              "enum": [
+                "per_customer",
+                "per_request"
+              ],
+              "title": "Cost",
+              "type": "string"
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Value"
+            }
+          },
+          "title": "OutsourcingParams",
+          "type": "object"
+        },
+        "route_duration": {
+          "additionalProperties": false,
+          "description": "Maximum route duration",
+          "properties": {
+            "max": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                },
+                {
+                  "const": "depot_due_time",
+                  "type": "string"
+                }
+              ],
+              "title": "Max"
+            }
+          },
+          "title": "RouteDurationParams",
+          "type": "object"
+        },
+        "time_windows": {
+          "additionalProperties": false,
+          "description": "Hard or soft time windows",
+          "properties": {
+            "soft": {
+              "default": false,
+              "title": "Soft",
+              "type": "boolean"
+            },
+            "waiting": {
+              "default": "allowed",
+              "enum": [
+                "allowed",
+                "forbidden"
+              ],
+              "title": "Waiting",
+              "type": "string"
+            }
+          },
+          "title": "TimeWindowsParams",
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "DecisionsSpec": {
+      "additionalProperties": false,
+      "description": "When the agent decides and what it decides.\n\nAttributes\n----------\nepochs\n    ``on_event``: when a vehicle becomes idle or a request arrives (time-ordered).\n    ``sequential``: one vehicle builds its whole route before the next starts (static\n    problems only). ``periodic``: every ``period`` time units. ``hybrid``: reserved.\ninterface\n    Name of the action interface.\nrouting\n    Built-in routing rule for interfaces that do not route themselves.\ncommitment\n    ``next_stop``: a vehicle commits only to its next destination. ``diversion``: reserved.",
+      "properties": {
+        "epochs": {
+          "default": "on_event",
+          "enum": [
+            "on_event",
+            "sequential",
+            "periodic",
+            "hybrid"
+          ],
+          "title": "Epochs",
+          "type": "string"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        },
+        "interface": {
+          "default": "next_node",
+          "title": "Interface",
+          "type": "string"
+        },
+        "routing": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Routing"
+        },
+        "commitment": {
+          "default": "next_stop",
+          "enum": [
+            "next_stop",
+            "diversion"
+          ],
+          "title": "Commitment",
+          "type": "string"
+        }
+      },
+      "title": "DecisionsSpec",
+      "type": "object"
+    },
+    "DistSpec": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "1 with probability p, else 0",
+          "properties": {
+            "dist": {
+              "const": "bernoulli"
+            },
+            "p": {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "title": "P",
+              "type": "number"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Discrete values with probabilities",
+          "properties": {
+            "dist": {
+              "const": "categorical"
+            },
+            "values": {
+              "items": {
+                "type": "number"
+              },
+              "minItems": 1,
+              "title": "Values",
+              "type": "array"
+            },
+            "probs": {
+              "items": {
+                "type": "number"
+              },
+              "minItems": 1,
+              "title": "Probs",
+              "type": "array"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Resampling of observed values",
+          "properties": {
+            "dist": {
+              "const": "empirical"
+            },
+            "values": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Values"
+            },
+            "weights": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Weights"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Exponential with mean",
+          "properties": {
+            "dist": {
+              "const": "exponential"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Always the same value (deterministic case)",
+          "properties": {
+            "dist": {
+              "const": "fixed"
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Value"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Gamma with shape and mean",
+          "properties": {
+            "dist": {
+              "const": "gamma"
+            },
+            "shape": {
+              "exclusiveMinimum": 0.0,
+              "title": "Shape",
+              "type": "number"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Gaussian kernel density estimate",
+          "properties": {
+            "dist": {
+              "const": "kde"
+            },
+            "data": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                },
+                {
+                  "items": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                }
+              ],
+              "title": "Data"
+            },
+            "bandwidth": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "scott",
+                    "silverman"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "exclusiveMinimum": 0.0,
+                  "type": "number"
+                }
+              ],
+              "default": "scott",
+              "title": "Bandwidth"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "exp(mu + sigma Z)",
+          "properties": {
+            "dist": {
+              "const": "lognormal"
+            },
+            "mu": {
+              "title": "Mu",
+              "type": "number"
+            },
+            "sigma": {
+              "exclusiveMinimum": 0.0,
+              "title": "Sigma",
+              "type": "number"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Normal(mean, std)",
+          "properties": {
+            "dist": {
+              "const": "normal"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            },
+            "std": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Std"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Poisson with mean",
+          "properties": {
+            "dist": {
+              "const": "poisson"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Normal(mean, std) truncated to [low, high]",
+          "properties": {
+            "dist": {
+              "const": "truncated_normal"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            },
+            "std": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Std"
+            },
+            "low": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Low"
+            },
+            "high": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "High"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Continuous uniform on [low, high)",
+          "properties": {
+            "dist": {
+              "const": "uniform"
+            },
+            "low": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Low"
+            },
+            "high": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "High"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Weibull with shape and scale",
+          "properties": {
+            "dist": {
+              "const": "weibull"
+            },
+            "shape": {
+              "exclusiveMinimum": 0.0,
+              "title": "Shape",
+              "type": "number"
+            },
+            "scale": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Scale"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "DynamicsSpec": {
+      "additionalProperties": false,
+      "description": "Requests arriving during the day.\n\nAttributes\n----------\ncutoff\n    Time after which no requests arrive.\nmax_requests\n    Upper bound on the number of requests per episode; observations are padded to it.\noverflow\n    What happens if a scenario has more requests than ``max_requests``: ``error`` raises,\n    ``reject`` rejects the extra requests automatically (logged and charged as rejected).",
+      "properties": {
+        "arrivals": {
+          "$ref": "#/$defs/ArrivalSpec"
+        },
+        "request_class": {
+          "$ref": "#/$defs/RequestClassSpec"
+        },
+        "cutoff": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cutoff"
+        },
+        "cancellations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DistSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_requests": {
+          "exclusiveMinimum": 0,
+          "title": "Max Requests",
+          "type": "integer"
+        },
+        "overflow": {
+          "default": "error",
+          "enum": [
+            "error",
+            "reject"
+          ],
+          "title": "Overflow",
+          "type": "string"
+        }
+      },
+      "title": "DynamicsSpec",
+      "type": "object"
+    },
+    "FilesSource": {
+      "additionalProperties": false,
+      "description": "Load instances from files (relative paths resolve against the config file).",
+      "properties": {
+        "type": {
+          "const": "files",
+          "default": "files",
+          "title": "Type",
+          "type": "string"
+        },
+        "paths": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "enum": [
+                "vrplib",
+                "solomon"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        }
+      },
+      "title": "FilesSource",
+      "type": "object"
+    },
+    "FleetSpec": {
+      "additionalProperties": false,
+      "description": "The fleet: vehicle types, sizing mode and shift.\n\nAttributes\n----------\nsizing\n    ``fixed``: exactly ``count`` vehicles per type are available. ``limited``: at most\n    ``count`` may be used. ``unlimited``: as many as needed.\nshift\n    Start and end of the working day, or ``None`` for no shift limits.",
+      "properties": {
+        "sizing": {
+          "default": "unlimited",
+          "enum": [
+            "fixed",
+            "limited",
+            "unlimited"
+          ],
+          "title": "Sizing",
+          "type": "string"
+        },
+        "types": {
+          "items": {
+            "$ref": "#/$defs/VehicleTypeSpec"
+          },
+          "minItems": 1,
+          "title": "Types",
+          "type": "array"
+        },
+        "shift": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shift"
+        }
+      },
+      "title": "FleetSpec",
+      "type": "object"
+    },
+    "GeneratorSource": {
+      "additionalProperties": false,
+      "description": "Generate a fresh instance per episode with a registered generator.",
+      "properties": {
+        "type": {
+          "const": "generator",
+          "default": "generator",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "params": {
+          "default": null,
+          "title": "Params"
+        }
+      },
+      "title": "GeneratorSource",
+      "type": "object"
+    },
+    "InstanceRef": {
+      "anyOf": [
+        {
+          "const": "from_instance"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "from_instance": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Value read from the instance file."
+    },
+    "Meta": {
+      "additionalProperties": false,
+      "description": "Documentation and replication data. Not hashed and never inherited through ``extends``.\n\nAttributes\n----------\nstatus\n    ``stable``: passes the replication suite. ``experimental``: implemented, not yet\n    replicated. ``planned``: validates against the schema but cannot be made into an\n    environment in this version.\nreferences\n    Citation keys of the defining papers.\ninstances\n    Benchmark instances used for replication (free-form).\nexpected\n    Replication targets (free-form until the replication suite defines its schema).",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "status": {
+          "default": "experimental",
+          "enum": [
+            "stable",
+            "experimental",
+            "planned"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "references": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "instances": {
+          "default": null,
+          "title": "Instances"
+        },
+        "expected": {
+          "default": null,
+          "title": "Expected"
+        }
+      },
+      "title": "Meta",
+      "type": "object"
+    },
+    "NetworkSpec": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "Euclidean coordinates",
+          "properties": {
+            "type": {
+              "const": "euclidean"
+            },
+            "rounding": {
+              "default": "none",
+              "enum": [
+                "none",
+                "nearest_int"
+              ],
+              "title": "Rounding",
+              "type": "string"
+            },
+            "speed": {
+              "default": 1.0,
+              "exclusiveMinimum": 0.0,
+              "title": "Speed",
+              "type": "number"
+            },
+            "time_model": {
+              "default": null,
+              "title": "Time Model"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Explicit matrices",
+          "properties": {
+            "type": {
+              "const": "matrix"
+            },
+            "speed": {
+              "default": 1.0,
+              "exclusiveMinimum": 0.0,
+              "title": "Speed",
+              "type": "number"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ObjectiveSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "charging_time": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "distance": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "emissions": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "energy": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "imbalance": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "lateness": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "outsourcing": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "overtime": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "rejected": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "time": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "unserved": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "vehicles": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "waiting": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "lexicographic": {
+          "items": {
+            "enum": [
+              "charging_time",
+              "distance",
+              "emissions",
+              "energy",
+              "imbalance",
+              "lateness",
+              "outsourcing",
+              "overtime",
+              "rejected",
+              "time",
+              "unserved",
+              "vehicles",
+              "waiting"
+            ]
+          },
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "type": "object"
+    },
+    "RateProfile": {
+      "additionalProperties": false,
+      "description": "Piecewise-constant rate: ``rates[i]`` applies on ``[breaks[i], breaks[i+1])``.",
+      "properties": {
+        "breaks": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "title": "Breaks",
+          "type": "array"
+        },
+        "rates": {
+          "items": {
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Rates",
+          "type": "array"
+        }
+      },
+      "title": "RateProfile",
+      "type": "object"
+    },
+    "RecourseSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "capacity_failure": {
+          "anyOf": [
+            {
+              "enum": [
+                "agent_decides",
+                "outsource",
+                "return_to_depot",
+                "split"
+              ]
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "energy_failure": {
+          "anyOf": [
+            {
+              "enum": [
+                "agent_decides",
+                "outsource",
+                "return_to_depot",
+                "split"
+              ]
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "time_window_failure": {
+          "anyOf": [
+            {
+              "enum": [
+                "agent_decides",
+                "outsource",
+                "return_to_depot",
+                "split"
+              ]
+            },
+            {
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RequestClassSpec": {
+      "additionalProperties": false,
+      "description": "Distributions of the attributes of a dynamically arriving request.",
+      "properties": {
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DistSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "demand": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DistSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "time_window_width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DistSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "service_time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DistSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "RequestClassSpec",
+      "type": "object"
+    },
+    "UncertainSpec": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "1 with probability p, else 0",
+          "properties": {
+            "dist": {
+              "const": "bernoulli"
+            },
+            "p": {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "title": "P",
+              "type": "number"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Discrete values with probabilities",
+          "properties": {
+            "dist": {
+              "const": "categorical"
+            },
+            "values": {
+              "items": {
+                "type": "number"
+              },
+              "minItems": 1,
+              "title": "Values",
+              "type": "array"
+            },
+            "probs": {
+              "items": {
+                "type": "number"
+              },
+              "minItems": 1,
+              "title": "Probs",
+              "type": "array"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Resampling of observed values",
+          "properties": {
+            "dist": {
+              "const": "empirical"
+            },
+            "values": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Values"
+            },
+            "weights": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Weights"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Exponential with mean",
+          "properties": {
+            "dist": {
+              "const": "exponential"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Always the same value (deterministic case)",
+          "properties": {
+            "dist": {
+              "const": "fixed"
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Value"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Gamma with shape and mean",
+          "properties": {
+            "dist": {
+              "const": "gamma"
+            },
+            "shape": {
+              "exclusiveMinimum": 0.0,
+              "title": "Shape",
+              "type": "number"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Gaussian kernel density estimate",
+          "properties": {
+            "dist": {
+              "const": "kde"
+            },
+            "data": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                },
+                {
+                  "items": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                }
+              ],
+              "title": "Data"
+            },
+            "bandwidth": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "scott",
+                    "silverman"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "exclusiveMinimum": 0.0,
+                  "type": "number"
+                }
+              ],
+              "default": "scott",
+              "title": "Bandwidth"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "exp(mu + sigma Z)",
+          "properties": {
+            "dist": {
+              "const": "lognormal"
+            },
+            "mu": {
+              "title": "Mu",
+              "type": "number"
+            },
+            "sigma": {
+              "exclusiveMinimum": 0.0,
+              "title": "Sigma",
+              "type": "number"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Normal(mean, std)",
+          "properties": {
+            "dist": {
+              "const": "normal"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            },
+            "std": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Std"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Poisson with mean",
+          "properties": {
+            "dist": {
+              "const": "poisson"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Normal(mean, std) truncated to [low, high]",
+          "properties": {
+            "dist": {
+              "const": "truncated_normal"
+            },
+            "mean": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Mean"
+            },
+            "std": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Std"
+            },
+            "low": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Low"
+            },
+            "high": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "High"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Continuous uniform on [low, high)",
+          "properties": {
+            "dist": {
+              "const": "uniform"
+            },
+            "low": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Low"
+            },
+            "high": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "High"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Weibull with shape and scale",
+          "properties": {
+            "dist": {
+              "const": "weibull"
+            },
+            "shape": {
+              "exclusiveMinimum": 0.0,
+              "title": "Shape",
+              "type": "number"
+            },
+            "scale": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Scale"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "VehicleTypeSpec": {
+      "additionalProperties": false,
+      "description": "One vehicle type.\n\nAttributes\n----------\ncapacity\n    Vehicle capacity; ``from_instance`` reads the instance's capacity.\ncount\n    Number of vehicles; required for ``fixed`` and ``limited`` fleets, forbidden for\n    ``unlimited`` ones. ``from_instance`` reads the instance's vehicle count.\nfixed_cost\n    Cost charged once per vehicle used.",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "capacity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/InstanceRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capacity"
+        },
+        "count": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "$ref": "#/$defs/InstanceRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count"
+        },
+        "fixed_cost": {
+          "default": 0.0,
+          "minimum": 0.0,
+          "title": "Fixed Cost",
+          "type": "number"
+        }
+      },
+      "title": "VehicleTypeSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One FleetGym environment. Values may come from the instance with `from_instance`; `null` removes an inherited value.",
+  "properties": {
+    "id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Id"
+    },
+    "meta": {
+      "$ref": "#/$defs/Meta"
+    },
+    "instance_source": {
+      "anyOf": [
+        {
+          "discriminator": {
+            "mapping": {
+              "files": "#/$defs/FilesSource",
+              "generator": "#/$defs/GeneratorSource"
+            },
+            "propertyName": "type"
+          },
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratorSource"
+            },
+            {
+              "$ref": "#/$defs/FilesSource"
+            }
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Instance Source"
+    },
+    "network": {
+      "$ref": "#/$defs/NetworkSpec"
+    },
+    "fleet": {
+      "$ref": "#/$defs/FleetSpec"
+    },
+    "constraints": {
+      "$ref": "#/$defs/ConstraintsSpec"
+    },
+    "uncertainty": {
+      "type": "object",
+      "properties": {
+        "breakdown": {
+          "$ref": "#/$defs/UncertainSpec",
+          "description": "Vehicle breakdowns"
+        },
+        "demand": {
+          "$ref": "#/$defs/UncertainSpec",
+          "description": "Customer demand"
+        },
+        "energy_consumption": {
+          "$ref": "#/$defs/UncertainSpec",
+          "description": "Noise on energy consumption (EV module)"
+        },
+        "presence": {
+          "$ref": "#/$defs/UncertainSpec",
+          "description": "Whether a known customer requests service"
+        },
+        "service_time": {
+          "$ref": "#/$defs/UncertainSpec",
+          "description": "Service duration at a customer"
+        },
+        "station_wait": {
+          "$ref": "#/$defs/UncertainSpec",
+          "description": "Waiting time at a charging station (EV module)"
+        },
+        "travel_time": {
+          "$ref": "#/$defs/UncertainSpec",
+          "description": "Stochastic travel times (deferred until after v0.1)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dynamics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DynamicsSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "decisions": {
+      "$ref": "#/$defs/DecisionsSpec"
+    },
+    "recourse": {
+      "$ref": "#/$defs/RecourseSpec"
+    },
+    "objective": {
+      "$ref": "#/$defs/ObjectiveSpec"
+    },
+    "agents": {
+      "$ref": "#/$defs/AgentsSpec"
+    },
+    "ev": {
+      "default": null,
+      "title": "Ev"
+    },
+    "extends": {
+      "type": "string",
+      "description": "Environment ID or relative path of the config this one extends."
+    }
+  },
+  "title": "FleetGym config",
+  "type": "object"
+}

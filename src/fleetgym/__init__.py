@@ -6,5 +6,6 @@ is pre-sampled into a scenario so that policies can be compared on common random
 """
 
 from fleetgym._version import __version__
+from fleetgym.spec import REGISTRY, ProblemSpec, load_spec
 
-__all__ = ["__version__"]
+__all__ = ["REGISTRY", "ProblemSpec", "__version__", "load_spec"]

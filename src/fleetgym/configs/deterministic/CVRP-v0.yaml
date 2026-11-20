@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+id: CVRP-v0
+meta:
+  name: Capacitated vehicle routing problem
+  status: experimental
+  references: [dantzig1959]
+  instances: {source: cvrplib, set: X}
+network: {type: euclidean, rounding: nearest_int}
+fleet:
+  sizing: unlimited
+  types: [{name: truck, capacity: from_instance}]
+constraints: {capacity: {}}
+objective: {distance: 1.0}
+decisions: {interface: next_node, epochs: sequential}

@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# Planned for Gate 2 (M11): model, parameters and instances come from the VRP-SDO paper.
+id: VRPSD-Outsource-v0
+extends: CVRP-v0
+meta:
+  name: Stochastic demands with outsourcing
+  status: planned
+  references: [vrpsdo_under_review]
+fleet:
+  sizing: fixed
+  types: [{name: truck, capacity: from_instance, count: from_instance}]
+uncertainty:
+  demand: {dist: poisson, mean: from_instance, revealed: on_arrival}
+constraints:
+  outsourcing: {cost: per_customer, value: from_instance}
+recourse: {capacity_failure: agent_decides}   # or return_to_depot | outsource | split
+decisions: {epochs: on_event, interface: next_node}
+objective: {distance: 1.0, outsourcing: 1.0}

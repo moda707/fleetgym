@@ -7,6 +7,20 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M1 spec and configs: frozen pydantic `ProblemSpec` with a stable content hash (`fg1:` + SHA-256,
+  `meta` excluded); flat YAML forms for distributions, uncertain parameters, networks, arrival
+  processes, recourse rules and objectives; `from_instance` references; reserved features and
+  `meta.status` (stable, experimental, planned).
+- Config loader: `extends` by ID or path, merge rules (deep maps, by-name constraints, `null` deletes,
+  discriminator change replaces, `objective` replaced, `meta`/`id` not inherited), dotted overrides,
+  duplicate-key detection, YAML 1.2 floats, one error report naming file and key path per problem.
+- Config registry scanning `fleetgym/configs` and `fleetgym.configs` entry points; plugin registries
+  with `fleetgym.plugins` entry points.
+- Configs: `CVRP-v0`, `VRPTW-v0` (experimental); `DVRP-StochReq-v0`, `VRPSD-Outsource-v0`,
+  `EVRP-NL-v0` (planned).
+- JSON Schema export (`fleetgym schema`), shipped next to the configs for editor support.
+- CLI: `fleetgym list`, `show`, `validate`, `schema`.
+- ADRs 0006 (loading and merge rules) and 0007 (spec schema decisions).
 - M0 scaffolding: `fleetgym` package skeleton (src layout, layers L0 to L7 with module docstrings),
   `pyproject.toml` (hatchling, extras `sb3`, `gnn`, `solvers`, `viz`, `all`, `dev`), `uv.lock`,
   pre-commit hooks, GitHub Actions CI (lint, type check, tests on Linux, macOS and Windows with

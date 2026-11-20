@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+id: VRPTW-v0
+extends: CVRP-v0
+meta:
+  name: VRP with time windows
+  status: experimental
+  references: [solomon1987]
+  instances: {source: solomon}
+network: {type: euclidean, rounding: none}
+constraints:
+  time_windows: {soft: false, waiting: allowed}
+  route_duration: {max: depot_due_time}
+objective: {lexicographic: [vehicles, distance]}

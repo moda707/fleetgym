@@ -93,13 +93,14 @@ select = [
 ignore = [
     "D105",  # magic methods need no docstring
     "D107",  # __init__ is documented in the class docstring (numpy style)
+    "SIM114",  # separate branches for dicts and lists read better than one long condition
 ]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["D"]
+"tests/**" = ["D", "PT018"]
 
 # ---------------------------------------------------------------- pyright
 [tool.pyright]

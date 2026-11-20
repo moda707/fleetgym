@@ -822,6 +822,8 @@ Each item has a recommendation. Items are grouped by the first milestone they bl
 Gate 2 = M11). Q6: `meta.status`; start with a few configs and expand. Q7: `objective` is replaced, not
 merged; `meta` is not inherited; a discriminator change replaces the subtree. Q20: standard plus custom
 recourse, design to be discussed before M5 (see below).
+**Adopted in M1 (recommendations, user unavailable):** Q8, Q9, Q10, Q11, Q12, Q24, Q28 (ADRs 0006,
+0007). Not adopted yet: Q13 to Q17 (M3), Q21 to Q23, Q25 to Q27, Q29 to Q31.
 **Policy for unanswered questions:** where the user has not answered, the recommendation is adopted
 when its milestone starts and recorded in an ADR, so it can be overridden later. Exceptions that
 require the user: Q18 and Q19 (Gate 1 data), Q20 (recourse design), Q-M11.

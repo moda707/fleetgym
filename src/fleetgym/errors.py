@@ -36,6 +36,9 @@ class ConfigError(FleetGymError):
     key_path
         Dotted path of the offending key inside the config, for example
         ``"fleet.types.0.capacity"``.
+    details
+        Further problems found in the same pass, as ``(source, key_path, message)`` triples.
+        They are listed one per line after the main message.
     """
 
     def __init__(
@@ -44,21 +47,28 @@ class ConfigError(FleetGymError):
         *,
         source: str | Path | None = None,
         key_path: str | None = None,
+        details: tuple[tuple[str | None, str | None, str], ...] = (),
     ) -> None:
         self.message = message
         self.source = str(source) if source is not None else None
         self.key_path = key_path
+        self.details = details
         super().__init__(self._format())
 
+    @staticmethod
+    def _location(source: str | None, key_path: str | None) -> str:
+        if source is not None and key_path:
+            return f"{source}: {key_path}: "
+        if source is not None:
+            return f"{source}: "
+        if key_path:
+            return f"{key_path}: "
+        return ""
+
     def _format(self) -> str:
-        location = ""
-        if self.source is not None and self.key_path:
-            location = f"{self.source}: {self.key_path}: "
-        elif self.source is not None:
-            location = f"{self.source}: "
-        elif self.key_path:
-            location = f"{self.key_path}: "
-        return f"{location}{self.message}"
+        lines = [f"{self._location(self.source, self.key_path)}{self.message}"]
+        lines += [f"  - {self._location(s, k)}{m}" for s, k, m in self.details]
+        return "\n".join(lines)
 
 
 class InstanceError(FleetGymError):
@@ -74,7 +84,20 @@ class InfeasibleActionError(FleetGymError):
 
 
 class NotInScopeError(FleetGymError):
-    """A feature is declared in the design but not implemented in this version."""
+    """A feature is declared in the design but not implemented in this version.
+
+    Parameters
+    ----------
+    message
+        What is not available.
+    features
+        Dotted paths of the reserved features that triggered the error.
+    """
+
+    def __init__(self, message: str, *, features: tuple[str, ...] = ()) -> None:
+        self.features = features
+        detail = f" (reserved features: {', '.join(features)})" if features else ""
+        super().__init__(f"{message}{detail}")
 
 
 class ValidationFailure(FleetGymError):
