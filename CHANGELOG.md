@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0.dev0] - 2026-11-20
+
+First pre-release (milestones M0 to M4, Gate 1 approved). Takes the `fleetgym` name on PyPI.
+
 ### Added
 - Solomon replication: checksummed SINTEF TOP manifest for the 56 instances with 100 customers
   (`solomon/100`), archive-member downloads, `fleetgym replicate VRPTW-v0`, Gate 1 fidelity tests;

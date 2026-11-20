@@ -1,14 +1,14 @@
 # FleetGym
 
 [![CI](https://github.com/moda707/fleetgym/actions/workflows/ci.yml/badge.svg)](https://github.com/moda707/fleetgym/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/moda707/fleetgym/blob/main/LICENSE)
 ![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)
 
 Gymnasium and PettingZoo environments for reinforcement learning on vehicle routing problems,
 with a focus on stochastic and dynamic variants where information arrives during the day.
 
-> **Status: pre-alpha.** The v0.1 core is under construction (see [`STATUS.md`](STATUS.md) and the
-> [implementation plan](docs/IMPLEMENTATION_PLAN.md)). APIs will change.
+> **Status: pre-alpha.** The v0.1 core is under construction (see [`STATUS.md`](https://github.com/moda707/fleetgym/blob/main/STATUS.md) and the
+> [implementation plan](https://github.com/moda707/fleetgym/blob/main/docs/IMPLEMENTATION_PLAN.md)). APIs will change.
 
 ## What is there today
 - **Problems as data.** Each environment is one YAML file: fleet, network, constraints, uncertainty,
@@ -61,7 +61,7 @@ uv run pytest
 ```
 
 Requires Python 3.12 or later. Optional extras: `sb3`, `gnn`, `solvers`, `viz`, `all`.
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the development workflow.
+See [`CONTRIBUTING.md`](https://github.com/moda707/fleetgym/blob/main/CONTRIBUTING.md) for the development workflow.
 
 ## Benchmark data
 Benchmark instances and best-known solutions are not stored in this repository. They are
@@ -71,8 +71,8 @@ checksums, and cached under `$FLEETGYM_DATA_DIR` (default `~/.cache/fleetgym`).
 ## Citing
 
 If you use FleetGym in your research, please cite it. GitHub's "Cite this repository" button and
-[`CITATION.cff`](CITATION.cff) give the citation; a Zenodo DOI will be added with the first release.
+[`CITATION.cff`](https://github.com/moda707/fleetgym/blob/main/CITATION.cff) give the citation; a Zenodo DOI will be added with the first release.
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](https://github.com/moda707/fleetgym/blob/main/LICENSE).
