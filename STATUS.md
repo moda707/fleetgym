@@ -1,6 +1,6 @@
 # Status
 
-**Current milestone:** M9 Training stack done (2026-11-20). Next: M10 Visualization, then M10b documentation.
+**Current milestone:** M10 Visualization done (2026-11-20). Next: M10b documentation site and examples.
 Repository: <https://github.com/moda707/fleetgym>. Release `v0.1.0.dev0` tagged on `main` (the
 GitHub release and PyPI upload are done by the user).
 
@@ -18,13 +18,13 @@ GitHub release and PyPI upload are done by the user).
 | M7 Multi-agent | Done | PettingZoo AEC and Parallel pass the API tests (ADR 0016) |
 | M8 Baselines and evaluation | Done | Oracle bounds every non-anticipative baseline on tiny instances (ADR 0017) |
 | M9 Training stack | Done | MaskablePPO learns a tiny instance optimally; MaskableDQN masks verified (ADR 0018) |
-| M10 Visualization | Not started | |
+| M10 Visualization | Done | Map and Gantt views, rgb_array and human modes, `fleetgym render` (ADR 0019) |
 | M10b Documentation and examples | Not started | Added at the user's request; needs dependency approval |
 | M11 Gate 2 | Not started | Before M11, ask for the VRP-SDO model and data |
 
 ## Tests (M6)
-- Default run: 705 passed (with the sb3, solvers and viz extras), coverage 96%; ruff and pyright
-  (standard) clean.
+- Default run: 713 passed (with the sb3, solvers and viz extras), coverage 96% (core-only 95%);
+  ruff and pyright (standard) clean.
 - M6: KS and chi-square tests of the arrival processes; accept mask equal to the independent route
   oracle; property tests on random dynamic problems (validator, determinism, non-anticipativity).
 - M5: KS and chi-square tests for every sampler; exact expectation (1,024 scenarios, 6 recourse

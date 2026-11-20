@@ -68,6 +68,9 @@ fleetgym train CVRP-v0 --algo maskable_ppo --policy gat --steps 100000 --out run
 fleetgym eval CVRP-v0 --model runs/cvrp --episodes 32 --reference nearest --out runs/cvrp/report.json
 ```
 
+Render an episode (map and vehicle Gantt chart) with `fleetgym render DVRP-StochReq-v0 --out day.png`
+or `render_mode="rgb_array"` (needs `fleetgym[viz]`).
+
 Baselines (random, nearest neighbor, cheapest insertion, rollout, PyVRP re-optimization and a
 perfect-information benchmark) run through the same evaluation harness, on fixed test scenarios.
 

@@ -1,0 +1,27 @@
+# Coverage settings for CI test jobs without the optional extras: the 90% target applies to the
+# core (layers L0 to L5, CLAUDE.md); modules that need sb3, solvers or viz are measured by the
+# extras job instead.
+[tool.coverage.run]
+source = ["fleetgym"]
+branch = true
+omit = [
+    "*/fleetgym/nn/*",
+    "*/fleetgym/agents/*",
+    "*/fleetgym/viz/*",
+    "*/fleetgym/testing/module_checker.py",
+    "*/fleetgym/baselines/pyvrp_reopt.py",
+    "*/fleetgym/cli/train.py",
+    "*/fleetgym/cli/render.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 90
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+    "\\.\\.\\.$",
+    "pragma: no cover",
+]

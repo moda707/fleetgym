@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+import importlib
+import importlib.util
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, SupportsFloat
@@ -36,6 +38,15 @@ from fleetgym.uncertainty.streams import StreamFactory
 __all__ = ["EnvState", "FleetGymEnv", "InvalidActionMode"]
 
 InvalidActionMode = Literal["mask", "penalize", "repair"]
+
+#: Figure render modes, bound by name to the visualization layer (which this layer never imports).
+_FIGURE_RENDERERS = {
+    "rgb_array": "fleetgym.viz.render:render_rgb_array",
+    "human": "fleetgym.viz.render:render_human",
+}
+_RENDER_MODES = ["ansi"] + (
+    list(_FIGURE_RENDERERS) if importlib.util.find_spec("matplotlib") is not None else []
+)
 _SEED_LIMIT = 2**63
 
 
@@ -160,7 +171,7 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
     scenario is deliberately absent (its id would identify the future); see `scenario`.
     """
 
-    metadata = {"render_modes": ["ansi"], "render_fps": 4}  # noqa: RUF012 - Gymnasium convention
+    metadata = {"render_modes": _RENDER_MODES, "render_fps": 4}  # noqa: RUF012 - Gymnasium convention
 
     def __init__(
         self,
@@ -538,8 +549,16 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         """Valid actions now (the sb3-contrib ``MaskablePPO`` convention)."""
         return self._mask.copy()
 
-    def render(self) -> str | None:  # pyright: ignore[reportIncompatibleMethodOverride]
-        """Text summary of the routes so far (``render_mode="ansi"``)."""
+    def render(self) -> Any:  # pyright: ignore[reportIncompatibleMethodOverride]
+        """Render the episode so far.
+
+        ``ansi``: a text summary of the routes. ``rgb_array``: the map and vehicle Gantt chart as an
+        ``(H, W, 3)`` ``uint8`` array. ``human``: the same figure in a window. The figure modes need
+        the ``viz`` extra (matplotlib); they are listed in ``metadata`` only when it is installed.
+        """
+        if self.render_mode in _FIGURE_RENDERERS:
+            module, function = _FIGURE_RENDERERS[self.render_mode].split(":")
+            return getattr(importlib.import_module(module), function)(self)
         if self.render_mode != "ansi":
             return None
         sim = self.simulator

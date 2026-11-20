@@ -7,6 +7,14 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M10 visualization (ADR 0019): map and vehicle Gantt views from the event log (`fleetgym.viz`),
+  `rgb_array` and `human` render modes (with the `viz` extra), and `fleetgym render`.
+
+### Fixed
+- CI default test jobs measure coverage of the core only; they failed the coverage gate after M9
+  because modules that need extras were counted as uncovered.
+
+### Added
 - M9 training stack (ADR 0018): `fleetgym.nn` (graph batch adapter, `Encoder`/`Decoder` base classes,
   registry, `MLPEncoder`, dense `GATEncoder`, `AttentionModelEncoder`, `PointerDecoder`,
   `MaskableGraphPolicy`), `fleetgym.testing.check_module`, `fleetgym.agents` (`MaskableDQN`,

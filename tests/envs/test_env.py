@@ -113,7 +113,7 @@ def test_padding_slots_and_repair_from_padding():
         ({"invalid_action": "ignore"}, "invalid_action"),
         ({"invalid_action": "penalize"}, "invalid_action_penalty"),
         ({"invalid_action_penalty": 1.0}, "invalid_action_penalty"),
-        ({"render_mode": "human"}, "render_mode"),
+        ({"render_mode": "video"}, "render_mode"),
     ],
 )
 def test_constructor_argument_checks(kwargs, match):
