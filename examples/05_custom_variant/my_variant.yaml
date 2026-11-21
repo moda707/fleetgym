@@ -1,10 +1,17 @@
-# A new VRP variant from YAML alone: stochastic demands from a custom distribution, a limit on
-# stops per route (a custom constraint) and a custom recourse rule. See plugins.py.
+# A new VRP variant: rural parcel collection. Customers cluster around villages (a custom generator),
+# demands are uncertain (a custom distribution), a van makes at most 5 stops per route (a custom
+# constraint), and a van that cannot fit a parcel restocks if the depot is near, else hands the
+# rest to a courier (a custom recourse rule). The building blocks are in plugins.py.
 id: MyVariant-v0
 extends: VRPSD-v0
 meta:
-  name: Stochastic demands with a stop limit
+  name: Rural parcel collection with a stop limit
   status: experimental
+instance_source:
+  type: generator
+  name: villages
+  params: {n_customers: 24, n_villages: 4, spread: 6.0}
+network: {type: euclidean, rounding: none}
 fleet:
   sizing: fixed
   types: [{name: van, capacity: 15, count: 6}]

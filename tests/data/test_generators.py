@@ -196,3 +196,46 @@ def test_zones_size_hint_bounds_every_instance():
     from fleetgym.data.generators import ZonesParams
 
     assert ZonesParams.model_validate(ZONES).max_customers == 45
+
+
+def test_custom_generators_register_and_size_environments():
+    from pydantic import BaseModel
+
+    import fleetgym as fg
+    from fleetgym.data import Instance, register_generator
+    from fleetgym.errors import ConfigError
+
+    class RingParams(BaseModel):
+        n_customers: int
+        radius: float = 10.0
+
+    @register_generator("tests.ring", params=RingParams)
+    def ring(rng: np.random.Generator, params: RingParams) -> Instance:
+        angles = rng.uniform(0.0, 2 * np.pi, params.n_customers)
+        coords = np.vstack(
+            [[0.0, 0.0], params.radius * np.column_stack([np.cos(angles), np.sin(angles)])]
+        )
+        demands = np.concatenate([[0.0], np.ones(params.n_customers)])
+        return Instance(
+            name="ring", source="generated:ring", demands=demands, coords=coords, capacity=3
+        )
+
+    try:
+        with pytest.raises(ConfigError, match="already registered"):
+            register_generator("tests.ring", params=RingParams)(ring)
+        spec = {
+            "extends": "CVRP-v0",
+            "instance_source": {
+                "type": "generator",
+                "name": "tests.ring",
+                "params": {"n_customers": 7},
+            },
+        }
+        env = fg.make(spec)
+        assert env.max_nodes == 8
+        env.reset(seed=1)
+        coords = env.base_instance.coords
+        assert coords is not None
+        np.testing.assert_allclose(np.hypot(*coords[1:].T), 10.0)
+    finally:
+        GENERATORS.unregister("tests.ring")

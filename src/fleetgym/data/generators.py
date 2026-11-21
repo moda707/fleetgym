@@ -41,6 +41,7 @@ __all__ = [
     "generate_clustered",
     "generate_uniform",
     "generate_zones",
+    "register_generator",
     "validate_generator_params",
 ]
 
@@ -184,7 +185,7 @@ class GeneratorEntry:
     """A registered generator and its parameter model."""
 
     function: Callable[[np.random.Generator, Any], Instance]
-    params: type[_Params]
+    params: type[BaseModel]
 
 
 GENERATORS: Registry[GeneratorEntry] = Registry("instance generator")
@@ -300,7 +301,47 @@ GENERATORS.register("clustered", GeneratorEntry(generate_clustered, ClusteredPar
 GENERATORS.register("zones", GeneratorEntry(generate_zones, ZonesParams))  # pyright: ignore[reportArgumentType]
 
 
-def validate_generator_params(name: str, params: Mapping[str, Any] | None) -> _Params:
+def register_generator(
+    name: str, *, params: type[BaseModel]
+) -> Callable[[Callable[[np.random.Generator, Any], Instance]], Callable[..., Instance]]:
+    """Register an instance generator under ``name``.
+
+    The function takes a ``numpy.random.Generator`` and the validated parameters, and returns an
+    `Instance` (node 0 is the depot). It must draw all randomness from the generator it is given, so
+    the same seed gives the same instance. Give the parameter model an ``n_customers`` field or a
+    ``max_customers`` property so environments can size their observations.
+
+    Raises
+    ------
+    fleetgym.errors.ConfigError
+        If the name is taken.
+
+    Examples
+    --------
+    >>> from pydantic import BaseModel
+    >>> class RingParams(BaseModel):
+    ...     n_customers: int
+    ...     radius: float = 10.0
+    >>> @register_generator("docs.ring", params=RingParams)  # doctest: +SKIP
+    ... def ring(rng, params):
+    ...     angles = rng.uniform(0, 2 * np.pi, params.n_customers)
+    ...     ...
+    """
+
+    def decorator(
+        function: Callable[[np.random.Generator, Any], Instance],
+    ) -> Callable[[np.random.Generator, Any], Instance]:
+        if name in GENERATORS:
+            from fleetgym.errors import ConfigError
+
+            raise ConfigError(f"generator {name!r} is already registered")
+        GENERATORS.register(name, GeneratorEntry(function, params))
+        return function
+
+    return decorator
+
+
+def validate_generator_params(name: str, params: Mapping[str, Any] | None) -> BaseModel:
     """Validate ``params`` for the generator ``name``.
 
     Raises

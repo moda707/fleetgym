@@ -13,6 +13,7 @@ Examples
 
 from fleetgym._version import __version__
 from fleetgym.constraints.base import Constraint, register_constraint
+from fleetgym.data.generators import register_generator
 from fleetgym.envs import (
     FleetGymAECEnv,
     FleetGymEnv,
@@ -43,5 +44,6 @@ __all__ = [
     "make_vec",
     "register_constraint",
     "register_distribution",
+    "register_generator",
     "register_recourse",
 ]

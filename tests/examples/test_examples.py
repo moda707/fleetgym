@@ -29,7 +29,7 @@ def _builder() -> ModuleType:
 
 BUILDER = _builder()
 NEEDS = {"06_train_agent": "sb3_contrib", "08_render": "matplotlib"}
-NETWORK = {"10_vrpsd_goodson"}  # downloads a benchmark instance on first use
+NETWORK = {"10_vrpsd_goodson", "12_vrptw_solomon", "13_vrpsd_florio"}  # download benchmark files
 SCRIPTS = [
     pytest.param(
         path,
@@ -61,6 +61,10 @@ def _isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]
     ]:
         if name in registry:
             registry.unregister(name)
+    from fleetgym.data import GENERATORS
+
+    if "villages" in GENERATORS:
+        GENERATORS.unregister("villages")
     sys.modules.pop("plugins", None)
 
 

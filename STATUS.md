@@ -1,6 +1,7 @@
 # Status
 
-**Current milestone:** M12 done (VRP-VCSD); next M13 (paper-based examples), then M14 (EVSPP-OI).
+**Current milestone:** M13 done (two examples wait for papers); next the spec/instance separation
+(proposal 0001, ADR 0023), then M14 (EVSPP-OI).
 v0.1 (M0 to M10b) is built; Gate 2 (`docs/gates/gate2.md`) still awaits the user's approval.
 VRP-SDO is deferred by the user (2026-11-20).
 Repository: <https://github.com/moda707/fleetgym>. `fleetgym 0.1.0a1` is on PyPI (published by the
@@ -24,7 +25,8 @@ user on 2026-11-20).
 | M10b Documentation and examples | Done | Sphinx site, build-your-own-variant guide, 8 tested examples (ADR 0020) |
 | M11 Gate 2 | Awaiting approval | Review of v0.1; VRP-SDO deferred by the user |
 | M12 VRP-VCSD | Done | `split` recourse, duration limits with recourse, `served_demand`; `VRP-VCSD-v0`, `VRPSD-Goodson-v0` (ADR 0021) |
-| M13 Paper-based examples | Next | One example per environment from a published paper, and a full build-your-own notebook |
+| M13 Paper-based examples | Done | 6 paper examples and the build-your-own guide (ADR 0022); DVRP and MA-DVRP wait for PDFs |
+| M13b Spec/instance separation | Next | Models declare structure, instances carry numbers, presets (proposal 0001, ADR 0023) |
 | M14 EVSPP-OI | Planned | EV shortest path with charging-station occupancy (arXiv 2305.11773); design first |
 
 ## Tests (M6)

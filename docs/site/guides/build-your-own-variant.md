@@ -4,7 +4,8 @@ FleetGym is designed so that a new variant is mostly configuration. This guide b
 first with YAML only, then with a custom distribution, constraint and recourse rule, and finally as a
 plugin package others can install. Every file shown here is in
 [`examples/05_custom_variant`](https://github.com/moda707/fleetgym/tree/main/examples/05_custom_variant)
-and runs in the test suite.
+and runs in the test suite; the notebook there (`custom_variant.ipynb`) walks through the same steps
+interactively, with tests of each block, a custom policy and a fair comparison.
 
 ## Step 1: YAML only
 
@@ -74,9 +75,21 @@ to let the policy decide. It may also restock preventively (`after_service`).
 ```{literalinclude} ../../../examples/05_custom_variant/plugins.py
 :language: python
 :start-at: "# 3. A recourse rule"
+:end-before: "# 4. An instance generator"
 ```
 
-## Step 5: use them in YAML and run
+## Step 5: a custom instance generator
+
+A generator turns a seeded random generator into an `Instance` (node 0 is the depot), so every
+episode can have a new layout. Give its parameter model `n_customers` (or a `max_customers`
+property) so environments can size their observations.
+
+```{literalinclude} ../../../examples/05_custom_variant/plugins.py
+:language: python
+:start-at: "# 4. An instance generator"
+```
+
+## Step 6: use them in YAML and run
 
 ```{literalinclude} ../../../examples/05_custom_variant/my_variant.yaml
 :language: yaml
@@ -91,7 +104,7 @@ The independent validator checks the physics of every episode, custom rules incl
 restock trips, outsourcing costs, revealed values). Custom constraints are not known to the
 validator: test them with your own checks.
 
-## Step 6: share it as a plugin
+## Step 7: share it as a plugin
 
 Put the registrations in a package and expose them through the `fleetgym.plugins` entry point; they
 load automatically when a config names them.
@@ -105,7 +118,7 @@ my_variants = "my_variants.plugins:register"
 ```python
 # my_variants/plugins.py
 def register() -> None:
-    from my_variants import distributions, constraints, recourse  # noqa: F401 (registers them)
+    from my_variants import constraints, distributions, generators, recourse  # noqa: F401
 ```
 
 Ship your YAML files with the package and load them by path, or contribute them to FleetGym.

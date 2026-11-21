@@ -14,6 +14,10 @@ All notable changes to this project are documented here. The format follows
   `scaled_categorical`; generator `zones`; instance source `collection`; examples
   `09_vrp_vcsd` and `10_vrpsd_goodson`.
 
+- M13 (ADR 0022): paper-based examples `11_cvrp_kool`, `12_vrptw_solomon`, `13_vrpsd_florio` and
+  `14_ma_cvrp_vera`; `05_custom_variant` is now a complete step-by-step guide;
+  `fleetgym.register_generator` (to be removed with the spec/instance separation).
+
 ### Changed
 - Examples: one folder per example, each with its script and a notebook generated from it
   (`scripts/build_example_notebooks.py`); the tests run both and check their cells are in sync
