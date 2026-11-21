@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-21
+
+v0.1 as approved at Gate 2 (`docs/gates/gate2.md`): milestones M0 to M15.
+
 ### Added
 - M14 (ADR 0026, proposal 0003): the EV shortest path with charging-station occupancy of Dastpak,
   Errico, Jabali and Malucelli: family `EVSPP-v1` (`ev.shortest_path`), `EVShortestPathEnv`

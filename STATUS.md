@@ -1,11 +1,9 @@
 # Status
 
-**Current milestone:** M14 and M15 done (EV shortest path, ADR 0026; stochastic travel and service
-times, ADR 0025). Next: Gate 2 (`docs/gates/gate2.md`), awaiting the user's review. The multi-agent DVRP example (M13) is deferred by the user (2026-11-20; no suitable paper).
-v0.1 (M0 to M10b) is built; Gate 2 (`docs/gates/gate2.md`) still awaits the user's approval.
-VRP-SDO is deferred by the user (2026-11-20).
-Repository: <https://github.com/moda707/fleetgym>. `fleetgym 0.1.0a1` is on PyPI (published by the
-user on 2026-11-20).
+**Current milestone:** v0.1 done (M0 to M15): Gate 2 approved by the user on 2026-11-21, released
+as v0.1.0. Deferred by the user: VRP-SDO and the multi-agent DVRP example (no suitable paper).
+Repository: <https://github.com/moda707/fleetgym>. On PyPI: `fleetgym 0.1.0a1` (2026-11-20), and
+`0.1.0` once its GitHub release is published.
 
 | Milestone | State | Notes |
 | --- | --- | --- |
@@ -23,7 +21,7 @@ user on 2026-11-20).
 | M9 Training stack | Done | MaskablePPO learns a tiny instance optimally; MaskableDQN masks verified (ADR 0018) |
 | M10 Visualization | Done | Map and Gantt views, rgb_array and human modes, `fleetgym render` (ADR 0019) |
 | M10b Documentation and examples | Done | Sphinx site, build-your-own-variant guide, 8 tested examples (ADR 0020) |
-| M11 Gate 2 | Awaiting approval | Review of v0.1; VRP-SDO deferred by the user |
+| M11 Gate 2 | Done | Approved by the user (2026-11-21); VRP-SDO deferred by the user; v0.1.0 released |
 | M12 VRP-VCSD | Done | `split` recourse, duration limits with recourse, `served_demand`; `VRP-VCSD-v0`, `VRPSD-Goodson-v0` (ADR 0021) |
 | M13 Paper-based examples | Done | 7 paper examples and the build-your-own guide (ADR 0022); DVRP: Ulmer et al. (ADR 0024); MA-DVRP deferred by the user |
 | M13b Spec/instance separation | Done | Schemas, JSON format and sets, model primitives, presets, families at -v1, generators removed (ADR 0023) |

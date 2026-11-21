@@ -8,8 +8,9 @@
 Gymnasium and PettingZoo environments for reinforcement learning on vehicle routing problems,
 with a focus on stochastic and dynamic variants where information arrives during the day.
 
-> **Status: pre-alpha.** The v0.1 core is under construction (see [`STATUS.md`](https://github.com/moda707/fleetgym/blob/main/STATUS.md) and the
-> [implementation plan](https://github.com/moda707/fleetgym/blob/main/docs/IMPLEMENTATION_PLAN.md)). APIs will change.
+> **Status: v0.1.0** (released 2026-11-21). Experimental families and APIs may still change before
+> v1; see [`STATUS.md`](https://github.com/moda707/fleetgym/blob/main/STATUS.md) and the
+> [changelog](https://github.com/moda707/fleetgym/blob/main/CHANGELOG.md).
 
 ## What is there today
 - **Models and instances.** A YAML model says what a problem has and how it behaves (fleet,

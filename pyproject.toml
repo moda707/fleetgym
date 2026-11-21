@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fleetgym"
-version = "0.1.0a1"
+version = "0.1.0"
 description = "Gymnasium and PettingZoo environments for reinforcement learning on stochastic and dynamic vehicle routing problems."
 readme = "README.md"
 license = "MIT"

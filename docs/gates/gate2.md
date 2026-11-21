@@ -1,7 +1,7 @@
 # Gate 2 report: FleetGym v0.1
 
-Date: 2026-11-21 (first version 2026-11-20). Branch `main` at `6c41e80`. Status: **awaiting the
-user's approval.**
+Date: 2026-11-21 (first version 2026-11-20). Branch `main` at `6c41e80`. Status: **approved by the user (2026-11-21)**;
+released as v0.1.0.
 
 The original Gate 2 (`VRPSD-Outsource`, VRP-SDO) was taken out of scope by the user on 2026-11-20:
 its decision is a selection on top of routing and needs its own interface; it will come back with its
@@ -74,8 +74,6 @@ commit, the last at `6c41e80` (M14).
 - `fleetgym 0.1.0a1` on PyPI (2026-11-20) predates M12 to M15: the `-v0` IDs and instance generators
   it contains are gone, so its API differs from `main`.
 
-## For the user
+## Decision
 
-1. Approve Gate 2, or list what must change first.
-2. Release: `main` has changed a lot since `0.1.0a1`. Options: an alpha `0.1.0a2` now, or `v0.1.0`
-   after approval. A release is a tag plus a GitHub release (the workflow publishes to PyPI).
+The user approved Gate 2 on 2026-11-21 and chose to release `v0.1.0` at once.

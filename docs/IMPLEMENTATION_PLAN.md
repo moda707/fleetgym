@@ -810,7 +810,8 @@ M7 and M8 are independent; M8 needs M5 (`fork`) and M6. Each milestone ends with
 ### M11 Gate 2
 - **Changed by the user (2026-11-20):** VRP-SDO is out of scope for v0.1, because its decision is a
   selection on top of routing and needs its own interface; it will come back with its model and data.
-  Gate 2 is the review of v0.1 as built (`docs/gates/gate2.md`). The original plan follows.
+  Gate 2 is the review of v0.1 as built (`docs/gates/gate2.md`), approved by the user on 2026-11-21
+  (v0.1.0 released). The original plan follows.
 - Ask you first for the exact VRP-SDO model, parameters, instances and published results. Then
   implement `VRPSD-Outsource-v0` and its recourse, plus replication tests against your published
   numbers.
