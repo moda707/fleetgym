@@ -16,7 +16,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from fleetgym.network.base import Network
-from fleetgym.sim.state import SimState, VehicleState
+from fleetgym.sim.state import RequestStatus, SimState, VehicleState
 from fleetgym.spec.binding import BoundProblem
 
 __all__ = ["DEPOT", "InformationState", "TimingRules"]
@@ -93,6 +93,17 @@ class InformationState:
     def demands(self) -> NDArray[np.float64]:
         """Demand per node: revealed values, forecasts elsewhere."""
         return self._known("demand", self._static_demands)
+
+    @property
+    def open_demands(self) -> NDArray[np.float64]:
+        """Demand still to deliver where it is known, else as `demands`.
+
+        Differs from `demands` only at pending customers that were partly served (``split``
+        recourse): their demand is revealed, and the delivered part is known too.
+        """
+        demands = self.demands
+        known = self.demand_known & (self._state.request_status == RequestStatus.PENDING)
+        return np.where(known, np.minimum(demands, self._state.remaining_demand), demands)
 
     @property
     def service_times(self) -> NDArray[np.float64]:

@@ -30,14 +30,17 @@ from fleetgym.plugins import Registry
 
 __all__ = [
     "GENERATORS",
+    "ChoiceParams",
     "ClusteredParams",
     "DemandParams",
     "GeneratorEntry",
     "TimeWindowParams",
     "UniformParams",
+    "ZonesParams",
     "generate",
     "generate_clustered",
     "generate_uniform",
+    "generate_zones",
     "validate_generator_params",
 ]
 
@@ -111,6 +114,71 @@ class ClusteredParams(UniformParams):
     spread: float = Field(gt=0)
 
 
+class ChoiceParams(_Params):
+    """A discrete distribution: ``values`` with probabilities ``probs`` (summing to 1)."""
+
+    values: tuple[float, ...] = Field(min_length=1)
+    probs: tuple[float, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _probs(self) -> ChoiceParams:
+        if len(self.values) != len(self.probs):
+            raise ValueError("`values` and `probs` must have the same length")
+        if any(p < 0 for p in self.probs) or abs(sum(self.probs) - 1.0) > 1e-9:
+            raise ValueError("`probs` must be non-negative and sum to 1")
+        return self
+
+
+class ZonesParams(_Params):
+    """Customers in the active zones of a grid over the square ``[0, size]^2``.
+
+    The square is cut into ``grid x grid`` equal zones; zone ``z`` covers column ``z % grid``
+    and row ``z // grid`` (rows counted from ``y = 0``). For each active zone, in the given order,
+    the number of customers is drawn from ``customers_per_zone``; then each customer's location is
+    uniform in its zone, and its demand is drawn from ``demand``. This is the instance generation of
+    Dastpak, Errico and Jabali (VRP-VCSD), where the demand drawn here is the customer's expected
+    demand and the actual demand is an uncertainty source of the spec. An instance needs at least
+    one customer: if every zone draws zero customers, the counts are drawn again (the distribution
+    is conditioned on at least one customer).
+
+    Attributes
+    ----------
+    active_zones
+        Indices of the zones where customers may be.
+    customers_per_zone
+        Distribution of the number of customers in each active zone (non-negative integers).
+    demand
+        Distribution of each customer's demand.
+    """
+
+    size: float = Field(default=100.0, gt=0)
+    grid: int = Field(default=5, ge=1)
+    active_zones: tuple[int, ...] = Field(min_length=1)
+    customers_per_zone: ChoiceParams
+    demand: ChoiceParams
+    depot: Literal["center", "corner", "random"] = "center"
+    capacity: float | None = Field(default=None, gt=0)
+    n_vehicles: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def _zones(self) -> ZonesParams:
+        zones = self.active_zones
+        if len(set(zones)) != len(zones) or not all(0 <= z < self.grid**2 for z in zones):
+            raise ValueError(f"`active_zones` must be distinct zone indices in [0, {self.grid**2})")
+        counts = self.customers_per_zone.values
+        if any(c < 0 or c != int(c) for c in counts):
+            raise ValueError("`customers_per_zone.values` must be non-negative integers")
+        probs = self.customers_per_zone.probs
+        if not any(c > 0 and q > 0 for c, q in zip(counts, probs, strict=True)):
+            raise ValueError("`customers_per_zone` must allow at least one customer")
+        return self
+
+    @property
+    def max_customers(self) -> int:
+        """Largest possible number of customers (node slots of an environment)."""
+        return len(self.active_zones) * int(max(self.customers_per_zone.values))
+
+
 @dataclass(frozen=True)
 class GeneratorEntry:
     """A registered generator and its parameter model."""
@@ -122,7 +190,7 @@ class GeneratorEntry:
 GENERATORS: Registry[GeneratorEntry] = Registry("instance generator")
 
 
-def _depot(rng: np.random.Generator, params: UniformParams) -> NDArray[np.float64]:
+def _depot(rng: np.random.Generator, params: UniformParams | ZonesParams) -> NDArray[np.float64]:
     if params.depot == "center":
         return np.array([params.size / 2, params.size / 2])
     if params.depot == "corner":
@@ -198,8 +266,38 @@ def generate_clustered(rng: np.random.Generator, params: ClusteredParams) -> Ins
     return _assemble(rng, params, depot, customers, name, "generated:clustered")
 
 
+def generate_zones(rng: np.random.Generator, params: ZonesParams) -> Instance:
+    """Generate an instance with customers in the active zones of a grid."""
+    depot = _depot(rng, params)
+    width = params.size / params.grid
+    choice = params.customers_per_zone
+    values, zones = np.asarray(choice.values), len(params.active_zones)
+    while True:  # an instance needs a customer: redraw if every zone came out empty
+        counts = rng.choice(values, size=zones, p=choice.probs)
+        if counts.sum() > 0:
+            break
+    points = []
+    for zone, count in zip(params.active_zones, counts.astype(int), strict=True):
+        corner = np.array([zone % params.grid, zone // params.grid], dtype=float) * width
+        points.append(corner + rng.uniform(0.0, width, size=(count, 2)))
+    customers = np.vstack([np.empty((0, 2)), *points])
+    demands = np.zeros(customers.shape[0] + 1)
+    demands[1:] = rng.choice(
+        np.asarray(params.demand.values), size=customers.shape[0], p=params.demand.probs
+    )
+    return Instance(
+        name=f"zones-n{customers.shape[0]}",
+        source="generated:zones",
+        demands=demands,
+        coords=np.vstack([depot, customers]),
+        capacity=params.capacity,
+        n_vehicles=params.n_vehicles,
+    )
+
+
 GENERATORS.register("uniform", GeneratorEntry(generate_uniform, UniformParams))  # pyright: ignore[reportArgumentType]
 GENERATORS.register("clustered", GeneratorEntry(generate_clustered, ClusteredParams))  # pyright: ignore[reportArgumentType]
+GENERATORS.register("zones", GeneratorEntry(generate_zones, ZonesParams))  # pyright: ignore[reportArgumentType]
 
 
 def validate_generator_params(name: str, params: Mapping[str, Any] | None) -> _Params:

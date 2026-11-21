@@ -6,6 +6,7 @@ from fleetgym.spec.models.problem import ENV_ID_PATTERN, ProblemSpec
 from fleetgym.spec.models.sections import (
     AgentsSpec,
     ArrivalSpec,
+    CollectionSource,
     ConstraintsSpec,
     DecisionsSpec,
     DynamicsSpec,
@@ -26,6 +27,7 @@ __all__ = [
     "ENV_ID_PATTERN",
     "AgentsSpec",
     "ArrivalSpec",
+    "CollectionSource",
     "ConstraintsSpec",
     "DecisionsSpec",
     "DistSpec",

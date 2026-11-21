@@ -1,9 +1,10 @@
 # Status
 
-**Current milestone:** v0.1 built (M0 to M10b). **Stopped at Gate 2 for user approval**
-(`docs/gates/gate2.md`). VRP-SDO is deferred by the user (2026-11-20).
-Repository: <https://github.com/moda707/fleetgym>. Release `v0.1.0.dev0` tagged on `main` (the
-GitHub release and PyPI upload are done by the user).
+**Current milestone:** M12 done (VRP-VCSD); next M13 (paper-based examples), then M14 (EVSPP-OI).
+v0.1 (M0 to M10b) is built; Gate 2 (`docs/gates/gate2.md`) still awaits the user's approval.
+VRP-SDO is deferred by the user (2026-11-20).
+Repository: <https://github.com/moda707/fleetgym>. `fleetgym 0.1.0a1` is on PyPI (published by the
+user on 2026-11-20).
 
 | Milestone | State | Notes |
 | --- | --- | --- |
@@ -22,6 +23,9 @@ GitHub release and PyPI upload are done by the user).
 | M10 Visualization | Done | Map and Gantt views, rgb_array and human modes, `fleetgym render` (ADR 0019) |
 | M10b Documentation and examples | Done | Sphinx site, build-your-own-variant guide, 8 tested examples (ADR 0020) |
 | M11 Gate 2 | Awaiting approval | Review of v0.1; VRP-SDO deferred by the user |
+| M12 VRP-VCSD | Done | `split` recourse, duration limits with recourse, `served_demand`; `VRP-VCSD-v0`, `VRPSD-Goodson-v0` (ADR 0021) |
+| M13 Paper-based examples | Next | One example per environment from a published paper, and a full build-your-own notebook |
+| M14 EVSPP-OI | Planned | EV shortest path with charging-station occupancy (arXiv 2305.11773); design first |
 
 ## Tests (M6)
 - Default run: 723 passed (with the sb3, solvers and viz extras), coverage 96% (core-only 95%);
@@ -47,12 +51,12 @@ GitHub release and PyPI upload are done by the user).
 | MA-CVRP-v0 | experimental | Multi-agent CVRP (Parallel, priority conflicts) |
 | MA-DVRP-v0 | experimental | Multi-agent dynamic VRP with wait (Parallel) |
 | VRPSD-v0 | experimental | Poisson demands revealed on arrival, return-to-depot recourse |
+| VRP-VCSD-v0 | experimental | Dastpak, Errico and Jabali (arXiv 2109.10200); fixed random zone layout |
+| VRPSD-Goodson-v0 | experimental | R101 first 75 customers, 11 vehicles; downloads R101 (network tests) |
 | VRPSD-Outsource-v0 | planned | VRP-SDO, deferred after v0.1 (selection on top of routing) |
 | EVRP-NL-v0 | planned | EV module out of scope |
 
 ## Known issues
 - `docs/DESIGN.md` was transcribed from the attached design document. Its two embedded diagrams
   (architecture, §26 roadmap) are missing.
-- PyPI: `fleetgym` is not registered yet. The name is taken by the first release (see
-  `CONTRIBUTING.md`, "Releasing"); the user does the PyPI setup.
 - GitHub repository description and topics must be set in the web UI (no `gh` CLI here).

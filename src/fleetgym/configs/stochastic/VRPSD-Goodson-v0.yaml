@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# VRP with stochastic demands and a duration limit, in the setting of Goodson, Thomas and Ohlmann
+# (2016) as used by Dastpak, Errico and Jabali (arXiv 2109.10200, Section 6.2 and Appendix B.1.2):
+# the first 75 customers of Solomon's R101 with their demands as expected demands, 11 vehicles, and
+# the same decisions and objective as the VRP-VCSD (split deliveries, restocking whenever the vehicle
+# chooses, expected served demand).
+#
+# Default: duration limit Medium, capacity Q = 50, Moderate variability. The paper's 27 instances:
+#   L (route_duration.max): Short 103.05, Medium 171.75, Long 240.45
+#   Q (capacity): 25, 50, 75
+#   U (demand factors [0, 1/2, 1, 3/2, 2] of the expected demand):
+#     Low      factors [0.5, 1, 1.5] with probs [0.05, 0.9, 0.05]
+#     Moderate probs [0.05, 0.15, 0.6, 0.15, 0.05]
+#     High     probs [0.2, 0.2, 0.2, 0.2, 0.2]
+# Assumptions (not stated in the paper's text): Euclidean distances without rounding at speed 1, and
+# no service times or time windows (the model has travel times only).
+id: VRPSD-Goodson-v0
+meta:
+  name: VRP with stochastic demands and a duration limit
+  status: experimental
+  references: [dastpak2022vcsd, goodson2016, goodson2013, solomon1987]
+  instances: {source: solomon, set: "100", name: r101, first_customers: 75}
+instance_source:
+  type: collection
+  collection: solomon/100
+  name: r101
+  first_customers: 75
+  drop: [time_windows, service_times]
+network: {type: euclidean, rounding: none}
+fleet:
+  sizing: fixed
+  types: [{name: vehicle, capacity: 50, count: 11}]
+constraints:
+  capacity: {}
+  route_duration: {max: 171.75}
+uncertainty:
+  demand:
+    dist: scaled_categorical
+    scale: from_instance
+    factors: [0, 0.5, 1, 1.5, 2]
+    probs: [0.05, 0.15, 0.6, 0.15, 0.05]
+    revealed: on_arrival
+recourse:
+  capacity_failure: {rule: split, end_early: false}
+decisions: {interface: next_node, epochs: on_event}
+objective: {served_demand: -1.0}

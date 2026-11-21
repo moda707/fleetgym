@@ -16,10 +16,14 @@ conventions or benchmark values from them or from your own memory. Use the actua
 files, or ask the user.
 
 ## Scope
-Phase 0 and v0.1 only (M0 to M11). Not in scope: EV module, VRP-SDO (deferred by the user on 2026-11-20:
-its decision is selection on top of routing), time-dependent travel, GPU backend, C++ core,
-OSM networks, web replay viewer, leaderboard. For those, leave only a registry entry type, an abstract
-base class, or a reserved spec field that raises `NotInScopeError`. No stub implementations.
+v0.1 (M0 to M11) plus the paper-based extensions added by the user on 2026-11-20 (M12 to M14 in
+the plan): VRP-VCSD and VRPSD with duration limits (M12), paper-based example notebooks (M13), and the
+EV shortest-path problem with charging-station occupancy, EVSPP-OI (M14; the user brought this part of
+the EV module into scope). Not in scope: the rest of the EV module (EV routing with several customers,
+`EVRP-NL-v0`), VRP-SDO (deferred by the user on 2026-11-20: its decision is selection on top of
+routing), time-dependent travel, GPU backend, C++ core, OSM networks, web replay viewer, leaderboard.
+For those, leave only a registry entry type, an abstract base class, or a reserved spec field that
+raises `NotInScopeError`. No stub implementations.
 
 ## Architecture rules (non-negotiable)
 1. Layers import only downward: L0 `errors, plugins, _hashing, _typing, eventlog` → L1 `data` → L2 `spec`

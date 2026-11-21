@@ -81,6 +81,22 @@ DISCRETE = [
         np.array([1.0, 2.0]),
         np.array([0.25, 0.75]),
     ),
+    (
+        "discrete_uniform",
+        {"center": 10.0, "half_width": 5, "floor": 1.0},
+        np.arange(5.0, 16.0),
+        np.full(11, 1 / 11),
+    ),
+    (
+        "scaled_categorical",
+        {
+            "scale": 8.0,
+            "factors": (0.0, 0.5, 1.0, 1.5, 2.0),
+            "probs": (0.05, 0.15, 0.6, 0.15, 0.05),
+        },
+        np.array([0.0, 4.0, 8.0, 12.0, 16.0]),
+        np.array([0.05, 0.15, 0.6, 0.15, 0.05]),
+    ),
 ]
 
 
@@ -159,3 +175,44 @@ def test_same_seed_same_draws_and_parameter_shapes():
 
 def test_every_spec_distribution_has_a_sampler():
     assert set(DISTRIBUTIONS.names()) <= set(DISTRIBUTION_CLASSES.names())
+
+
+def test_discrete_uniform_per_node_centers_follow_the_floor_rule():
+    """Gendreau, Laporte and Seguin's demands: 5 +- 4, 10 +- 5, 15 +- 5; a depot's 0 stays 0."""
+    dist = build_distribution(
+        "discrete_uniform",
+        {"center": np.array([0.0, 5.0, 10.0, 15.0]), "half_width": 5, "floor": 1.0},
+    )
+    support = dist.support(4)
+    assert support is not None
+    assert [(v.min(), v.max(), v.size) for v, _ in support] == [
+        (0.0, 0.0, 1),
+        (1.0, 9.0, 9),
+        (5.0, 15.0, 11),
+        (10.0, 20.0, 11),
+    ]
+    np.testing.assert_allclose(dist.mean(4), [0.0, 5.0, 10.0, 15.0])
+    draws = np.array([dist.sample(rng(s), 4) for s in range(3000)])
+    assert np.all(draws[:, 0] == 0)
+    for column, (values, probs) in zip(draws.T[1:], support[1:], strict=True):
+        assert chi_square_pvalue(column, values, probs) > ALPHA
+    no_floor = build_distribution("discrete_uniform", {"center": 2.0, "half_width": 3})
+    no_floor_support = no_floor.support(1)
+    assert no_floor_support is not None
+    assert no_floor_support[0][0].tolist() == [-1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+    with pytest.raises(ValueError, match="integer"):
+        build_distribution("discrete_uniform", {"center": 2.5, "half_width": 1}).sample(rng(), 1)
+
+
+def test_scaled_categorical_scales_per_node():
+    dist = build_distribution(
+        "scaled_categorical",
+        {"scale": np.array([10.0, 26.0]), "factors": (0.5, 1.0, 1.5), "probs": (0.05, 0.9, 0.05)},
+    )
+    np.testing.assert_allclose(dist.mean(2), [10.0, 26.0])
+    support = dist.support(2)
+    assert support is not None
+    assert [v.tolist() for v, _ in support] == [[5.0, 10.0, 15.0], [13.0, 26.0, 39.0]]
+    np.testing.assert_allclose(dist.quantile(0.5, 2), [10.0, 26.0])
+    draws = np.array([dist.sample(rng(s), 2) for s in range(3000)])
+    assert set(np.unique(draws[:, 1])) <= {13.0, 26.0, 39.0}

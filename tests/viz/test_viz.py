@@ -22,9 +22,10 @@ from fleetgym.viz import (  # noqa: E402
     episode_figure,
     vehicle_segments,
 )
+from tests.registered import registered  # noqa: E402
 
 pytestmark = pytest.mark.extras_viz
-SINGLE = fg.REGISTRY.ids(agents="single")
+SINGLE = registered("single")
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "instances"
 
 

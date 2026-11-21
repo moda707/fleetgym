@@ -30,6 +30,10 @@ The reward of a step is minus the weighted cost realized since the previous epoc
 are in `info["costs"]`. Summed over an episode, the rewards equal minus the total cost recomputed by
 the validator (tested). Lexicographic objectives are scalarized with a factor of 10⁶ per level.
 
+Objectives that maximize something use a revenue component with a negative weight:
+`{served_demand: -1}` rewards each unit of demand when it is delivered (`VRP-VCSD-v0`). Only revenue
+components may have negative weights.
+
 ## Snapshots
 
 `env.get_state()` and `env.set_state()` copy everything, including random generator states, and

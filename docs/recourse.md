@@ -46,6 +46,7 @@ customer's service time.
 | `return_to_depot` | Classical detour-to-depot recourse: restock at the depot, come back, continue the planned route. |
 | `outsource` | The remaining demand is served by a third party at a cost (`outsourcing` component); the vehicle continues. |
 | `agent_decides` | The simulator opens a **recourse epoch** and the policy chooses among the allowed options (`options: [return_to_depot, outsource]`), with a mask. This is the dynamic setting. |
+| `split` (M12, ADR 0021) | Serve what fits; the customer stays open with the rest, for any vehicle. A full vehicle may only go to the depot; any trip to the depot during the day restocks and the route goes on; `end_early: false` lets a vehicle end its day only when no customer is reachable. Never forces travel, so it works with route-duration and shift limits. |
 
 The conventions that change expected costs (plan Q20 a to c) are **explicit parameters**, so no single
 convention is built in silently:
@@ -91,12 +92,15 @@ class NearDepot(fg.RecourseRule):
 ## Backlog (later improvements and extensions)
 1. **Preventive restocking** (Yang et al. 2000): threshold rules and the optimal threshold policy as an
    `after_service` rule (`VRPSD-Restock-v0`).
-2. **Split as a new request**: leave the unserved remainder as a new dynamic request (needs M6).
+2. **Split as a new request**: done in M12 as the `split` rule (the remainder stays the same open
+   request, for any vehicle; ADR 0021).
 3. **Time-window failures**: serve late at a penalty, or skip (failure type `time_window_failure`).
 4. **Battery shortfall**: emergency charging or towing (`energy_failure`; EV module, out of scope).
 5. **Outsourcing variants**: carrier capacity, per-unit vs per-customer fees, partial outsourcing
    (to be aligned with the VRP-SDO model, deferred after v0.1).
 6. **Duration limits with recourse** (Goodson et al. 2013), where a detour can break the route duration.
+   Done for `split` in M12 (it never forces travel); still open for `return_to_depot` and
+   `agent_decides`.
 7. **Multiple depots or replenishment points**: restock at the nearest facility.
 8. **Stochastic customers** (VRPSC): skip absent customers.
 9. **Validator hooks** so custom rules can register an independent checker (today the validator

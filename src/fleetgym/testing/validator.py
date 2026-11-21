@@ -21,7 +21,10 @@ What is checked
 * recourse: failures report the right remaining demand and load, restocks happen at the depot,
   a ``return_to_depot`` resolution goes to the depot and back to the same customer, outsourcing is
   priced by the rule's parameters; for the built-in rules, the rule's behavior itself (which
-  resolution, how much is served first, when preventive restocks are allowed);
+  resolution, how much is served first, when preventive restocks are allowed); with ``split``, a
+  failure leaves the vehicle full, a full vehicle goes to the depot, every trip to the depot during
+  the day restocks, and a partly served customer may end the day unserved;
+* the ``served_demand`` revenue equals the quantities delivered;
 * revealed values equal the scenario's;
 * every route returns to the depot;
 * recomputed costs equal the logged costs, and the sum of logged rewards equals minus the weighted
@@ -49,7 +52,7 @@ from fleetgym.uncertainty.scenario import Scenario, episode_instance
 __all__ = ["ValidationReport", "Violation", "validate"]
 
 DEPOT = 0
-_BUILTIN_RULES = ("return_to_depot", "outsource", "agent_decides")
+_BUILTIN_RULES = ("return_to_depot", "outsource", "agent_decides", "split")
 
 
 @dataclass(frozen=True)
@@ -129,6 +132,8 @@ class _Vehicle:
     """After the next restock, the vehicle must return to this customer."""
     last_completed_full: bool = False
     """The last customer it completed left it exactly full (preventive restock allowed)."""
+    restock_trip: bool = False
+    """On a trip to the depot that restocks (split recourse): a ``restock`` must follow."""
 
 
 def _distances(spec: ProblemSpec, instance: Instance) -> NDArray[np.float64]:
@@ -284,10 +289,14 @@ def validate(
         if rule == "outsource"
         else set(rule_params.get("options", ()))
         if rule == "agent_decides"
+        else {"split"}
+        if rule == "split"
         else {"return_to_depot", "outsource"}
         if rule is not None
         else set()
     )
+    split = rule == "split"  # trips to the depot during the day restock (ADR 0021)
+    reward_service = "served_demand" in spec.objective.components()
     partial_service = bool(rule_params.get("partial_service", True))
     preventive_ok = (
         rule == "return_to_depot" and rule_params.get("on_exact_depletion") == "restock"
@@ -441,6 +450,15 @@ def validate(
                 )
             if origin == DEPOT and target == DEPOT:
                 fail("depart", "depot to depot trip", row, vehicle=index)
+            if split and target != DEPOT and capacity_on and v.load >= v.capacity * (1 - tol):
+                fail(
+                    "recourse",
+                    f"vehicle {index} has no free capacity and must go to the depot, not {target}",
+                    row,
+                    vehicle=index,
+                )
+            if split and target == DEPOT and origin != DEPOT:
+                v.restock_trip = True
             if target != DEPOT and (target in completed or target in unserved):
                 fail(
                     "double_service",
@@ -549,6 +567,8 @@ def validate(
             started.add(node)
             v.load += quantity
             remaining[node] = left - quantity
+            if reward_service:
+                charge("served_demand", quantity)
             if not _close(row.get("load", math.nan), v.load, tol):
                 fail("load", f"logged load {row.get('load')}, recomputed {v.load}", row)
             if capacity_on and v.load > v.capacity * (1 + tol):
@@ -616,12 +636,22 @@ def validate(
             if action == "return_to_depot":
                 v.must_go = DEPOT
                 v.come_back_to = node
+            elif action == "split" and capacity_on and v.load < v.capacity * (1 - tol):
+                fail(
+                    "recourse",
+                    f"split at {node} while the vehicle still has free capacity",
+                    row,
+                    node=node,
+                )
         elif kind == "restock":
             v = vehicle_of(row)
             if v is None:
                 continue
             if v.node != DEPOT or not v.at_depot_open or not _close(row["time"], v.free_at, tol):
                 fail("restock", f"vehicle {row['vehicle']} restocks away from the depot", row)
+            if split and not v.restock_trip:
+                fail("restock", f"vehicle {row['vehicle']} restocks on a trip that ended", row)
+            v.restock_trip = False
             v.at_depot_open = False
             v.load = 0.0
             v.free_at = row["time"]
@@ -737,6 +767,8 @@ def validate(
                 fail("route_end", f"vehicle {index} ends its route away from the depot", row)
             if v.come_back_to is not None or v.must_go is not None:
                 fail("recourse", f"vehicle {index} ends its route during a recourse trip", row)
+            if split and v.restock_trip:
+                fail("restock", f"vehicle {index} ends its route without restocking", row)
             v.at_depot_open = False
             assert v.route_start is not None or found
             duration = time - (v.route_start or 0.0)
@@ -768,7 +800,8 @@ def validate(
             v.retired = True
         elif kind == "unserved":
             node = row["node"]
-            if node in started or node in unserved or not 0 < node < n:
+            partly_served_ok = split and node not in completed and remaining[node] > tol
+            if (node in started and not partly_served_ok) or node in unserved or not 0 < node < n:
                 fail("unserved", f"node {node} cannot be reported unserved", row, node=node)
             unserved.add(node)
             charge("unserved", 1.0)

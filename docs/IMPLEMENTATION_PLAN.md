@@ -816,6 +816,37 @@ M7 and M8 are independent; M8 needs M5 (`fork`) and M6. Each milestone ends with
   numbers.
 - **Stop for your approval.**
 
+### M12 VRP-VCSD and VRPSD with duration limits (added at the user's request, 2026-11-20)
+The user asked for an example per environment that reproduces the *problem setting* of a published
+paper (not its method or results), starting with their papers. The VRP-VCSD of Dastpak, Errico and
+Jabali (arXiv 2109.10200) needs engine features v0.1 lacks; the user chose to implement them:
+- recourse rule `split` (the reserved name): serve what fits; the rest of the demand stays open for
+  any vehicle; an empty vehicle must go to the depot; any depot trip during the day restocks and the
+  route goes on; optionally, a vehicle may not end its day while a customer is reachable;
+- recourse with a route-duration limit for rules that never force travel (`split`);
+- cost component `served_demand` (a revenue: weight -1 maximizes served demand, rewarded when served);
+- distributions `discrete_uniform` (around a per-node center) and `scaled_categorical` (multiples of a
+  per-node scale); generator `zones` (customers per active zone of a grid); instance source
+  `collection` (a benchmark instance from a shipped manifest, optionally its first `n` customers);
+- configs `VRP-VCSD-v0` (paper Appendix B.1.1) and `VRPSD-Goodson-v0` (paper Section 6.2 and Appendix
+  B.1.2: Solomon R101, first 75 customers, 11 vehicles). The active-zone layout (paper Figure 4 is not
+  in the text) is a fixed random draw (user, 2026-11-20).
+Tests: unit tests per feature, chi-square tests for the new samplers, the validator re-implements the
+new rule, property tests on random split specs, `check_env`, determinism, non-anticipativity.
+
+### M13 Paper-based examples (added at the user's request, 2026-11-20)
+One example folder (script and notebook) per registered environment, each reproducing the problem
+setting of a published paper read for this purpose (numbers from the paper, never from memory), plus a
+complete notebook guide to building your own variant. Papers chosen by the agent with the user's
+approval; VRP-VCSD and VRPSD-Goodson use the user's paper.
+
+### M14 EV shortest path with charging-station occupancy (added at the user's request, 2026-11-20)
+The EVSPP-OI of Dastpak, Errico, Jabali and Malucelli (arXiv 2305.11773): one EV from an origin to a
+destination over charging stations, each an M/M/1/kappa queue of exogenous EVs with a binary occupancy
+indicator revealed in real time; decisions are the next station and the target battery level; the
+objective is the trip duration. The user brought this part of the EV module into scope. The design is
+written and agreed before implementation.
+
 ---
 
 ## 6. Test and quality infrastructure

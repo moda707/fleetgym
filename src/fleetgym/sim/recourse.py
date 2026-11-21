@@ -6,9 +6,10 @@ vehicle's free capacity. The simulator then
 
 1. asks the rule whether to serve what fits first (`RecourseRule.serve_first`);
 2. after that (possibly empty) service, asks how to resolve the rest (`RecourseRule.on_failure`):
-   ``"return_to_depot"`` (restock at the depot, come back, and check again) or ``"outsource"``
-   (the rest goes to a third party at a cost). Returning ``None`` hands the choice to the policy at
-   a recourse decision epoch;
+   ``"return_to_depot"`` (restock at the depot, come back, and check again), ``"outsource"``
+   (the rest goes to a third party at a cost) or ``"split"`` (the customer is pending again with the
+   demand left, for any vehicle). Returning ``None`` hands the choice to the policy at a recourse
+   decision epoch;
 3. after each customer is complete, asks whether to restock preventively
    (`RecourseRule.after_service`).
 
@@ -40,10 +41,11 @@ __all__ = [
     "RecourseAction",
     "RecourseRule",
     "ReturnToDepot",
+    "Split",
     "register_recourse",
 ]
 
-RecourseAction = Literal["return_to_depot", "outsource"]
+RecourseAction = Literal["return_to_depot", "outsource", "split"]
 
 
 @dataclass(frozen=True)
@@ -88,6 +90,11 @@ class RecourseRule(ABC):
     """
 
     name: ClassVar[str]
+    #: Every trip to the depot during the day restocks the vehicle and its route goes on (the
+    #: policy may send a vehicle to the depot at any time); otherwise a trip to the depot ends it.
+    restock_trips: ClassVar[bool] = False
+    #: Resolutions never make the vehicle travel: safe with route-duration and shift limits.
+    no_forced_travel: ClassVar[bool] = False
 
     def __init__(self, problem: BoundProblem, params: FrozenModel, path: str) -> None:
         self.problem = problem
@@ -113,6 +120,14 @@ class RecourseRule(ABC):
     def after_service(self, vehicle: int, info: InformationState) -> bool:
         """Restock at the depot now, after completing a customer (default: never)."""
         return False
+
+    def must_restock(self, vehicle: int, info: InformationState) -> bool:
+        """The vehicle may only go to the depot now (default: never)."""
+        return False
+
+    def may_end(self, vehicle: int, info: InformationState, customers_reachable: bool) -> bool:
+        """Whether a vehicle at the depot may end its day now (default: always)."""
+        return True
 
     def outsourcing_cost(self, node: int, quantity: float) -> float:
         """Cost of outsourcing ``quantity`` at ``node``: ``per_customer + per_unit * quantity``.
@@ -184,6 +199,37 @@ class AgentDecides(RecourseRule):
     def options(self) -> tuple[RecourseAction, ...]:
         """The ``options`` param."""
         return tuple(getattr(self.params, "options", ()))
+
+
+@RECOURSE_CLASSES.register("split")
+class Split(RecourseRule):
+    """Serve what fits; the rest stays open for any vehicle (Dastpak, Errico and Jabali).
+
+    An empty vehicle (no free capacity) must go to the depot; every trip to the depot during the day
+    restocks the vehicle and its route goes on. With ``end_early: false`` a vehicle at the depot may
+    end its day only when no customer is reachable.
+    """
+
+    name = "split"
+    restock_trips = True
+    no_forced_travel = True
+
+    def serve_first(self, failure: CapacityFailure, info: InformationState) -> bool:
+        """Always: serve what fits."""
+        return True
+
+    def on_failure(self, failure: CapacityFailure, info: InformationState) -> RecourseAction:
+        """Always ``split``: the customer is pending again with the demand left."""
+        return "split"
+
+    def must_restock(self, vehicle: int, info: InformationState) -> bool:
+        """When the vehicle has no free capacity."""
+        v = info.vehicle(vehicle)
+        return v.load >= v.capacity
+
+    def may_end(self, vehicle: int, info: InformationState, customers_reachable: bool) -> bool:
+        """``end_early``, or when no customer is reachable."""
+        return bool(getattr(self.params, "end_early", False)) or not customers_reachable
 
 
 def register_recourse(

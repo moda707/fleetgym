@@ -62,7 +62,12 @@ class InvariantMonitor:
         if np.any(np.isnan(state.service_start[served])) or np.any(state.served_by[served] < 0):
             raise InvariantViolation("a served request has no service record")
         unserved = (status == RequestStatus.PENDING) | (status == RequestStatus.UNSERVED)
-        if np.any(state.served_by[unserved] >= 0):
+        recorded = unserved & (state.served_by >= 0)
+        # Only a partly served customer (split recourse) is open with a service record: something
+        # was delivered, and something is left.
+        demand = sim._truth["demand"]  # pyright: ignore[reportPrivateUsage]  (the monitor may see it)
+        left = state.remaining_demand[recorded]
+        if np.any(left <= _TOL) or np.any(left >= demand[recorded] - _TOL):
             raise InvariantViolation("an unserved request has a serving vehicle")
         heading = {
             v.node

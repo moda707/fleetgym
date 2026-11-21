@@ -28,8 +28,16 @@ def _builder() -> ModuleType:
 
 
 BUILDER = _builder()
-SCRIPTS: list[Path] = BUILDER.example_scripts()
 NEEDS = {"06_train_agent": "sb3_contrib", "08_render": "matplotlib"}
+NETWORK = {"10_vrpsd_goodson"}  # downloads a benchmark instance on first use
+SCRIPTS = [
+    pytest.param(
+        path,
+        id=path.parent.name,
+        marks=[pytest.mark.network] if path.parent.name in NETWORK else [],
+    )
+    for path in BUILDER.example_scripts()
+]
 
 
 @pytest.fixture(autouse=True)
@@ -61,14 +69,14 @@ def _needs(script: Path) -> None:
         pytest.importorskip(NEEDS[script.parent.name])
 
 
-@pytest.mark.parametrize("script", SCRIPTS, ids=lambda p: p.parent.name)
+@pytest.mark.parametrize("script", SCRIPTS)
 def test_script_runs(script: Path, monkeypatch: pytest.MonkeyPatch):
     _needs(script)
     monkeypatch.setattr(sys, "argv", [str(script)])
     runpy.run_path(str(script), run_name="__main__")
 
 
-@pytest.mark.parametrize("script", SCRIPTS, ids=lambda p: p.parent.name)
+@pytest.mark.parametrize("script", SCRIPTS)
 def test_notebook_runs(script: Path, tmp_path: Path):
     """Execute the code cells in order, from a copy of the example folder, as Jupyter would."""
     _needs(script)
@@ -83,11 +91,18 @@ def test_notebook_runs(script: Path, tmp_path: Path):
             exec(code, namespace)
 
 
-@pytest.mark.parametrize("script", SCRIPTS, ids=lambda p: p.parent.name)
+def _cells(notebook: dict) -> list[tuple[str, str, str]]:
+    """What must match the script: cell types, ids and sources (not outputs of a local run)."""
+    return [(c["cell_type"], c.get("id", ""), "".join(c["source"])) for c in notebook["cells"]]
+
+
+@pytest.mark.parametrize("script", SCRIPTS)
 def test_notebook_matches_script(script: Path):
     notebook = script.with_suffix(".ipynb")
     assert notebook.is_file(), f"run: python scripts/build_example_notebooks.py ({notebook.name})"
-    assert notebook.read_text(encoding="utf-8") == BUILDER.render(script), (
+    saved = json.loads(notebook.read_text(encoding="utf-8"))
+    expected = json.loads(BUILDER.render(script))
+    assert _cells(saved) == _cells(expected), (
         f"{notebook.name} is out of date: run python scripts/build_example_notebooks.py"
     )
 
@@ -98,6 +113,7 @@ def test_converter_cells_and_errors():
     assert [c["cell_type"] for c in cells] == ["markdown", "code", "code"]
     assert cells[0]["source"] == ["# Title\n", "\n", "text"]
     assert cells[1]["source"] == ["x = 1"]
+    assert [c["id"] for c in cells] == ["cell-00", "cell-01", "cell-02"]
     with pytest.raises(ValueError, match="before the first"):
         BUILDER.notebook_from_script("x = 1\n# %%\n")
     with pytest.raises(ValueError, match="without"):

@@ -51,8 +51,10 @@ from fleetgym.spec.registries import (
 
 __all__ = [
     "LEXICOGRAPHIC_BASE",
+    "REVENUE_COMPONENTS",
     "AgentsSpec",
     "ArrivalSpec",
+    "CollectionSource",
     "DecisionsSpec",
     "DynamicsSpec",
     "FilesSource",
@@ -64,6 +66,7 @@ __all__ = [
     "ObjectiveSpec",
     "RecourseRuleSpec",
     "RequestClassSpec",
+    "SplitParams",
     "VehicleTypeSpec",
 ]
 
@@ -146,7 +149,45 @@ class FilesSource(FrozenModel):
     format: Literal["vrplib", "solomon"] | None = None
 
 
-InstanceSourceSpec = Annotated[GeneratorSource | FilesSource, Field(discriminator="type")]
+class CollectionSource(FrozenModel):
+    """One instance of a benchmark collection with a shipped manifest, downloaded and verified.
+
+    Attributes
+    ----------
+    collection
+        Collection name, for example ``solomon/100`` (see `fleetgym.data.collections`).
+    name
+        Instance name in the collection's manifest, for example ``r101``.
+    first_customers
+        Keep only the first ``n`` customers (in file order), as papers that use subsets do.
+    drop
+        Instance fields to remove (``time_windows``, ``service_times``), for problems that ignore
+        them.
+    """
+
+    type: Literal["collection"] = "collection"
+    collection: str
+    name: str
+    first_customers: PositiveInt | None = None
+    drop: tuple[Literal["time_windows", "service_times"], ...] = ()
+
+    @model_validator(mode="after")
+    def _known(self) -> CollectionSource:
+        from fleetgym.data.download import load_collection
+        from fleetgym.errors import InstanceError
+
+        try:
+            load_collection(self.collection).info(self.name)
+        except InstanceError as exc:
+            raise ValueError(str(exc)) from None
+        if len(set(self.drop)) != len(self.drop):
+            raise ValueError("`drop` lists a field twice")
+        return self
+
+
+InstanceSourceSpec = Annotated[
+    GeneratorSource | FilesSource | CollectionSource, Field(discriminator="type")
+]
 
 
 # --------------------------------------------------------------------------- network
@@ -604,20 +645,30 @@ class AgentDecidesParams(_OutsourceCosts):
         return self
 
 
+class SplitParams(FrozenModel):
+    """Split delivery with restocking whenever the vehicle chooses (Dastpak, Errico and Jabali).
+
+    At a capacity failure the vehicle serves what fits and the rest of the demand stays open: the
+    customer is pending again, for any vehicle. A vehicle with no free capacity can only go to the
+    depot. Every trip to the depot during the day restocks it and the route goes on.
+
+    Attributes
+    ----------
+    end_early
+        ``False``: a vehicle at the depot may end its day only when no customer is reachable (the
+        paper's rule). ``True``: it may end its day at the depot at any time.
+    """
+
+    end_early: bool = False
+
+
 for _name, _model, _description in (
     ("return_to_depot", ReturnToDepotParams, "Restock at the depot and come back"),
     ("outsource", OutsourceParams, "Outsource the demand that does not fit"),
     ("agent_decides", AgentDecidesParams, "The policy chooses at a recourse decision epoch"),
+    ("split", SplitParams, "Serve what fits; the rest stays open for any vehicle"),
 ):
     RECOURSE_RULES.register(_name, PluginEntry(_model, description=_description))
-RECOURSE_RULES.register(
-    "split",
-    PluginEntry(
-        _NoParams,
-        reserved=True,
-        description="Leave the rest as a new request (needs dynamic requests)",
-    ),
-)
 
 
 class RecourseRuleSpec(FlatPluginModel):
@@ -685,8 +736,12 @@ for _name, _description in (
     ("unserved", "Requests left unserved"),
     ("rejected", "Requests rejected"),
     ("outsourcing", "Outsourcing cost"),
+    ("served_demand", "Demand delivered (a revenue: give it a negative weight)"),
 ):
     COST_COMPONENTS.register(_name, PluginEntry(_NoParams, description=_description))
+
+#: Components that count something gained; only these may have a negative weight.
+REVENUE_COMPONENTS = frozenset({"served_demand"})
 for _name, _description in (
     ("energy", "Energy cost (EV module)"),
     ("charging_time", "Time spent charging (EV module)"),
@@ -709,10 +764,13 @@ class ObjectiveSpec(FrozenModel):
         objective: {distance: 1.0, rejected: 50.0}
         objective: {lexicographic: [vehicles, distance]}
 
-    Weights must be non-negative and finite. Exactly one form is used.
+    Weights must be finite and non-negative, except for revenue components (``served_demand``),
+    whose negative weight turns them into rewards: ``{served_demand: -1}`` maximizes the delivered
+    demand, rewarded when it is delivered. Revenue components cannot be lexicographic levels.
+    Exactly one form is used.
     """
 
-    weights: FrozenMap[str, Annotated[float, Field(ge=0.0)]] = Field(default_factory=dict)
+    weights: FrozenMap[str, float] = Field(default_factory=dict)
     lexicographic: tuple[str, ...] | None = None
 
     @model_validator(mode="before")
@@ -743,6 +801,14 @@ class ObjectiveSpec(FrozenModel):
             )
         if any(not math.isfinite(w) for w in self.weights.values()):
             raise ValueError("weights must be finite")
+        negative = [c for c, w in self.weights.items() if w < 0 and c not in REVENUE_COMPONENTS]
+        if negative:
+            raise ValueError(
+                f"weights must be non-negative (only {', '.join(sorted(REVENUE_COMPONENTS))} may "
+                f"be negative); got negative weights for {negative}"
+            )
+        if lex is not None and REVENUE_COMPONENTS & set(lex):
+            raise ValueError("revenue components cannot be lexicographic levels")
         return self
 
     @model_serializer(mode="plain")
@@ -770,7 +836,12 @@ class ObjectiveSpec(FrozenModel):
         return {
             "type": "object",
             "properties": {
-                **{n: {"type": "number", "minimum": 0} for n in names},
+                **{
+                    n: {"type": "number"}
+                    if n in REVENUE_COMPONENTS
+                    else {"type": "number", "minimum": 0}
+                    for n in names
+                },
                 "lexicographic": {"type": "array", "items": {"enum": names}, "uniqueItems": True},
             },
             "additionalProperties": False,

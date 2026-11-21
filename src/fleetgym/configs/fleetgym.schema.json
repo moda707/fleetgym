@@ -100,6 +100,53 @@
         }
       ]
     },
+    "CollectionSource": {
+      "additionalProperties": false,
+      "description": "One instance of a benchmark collection with a shipped manifest, downloaded and verified.\n\nAttributes\n----------\ncollection\n    Collection name, for example ``solomon/100`` (see `fleetgym.data.collections`).\nname\n    Instance name in the collection's manifest, for example ``r101``.\nfirst_customers\n    Keep only the first ``n`` customers (in file order), as papers that use subsets do.\ndrop\n    Instance fields to remove (``time_windows``, ``service_times``), for problems that ignore\n    them.",
+      "properties": {
+        "type": {
+          "const": "collection",
+          "default": "collection",
+          "title": "Type",
+          "type": "string"
+        },
+        "collection": {
+          "title": "Collection",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "first_customers": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Customers"
+        },
+        "drop": {
+          "default": [],
+          "items": {
+            "enum": [
+              "time_windows",
+              "service_times"
+            ],
+            "type": "string"
+          },
+          "title": "Drop",
+          "type": "array"
+        }
+      },
+      "title": "CollectionSource",
+      "type": "object"
+    },
     "ConstraintsSpec": {
       "additionalProperties": false,
       "properties": {
@@ -295,6 +342,47 @@
               "minItems": 1,
               "title": "Probs",
               "type": "array"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Integers center +- half width, equally likely",
+          "properties": {
+            "dist": {
+              "const": "discrete_uniform"
+            },
+            "center": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Center"
+            },
+            "half_width": {
+              "minimum": 0,
+              "title": "Half Width",
+              "type": "integer"
+            },
+            "floor": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Floor"
             }
           },
           "required": [
@@ -546,6 +634,46 @@
                 }
               ],
               "title": "Mean"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Multiples of a scale with probabilities",
+          "properties": {
+            "dist": {
+              "const": "scaled_categorical"
+            },
+            "scale": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Scale"
+            },
+            "factors": {
+              "items": {
+                "type": "number"
+              },
+              "minItems": 1,
+              "title": "Factors",
+              "type": "array"
+            },
+            "probs": {
+              "items": {
+                "type": "number"
+              },
+              "minItems": 1,
+              "title": "Probs",
+              "type": "array"
             }
           },
           "required": [
@@ -1019,6 +1147,9 @@
           "minimum": 0,
           "type": "number"
         },
+        "served_demand": {
+          "type": "number"
+        },
         "time": {
           "minimum": 0,
           "type": "number"
@@ -1047,6 +1178,7 @@
               "outsourcing",
               "overtime",
               "rejected",
+              "served_demand",
               "time",
               "unserved",
               "vehicles",
@@ -1252,6 +1384,69 @@
               "minItems": 1,
               "title": "Probs",
               "type": "array"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Integers center +- half width, equally likely",
+          "properties": {
+            "dist": {
+              "const": "discrete_uniform"
+            },
+            "center": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Center"
+            },
+            "half_width": {
+              "minimum": 0,
+              "title": "Half Width",
+              "type": "integer"
+            },
+            "floor": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Floor"
             },
             "revealed": {
               "enum": [
@@ -1710,6 +1905,68 @@
         },
         {
           "additionalProperties": false,
+          "description": "Multiples of a scale with probabilities",
+          "properties": {
+            "dist": {
+              "const": "scaled_categorical"
+            },
+            "scale": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/$defs/InstanceRef"
+                }
+              ],
+              "title": "Scale"
+            },
+            "factors": {
+              "items": {
+                "type": "number"
+              },
+              "minItems": 1,
+              "title": "Factors",
+              "type": "array"
+            },
+            "probs": {
+              "items": {
+                "type": "number"
+              },
+              "minItems": 1,
+              "title": "Probs",
+              "type": "array"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
           "description": "Normal(mean, std) truncated to [low, high]",
           "properties": {
             "dist": {
@@ -1976,6 +2233,7 @@
         {
           "discriminator": {
             "mapping": {
+              "collection": "#/$defs/CollectionSource",
               "files": "#/$defs/FilesSource",
               "generator": "#/$defs/GeneratorSource"
             },
@@ -1987,6 +2245,9 @@
             },
             {
               "$ref": "#/$defs/FilesSource"
+            },
+            {
+              "$ref": "#/$defs/CollectionSource"
             }
           ]
         },

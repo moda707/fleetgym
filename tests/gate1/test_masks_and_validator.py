@@ -10,6 +10,7 @@ from fleetgym.envs import FleetGymEnv
 from fleetgym.testing.strategies import problems, random_masked_rollout
 from fleetgym.testing.validator import validate
 from tests.gate1.oracle import Rules, route_feasible
+from tests.registered import registered
 
 
 def check_masks_during_rollout(env: FleetGymEnv, seed: int) -> None:
@@ -53,7 +54,7 @@ def test_validator_accepts_random_problem_rollouts(problem, seed):
     validate(env.event_log, spec, instance).raise_if_invalid()
 
 
-@pytest.mark.parametrize("env_id", fg.REGISTRY.ids(agents="single"))
+@pytest.mark.parametrize("env_id", registered("single"))
 def test_validator_accepts_registered_config_rollouts(env_id: str):
     env = fg.make(env_id)
     for seed in range(10):

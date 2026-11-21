@@ -15,6 +15,8 @@ every script and every notebook (`tests/examples`), so they stay correct.
 | `06_train_agent/` | MaskablePPO with a graph attention policy, evaluated against a baseline | `fleetgym[sb3]` |
 | `07_multi_agent/` | PettingZoo Parallel API, one agent per vehicle | |
 | `08_render/` | map and vehicle Gantt figure, `rgb_array` frames | `fleetgym[viz]` |
+| `09_vrp_vcsd/` | the VRP-VCSD of Dastpak, Errico and Jabali: problem, config, the paper's 15 instances | |
+| `10_vrpsd_goodson/` | the VRPSD with duration limits of Goodson et al. on Solomon R101 (27 instances) | download |
 
 Run a script with `python examples/01_first_environment/first_environment.py`, or open
 `first_environment.ipynb` with the notebook's folder as the working directory (Jupyter's default).

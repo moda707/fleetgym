@@ -56,11 +56,9 @@ to 3.14), extras, documentation: all green.
 - Uncertain parameters together with dynamic requests, and recourse with time windows, raise
   `NotInScopeError`.
 - Default hyperparameters are untuned starting points; no published learning results yet.
-- The `fleetgym` name is not registered on PyPI yet: the `v0.1.0.dev0` release still has to be
-  published on GitHub and approved for upload (see `CONTRIBUTING.md`, "Releasing").
+- Released as `fleetgym 0.1.0a1` on PyPI (2026-11-20).
 
 ## For the user
 
 1. Approve Gate 2, or list what must change first.
-2. Release: publish the pending `v0.1.0.dev0` pre-release (takes the PyPI name), or skip to a `v0.1.0`
-   release from the current `main`.
+2. Release: `0.1.0a1` is published; decide when to release `v0.1.0`.

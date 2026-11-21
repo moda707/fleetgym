@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# VRP with a highly variable customer basis and stochastic demands (VRP-VCSD): Dastpak, Errico and
+# Jabali, "Off-line approximate dynamic programming for the vehicle routing problem with a highly
+# variable customer basis and stochastic demands", arXiv 2109.10200 (Section 3.1; instances in
+# Appendix B.1.1). The customers are revealed each morning (a new instance per episode), each
+# customer's demand on the first visit. Vehicles split deliveries, restock at the depot whenever they
+# choose, and must be back by the duration limit. The objective is the expected served demand.
+#
+# Default: Moderate customer density, capacity Q = 50. The paper's 15 instances combine a density
+# (which fixes the vehicle count m and the duration limit L) with Q in {25, 50, 75}:
+#   density    customers_per_zone (values: probs)        m   L (route_duration.max)
+#   Very Low   [0, 1, 2]: [1/2, 1/3, 1/6]                 2   143.71
+#   Low        [0, 1, 2]: [1/3, 1/3, 1/3]                 2   201.38
+#   Moderate   [0, 1, 2, 3]: [0.1, 0.4, 0.4, 0.1]          3   221.47
+#   High       [2, 3, 4, 5]: [0.1, 0.4, 0.4, 0.1]          7   195.54
+#   Very High  [4, 5, 6, 7]: [0.1, 0.4, 0.4, 0.1]         11   187.29
+# Differences from the paper: its Figure 4 zone layout is not in the text, so the 15 active zones are
+# a fixed random draw (numpy default_rng(2109).choice(25, 15, replace=False), sorted); vehicles
+# deciding at the same time decide in index order (the paper picks one at random).
+id: VRP-VCSD-v0
+meta:
+  name: VRP with a highly variable customer basis and stochastic demands
+  status: experimental
+  references: [dastpak2022vcsd, gendreau1995]
+instance_source:
+  type: generator
+  name: zones
+  params:
+    size: 100
+    grid: 5
+    active_zones: [0, 2, 3, 5, 6, 10, 12, 13, 14, 17, 18, 19, 20, 21, 23]
+    customers_per_zone: {values: [0, 1, 2, 3], probs: [0.1, 0.4, 0.4, 0.1]}
+    demand: {values: [5, 10, 15], probs: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]}
+    depot: center
+network: {type: euclidean, rounding: none}
+fleet:
+  sizing: fixed
+  types: [{name: vehicle, capacity: 50, count: 3}]
+constraints:
+  capacity: {}
+  route_duration: {max: 221.47}
+# Actual demand: uniform on expected +- 5 (+- 4 when the expected demand is 5), revealed on the
+# first visit (Gendreau, Laporte and Seguin 1995, as in the paper).
+uncertainty:
+  demand: {dist: discrete_uniform, center: from_instance, half_width: 5, floor: 1, revealed: on_arrival}
+recourse:
+  capacity_failure: {rule: split, end_early: false}
+decisions: {interface: next_node, epochs: on_event}
+objective: {served_demand: -1.0}

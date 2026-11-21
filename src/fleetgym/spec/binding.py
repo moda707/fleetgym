@@ -14,6 +14,7 @@ Errors name the config file and key path.
 
 from __future__ import annotations
 
+import dataclasses
 import fnmatch
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -23,11 +24,12 @@ from typing import Any
 
 import numpy as np
 
+from fleetgym.data.download import fetch, load_collection
 from fleetgym.data.generators import generate
 from fleetgym.data.instance import Instance
 from fleetgym.data.readers import read_instance
 from fleetgym.errors import ConfigError, InstanceError, NotInScopeError
-from fleetgym.spec.models import FilesSource, GeneratorSource, ProblemSpec
+from fleetgym.spec.models import CollectionSource, FilesSource, GeneratorSource, ProblemSpec
 from fleetgym.spec.models.base import FROM_INSTANCE
 
 __all__ = [
@@ -35,6 +37,7 @@ __all__ = [
     "BoundProblem",
     "BoundVehicleType",
     "bind",
+    "collection_instance",
     "instance_from_source",
 ]
 
@@ -268,6 +271,8 @@ def instance_from_source(spec: ProblemSpec, rng: np.random.Generator) -> Instanc
         if isinstance(source, GeneratorSource):
             params = source.params if source.params is not None else {}
             return generate(source.name, _thaw(params), rng)
+        if isinstance(source, CollectionSource):
+            return collection_instance(source)
         assert isinstance(source, FilesSource)
         chosen = source.paths[int(rng.integers(len(source.paths)))]
         path = Path(chosen)
@@ -276,6 +281,46 @@ def instance_from_source(spec: ProblemSpec, rng: np.random.Generator) -> Instanc
         return read_instance(path, fmt=source.format)
     except InstanceError as exc:
         raise ConfigError(str(exc), source=spec.source, key_path="instance_source") from None
+
+
+def collection_instance(source: CollectionSource) -> Instance:
+    """Fetch (download and verify, or read from the cache) a collection instance and trim it.
+
+    ``first_customers`` keeps the depot and the first ``n`` customers in file order; ``drop``
+    removes time windows and/or service times.
+
+    Raises
+    ------
+    InstanceError
+        If the download fails, or the instance has fewer customers than ``first_customers``.
+    """
+    path = fetch(source.collection, source.name)
+    instance = read_instance(path, fmt=load_collection(source.collection).format)  # pyright: ignore[reportArgumentType]
+    keep = instance.n_nodes
+    if source.first_customers is not None:
+        if source.first_customers > instance.n_customers:
+            raise InstanceError(
+                f"{source.collection}/{source.name} has {instance.n_customers} customers, fewer "
+                f"than first_customers={source.first_customers}"
+            )
+        keep = instance.n_depots + source.first_customers
+    if keep == instance.n_nodes and not source.drop:
+        return instance
+
+    def cut(array: Any) -> Any:
+        return None if array is None else np.asarray(array)[:keep]
+
+    matrix = instance.distance_matrix
+    suffix = f"-n{source.first_customers}" if source.first_customers is not None else ""
+    return dataclasses.replace(
+        instance,
+        name=instance.name + suffix,
+        demands=cut(instance.demands),
+        coords=cut(instance.coords),
+        distance_matrix=None if matrix is None else np.asarray(matrix)[:keep, :keep],
+        time_windows=None if "time_windows" in source.drop else cut(instance.time_windows),
+        service_times=None if "service_times" in source.drop else cut(instance.service_times),
+    )
 
 
 def _thaw(value: Any) -> Any:

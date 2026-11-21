@@ -6,8 +6,8 @@ writes ``<folder>/<script>.ipynb`` (nbformat 4, no outputs) from it.
 
 Usage::
 
-    python scripts/build_example_notebooks.py          # write every notebook
-    python scripts/build_example_notebooks.py --check  # fail if a notebook is out of date
+    python scripts/build_example_notebooks.py          # write every notebook (clears outputs)
+    python scripts/build_example_notebooks.py --check  # fail if a notebook's cells are out of date
 """
 
 from __future__ import annotations
@@ -78,6 +78,8 @@ def notebook_from_script(text: str) -> dict:
         else:
             lines.append(line)
     flush()
+    for index, cell in enumerate(cells):
+        cell["id"] = f"cell-{index:02d}"  # required by nbformat 4.5; stable ids keep files in sync
     return {
         "cells": cells,
         "metadata": {
@@ -95,6 +97,11 @@ def render(script: Path) -> str:
     return json.dumps(notebook, indent=1, ensure_ascii=False) + "\n"
 
 
+def _cells(text: str) -> list[tuple[str, str, str]]:
+    notebook = json.loads(text)
+    return [(c["cell_type"], c.get("id", ""), "".join(c["source"])) for c in notebook["cells"]]
+
+
 def main(argv: list[str] | None = None) -> int:
     """Write or check every example notebook; return the exit code."""
     parser = argparse.ArgumentParser(description="Generate the example notebooks.")
@@ -106,6 +113,9 @@ def main(argv: list[str] | None = None) -> int:
         text = render(script)
         if path.is_file() and path.read_text(encoding="utf-8") == text:
             continue
+        saved = path.read_text(encoding="utf-8") if path.is_file() else None
+        if args.check and saved is not None and _cells(saved) == _cells(text):
+            continue  # only outputs of a local run differ
         stale.append(path)
         if not args.check:
             path.write_text(text, encoding="utf-8")

@@ -375,8 +375,8 @@ def test_recourse_shorthand_and_full_form():
             "on_exact_depletion": "continue",
         }
     }
-    rule = RecourseRuleSpec.model_validate({"rule": "split"})
-    assert rule.model_dump() == "split"
+    rule = RecourseRuleSpec.model_validate("split")
+    assert rule.model_dump() == {"rule": "split", "end_early": False}  # defaults are explicit
 
 
 def test_recourse_rule_parameters():
@@ -401,8 +401,8 @@ def test_recourse_rule_parameters():
         )
     with pytest.raises(ValidationError, match="on_exact_depletion"):
         RecourseRuleSpec.model_validate({"rule": "return_to_depot", "on_exact_depletion": "maybe"})
-    with pytest.raises(ValidationError, match=r"recourse\.capacity_failure"):
-        make(recourse={"capacity_failure": "split"})
+    with pytest.raises(ValidationError, match=r"capacity_failure\.end_early"):
+        make(recourse={"capacity_failure": {"rule": "split", "end_early": "sometimes"}})
 
 
 def test_recourse_errors():
@@ -436,13 +436,19 @@ def test_objective_forms():
         ({"distance": 1, "lexicographic": ["distance"]}, "not both"),
         ({"lexicographic": ["distance", "distance"]}, "unique"),
         ({"bogus": 1}, "unknown cost component"),
-        ({"distance": -1}, "greater than or equal"),
+        ({"distance": -1}, "only served_demand may be negative"),
         ({"distance": float("inf")}, "finite"),
+        ({"lexicographic": ["served_demand", "distance"]}, "revenue components"),
     ],
 )
 def test_invalid_objectives(raw, match):
     with pytest.raises(ValidationError, match=match):
         ObjectiveSpec.model_validate(raw)
+
+
+def test_revenue_components_take_negative_weights():
+    objective = ObjectiveSpec.model_validate({"served_demand": -1.0, "distance": 0.5})
+    assert objective.scalar_weights() == {"served_demand": -1.0, "distance": 0.5}
 
 
 def test_reserved_cost_component():

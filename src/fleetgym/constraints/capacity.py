@@ -29,5 +29,5 @@ class Capacity(Constraint):
     ) -> NDArray[np.bool_]:
         """Known demand of each candidate must not exceed ``capacity - load``."""
         v = info.vehicle(vehicle)
-        fits = info.demands[candidates] <= v.capacity - v.load
+        fits = info.open_demands[candidates] <= v.capacity - v.load
         return fits | ~info.demand_known[candidates]

@@ -141,7 +141,8 @@ def problems(draw: st.DrawFn, *, max_customers: int = 6) -> tuple[ProblemSpec, I
 def stochastic_spec_dicts(draw: st.DrawFn) -> dict[str, Any]:
     """Random valid specs with uncertain demands (and service times) and a recourse rule.
 
-    No time constraints: recourse with time windows or duration limits is not in this version.
+    Time constraints only with the ``split`` rule (a route-duration limit, deterministic service
+    times): other rules with time windows or duration limits are not in this version.
     """
     epochs = draw(st.sampled_from(["sequential", "on_event"]))
     sizing = (
@@ -184,20 +185,31 @@ def stochastic_spec_dicts(draw: st.DrawFn) -> dict[str, Any]:
                 {"rule": "outsource", "per_unit": 1.0, "partial_service": False},
                 {"rule": "agent_decides", "per_unit": 3.0},
                 {"rule": "agent_decides", "options": ["return_to_depot"]},
+                {"rule": "split", "end_early": False},
+                {"rule": "split", "end_early": True},
             ]
         )
     )
+    constraints: dict[str, Any] = {"capacity": {}}
+    objective: dict[str, float] = {"distance": 1.0, "outsourcing": 1.0, "unserved": 100.0}
+    split = isinstance(rule, dict) and rule["rule"] == "split"
+    if split:
+        if draw(st.booleans()):
+            uncertainty.pop("service_time", None)  # stochastic service times need time recourse
+            constraints["route_duration"] = {"max": float(draw(st.integers(20, 120)))}
+        if draw(st.booleans()):
+            objective = {"served_demand": -1.0, "distance": draw(st.sampled_from([0.0, 0.1]))}
     return {
         "fleet": {"sizing": sizing, "types": [vehicle]},
         "network": {
             "type": "euclidean",
             "rounding": draw(st.sampled_from(["none", "nearest_int"])),
         },
-        "constraints": {"capacity": {}},
+        "constraints": constraints,
         "uncertainty": uncertainty,
         "recourse": {"capacity_failure": rule},
         "decisions": {"interface": "next_node", "epochs": epochs},
-        "objective": {"distance": 1.0, "outsourcing": 1.0, "unserved": 100.0},
+        "objective": objective,
     }
 
 

@@ -12,7 +12,7 @@ TW = {"horizon": 480, "width_low": 60, "width_high": 180, "service_time": 10}
 
 
 def test_generators_are_registered():
-    assert GENERATORS.names() == ("clustered", "uniform")
+    assert GENERATORS.names() == ("clustered", "uniform", "zones")
 
 
 def test_same_seed_same_instance_and_different_seed_differs():
@@ -123,3 +123,76 @@ def test_validate_params_and_unknown_generator():
     )
     with pytest.raises(PluginError, match="unknown instance generator"):
         generate("blobs", {}, np.random.default_rng(0))
+
+
+# ------------------------------------------------------------------ zones (VRP-VCSD)
+
+ZONES = {
+    "size": 100,
+    "grid": 5,
+    "active_zones": [0, 2, 3, 5, 6, 10, 12, 13, 14, 17, 18, 19, 20, 21, 23],
+    "customers_per_zone": {"values": [0, 1, 2, 3], "probs": [0.1, 0.4, 0.4, 0.1]},
+    "demand": {"values": [5, 10, 15], "probs": [1 / 3, 1 / 3, 1 / 3]},
+    "capacity": 50,
+}
+
+
+def zone_of(points: np.ndarray, size: float = 100.0, grid: int = 5) -> np.ndarray:
+    col = np.floor(points[:, 0] / (size / grid)).astype(int)
+    row = np.floor(points[:, 1] / (size / grid)).astype(int)
+    return row * grid + col
+
+
+def test_zones_customers_lie_in_active_zones_with_the_paper_counts():
+    from scipy import stats
+
+    counts = []
+    demands = []
+    for seed in range(1500):
+        instance = generate("zones", ZONES, np.random.default_rng(seed))
+        assert instance.coords is not None
+        np.testing.assert_array_equal(instance.coords[0], [50.0, 50.0])
+        zones = zone_of(instance.coords[1:])
+        assert set(zones) <= set(ZONES["active_zones"])
+        counts += [int(np.sum(zones == z)) for z in ZONES["active_zones"]]
+        demands += instance.demands[1:].tolist()
+    observed = np.bincount(counts, minlength=4)
+    assert observed.size == 4
+    assert stats.chisquare(observed, np.array([0.1, 0.4, 0.4, 0.1]) * len(counts)).pvalue > 1e-3
+    assert set(demands) == {5.0, 10.0, 15.0}
+    assert np.mean(counts) * 15 == pytest.approx(22.5, rel=0.02)  # paper: 1.5 per zone, 15 zones
+
+
+def test_zones_is_deterministic_and_has_at_least_one_customer():
+    a = generate("zones", ZONES, np.random.default_rng(3))
+    b = generate("zones", ZONES, np.random.default_rng(3))
+    assert a.content_hash() == b.content_hash()
+    sparse = {
+        **ZONES,
+        "active_zones": [7],
+        "customers_per_zone": {"values": [0, 1], "probs": [0.99, 0.01]},
+    }
+    for seed in range(20):
+        assert generate("zones", sparse, np.random.default_rng(seed)).n_customers == 1
+
+
+@pytest.mark.parametrize(
+    ("change", "match"),
+    [
+        ({"active_zones": [0, 0]}, "distinct"),
+        ({"active_zones": [25]}, "distinct"),
+        ({"customers_per_zone": {"values": [0, 1.5], "probs": [0.5, 0.5]}}, "integers"),
+        ({"customers_per_zone": {"values": [0], "probs": [1.0]}}, "at least one"),
+        ({"demand": {"values": [5, 10], "probs": [0.5, 0.6]}}, "sum to 1"),
+        ({"demand": {"values": [5, 10], "probs": [1.0]}}, "same length"),
+    ],
+)
+def test_zones_parameters_are_checked(change, match):
+    with pytest.raises(InstanceError, match=match):
+        generate("zones", {**ZONES, **change}, np.random.default_rng(0))
+
+
+def test_zones_size_hint_bounds_every_instance():
+    from fleetgym.data.generators import ZonesParams
+
+    assert ZonesParams.model_validate(ZONES).max_customers == 45

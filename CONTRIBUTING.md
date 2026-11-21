@@ -69,7 +69,7 @@ One-time setup:
 
 Each release:
 1. Set `version` in `pyproject.toml` and `CITATION.cff`, update `CHANGELOG.md`, commit.
-2. Create a GitHub release with tag `v<version>` (for example `v0.1.0.dev0`). The `release`
+2. Create a GitHub release with tag `v<version>` (for example `v0.1.0a1`). The `release`
    workflow checks that the tag matches the version, builds, smoke-tests the wheel and uploads it.
 
 A pending publisher does not reserve the name on PyPI: the name is taken by the first upload.

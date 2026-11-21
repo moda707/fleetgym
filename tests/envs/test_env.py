@@ -15,10 +15,11 @@ from fleetgym.data import read_instance
 from fleetgym.errors import ConfigError, InfeasibleActionError, NotInScopeError
 from fleetgym.eventlog import EventLog
 from fleetgym.testing.strategies import random_masked_rollout
+from tests.registered import registered
 from tests.sim.helpers import LINE_XS, env_for, line_instance, play
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "instances"
-REGISTERED = fg.REGISTRY.ids(agents="single")
+REGISTERED = registered("single")
 
 
 def rollout_digest(env_id: str, seed: int) -> tuple[str, float]:
@@ -40,7 +41,7 @@ def test_check_env_passes_for_every_registered_config(env_id: str):
 
 
 def test_registration_and_planned_configs():
-    assert {f"fleetgym/{i}" for i in REGISTERED} <= set(gym.registry)
+    assert {f"fleetgym/{i}" for i in fg.REGISTRY.ids(agents="single")} <= set(gym.registry)
     assert "fleetgym/EVRP-NL-v0" not in gym.registry
     with pytest.raises(NotInScopeError, match="planned"):
         fg.make("EVRP-NL-v0")

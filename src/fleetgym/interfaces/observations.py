@@ -6,7 +6,8 @@ Layout of `PaddedGraphObservation` (all ``float32`` except masks, which are ``in
     x, y, demand, window open, window close, service time, pending flag, depot flag, demand-known
     flag, under-decision flag (the request of a request epoch). Coordinates are 0 for matrix
     instances; window columns are 0 without time windows. Demand and service time are the revealed
-    values where known and forecasts elsewhere (column 8 says which, for demand).
+    values where known and forecasts elsewhere (column 8 says which, for demand); for a pending
+    customer that was partly served (split recourse), the demand is what is left to deliver.
 ``node_valid`` ``(max_nodes,)``
     1 for real nodes, 0 for padding and for requests not released yet (whose rows are all 0).
 ``vehicle`` ``(6,)``
@@ -99,7 +100,7 @@ class PaddedGraphObservation:
 
         nodes = np.zeros((self.max_nodes, NODE_FEATURES), dtype=np.float32)
         nodes[:n, 0:2] = coords
-        nodes[:n, 2] = info.demands
+        nodes[:n, 2] = info.open_demands
         if info.time_windows is not None:
             nodes[:n, 3:5] = info.time_windows
         nodes[:n, 5] = info.service_times

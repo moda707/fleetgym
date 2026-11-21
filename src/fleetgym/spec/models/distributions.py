@@ -174,6 +174,40 @@ class CategoricalParams(FrozenModel):
         return self
 
 
+class DiscreteUniformParams(FrozenModel):
+    """Discrete uniform on the integers ``center - w, ..., center + w``.
+
+    The half width is ``w = min(half_width, center - floor)`` per element, so no value falls below
+    ``floor`` (no bound when ``floor`` is omitted); a center at or below ``floor`` (such as a
+    depot's zero demand) is always the value itself. Every value has probability ``1 / (2 w + 1)``
+    and the mean is ``center``. ``center`` must be an integer (per element, possibly
+    ``from_instance``). Example (Gendreau, Laporte and Seguin 1995, as used by Dastpak et al.):
+    ``{center: from_instance, half_width: 5, floor: 1}`` gives ``5 +- 4``, ``10 +- 5``, ``15 +- 5``.
+    """
+
+    center: NumberOrRef
+    half_width: int = Field(ge=0)
+    floor: float | None = None
+
+
+class ScaledCategoricalParams(FrozenModel):
+    """``scale * factors[i]`` with probability ``probs[i]``.
+
+    ``scale`` is a number or a per-element value (for example ``from_instance``: each customer's
+    expected demand); the mean is ``scale * sum(factors * probs)``. Example (Goodson, Thomas and
+    Ohlmann 2016, low variability): ``factors: [0.5, 1, 1.5]``, ``probs: [0.05, 0.9, 0.05]``.
+    """
+
+    scale: NumberOrRef
+    factors: tuple[float, ...] = Field(min_length=1)
+    probs: tuple[float, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _probs(self) -> ScaledCategoricalParams:
+        _check_probabilities(self.probs, len(self.factors))
+        return self
+
+
 class EmpiricalParams(FrozenModel):
     """Resample observed ``values`` with replacement, uniformly or with ``weights``."""
 
@@ -215,6 +249,8 @@ _BUILTINS: tuple[tuple[str, type[FrozenModel], str], ...] = (
     ("poisson", PoissonParams, "Poisson with mean"),
     ("bernoulli", BernoulliParams, "1 with probability p, else 0"),
     ("categorical", CategoricalParams, "Discrete values with probabilities"),
+    ("discrete_uniform", DiscreteUniformParams, "Integers center +- half width, equally likely"),
+    ("scaled_categorical", ScaledCategoricalParams, "Multiples of a scale with probabilities"),
     ("empirical", EmpiricalParams, "Resampling of observed values"),
     ("kde", KDEParams, "Gaussian kernel density estimate"),
 )

@@ -23,6 +23,17 @@ Semantics (ADRs 0009 and 0013)
 * Uncertain values come from the episode's `Scenario`; they are revealed to the agent per the
   spec's ``revealed`` setting (``reveal`` rows in the log).
 * At the end, every pending request becomes ``UNSERVED`` and costs 1 ``unserved``.
+* With the objective component ``served_demand``, each service records the quantity delivered
+  (a revenue: its negative weight turns it into a reward when the demand is delivered).
+
+Split recourse (ADR 0021)
+-------------------------
+* At a capacity failure the vehicle serves what fits; the customer is pending again with the demand
+  left (``failure`` row with component ``split``), for any vehicle.
+* A vehicle with no free capacity may only go to the depot. Every trip to the depot during the day
+  restocks the vehicle and its route goes on; at the depot it chooses its next customer, or ends its
+  day (with ``end_early: false`` only when no customer is reachable).
+* The rule never forces travel, so it may be combined with route-duration and shift limits.
 
 Dynamic requests with ``next_node`` (ADR 0015)
 -----------------------------------------------
@@ -175,12 +186,18 @@ class Simulator:
             self.recourse = RECOURSE_CLASSES.get(rule.name)(
                 problem, rule.params, "recourse.capacity_failure"
             )
+        self.reward_service = "served_demand" in spec.objective.components()
         self.scenario = scenario
         self._truth, self._forecasts = self._values(scenario)
         self.state: SimState = self._initial_state()
         self.constraint_states: list[Any] = []
         self._info = self._make_info()
         self.dynamic = spec.dynamics is not None
+        # A trip to the depot during the day restocks and the route goes on (dynamic requests, and
+        # recourse rules such as split); otherwise a trip to the depot ends the route.
+        self._restock_trips = self.dynamic or (
+            self.recourse is not None and self.recourse.restock_trips
+        )
         self._init_requests(scenario)
 
     # ------------------------------------------------------------------ setup
@@ -219,10 +236,14 @@ class Simulator:
                 source=spec.source,
                 key_path="recourse",
             )
-        if spec.recourse.rules and (tw is not None or hard_time):
+        rule_spec = spec.recourse.rules.get("capacity_failure")
+        rule_cls = RECOURSE_CLASSES.get(rule_spec.name) if rule_spec is not None else None
+        safe_with_limits = rule_cls is not None and rule_cls.no_forced_travel and tw is None
+        if spec.recourse.rules and (tw is not None or hard_time) and not safe_with_limits:
             raise NotInScopeError(
                 "recourse combined with time windows, route duration or shift limits is on the "
-                "recourse backlog (docs/recourse.md)"
+                "recourse backlog (docs/recourse.md); only rules that never force travel (split) "
+                "work with route duration and shift limits"
             )
         if (
             "service_time" in spec.uncertainty
@@ -249,12 +270,12 @@ class Simulator:
                 )
         if (
             spec.fleet.sizing != "unlimited"
-            and "unserved" not in spec.objective.components()
+            and not {"unserved", "served_demand"} & set(spec.objective.components())
             and "outsourcing" not in spec.constraints
         ):
             raise ConfigError(
                 f"a {spec.fleet.sizing} fleet can leave requests unserved; give the objective an "
-                "`unserved` weight (or use outsourcing)",
+                "`unserved` weight, reward `served_demand`, or use outsourcing",
                 source=spec.source,
                 key_path="objective",
             )
@@ -486,6 +507,9 @@ class Simulator:
             mask[v.awaiting_recourse] = "outsource" in options
             return mask
         candidates = np.flatnonzero(self.state.pending_mask()).astype(np.int64)
+        rule = self.recourse
+        if v.node != DEPOT and rule is not None and rule.must_restock(vehicle, self._info):
+            candidates = candidates[:0]
         if candidates.size:
             ok = self._customer_feasibility(vehicle, candidates)
             mask[candidates[ok]] = True
@@ -497,6 +521,8 @@ class Simulator:
             mask[DEPOT] = True
         else:
             mask[DEPOT] = (not self.unlimited) or not mask.any()
+        if v.node == DEPOT and mask[DEPOT] and self.recourse is not None:
+            mask[DEPOT] = self.recourse.may_end(vehicle, self._info, bool(mask[1:].any()))
         return mask
 
     def recourse_options(self, vehicle: int) -> tuple[RecourseAction, ...]:
@@ -623,7 +649,7 @@ class Simulator:
                     self._end_route(v, v.time)
                 else:
                     self._retire(v)
-            elif self.dynamic and decision.node == DEPOT and v.node != DEPOT:
+            elif decision.node == DEPOT and v.node != DEPOT and self._restock_trips:
                 v.restocking = True  # back to the depot to reload; the route goes on
                 v.recourse_target = None
                 self._travel(v, DEPOT)
@@ -873,6 +899,8 @@ class Simulator:
         self.log.append(
             "service_start", time=time, vehicle=v.index, node=node, quantity=quantity, load=v.load
         )
+        if self.reward_service:
+            self._charge(time, "served_demand", quantity, v.index, node)
         end = time + float(self._truth["service_time"][node])
         state.queue.push(end, EventKind.SERVICE_END, v.index, node)
 
@@ -920,6 +948,10 @@ class Simulator:
             load=v.load,
             component=action,
         )
+        if action == "split":
+            state.request_status[node] = RequestStatus.PENDING  # open again, for any vehicle
+            v.status = VehicleStatus.IDLE
+            return
         if action == "return_to_depot":
             if v.load <= _TOL:
                 raise RecourseLoopError(

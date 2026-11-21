@@ -353,6 +353,80 @@ class Categorical(_Discrete):
         return np.asarray(self.params["values"], dtype=float), probs / probs.sum()
 
 
+@DISTRIBUTION_CLASSES.register("discrete_uniform")
+class DiscreteUniform(Distribution):
+    """Integers ``center - w, ..., center + w``, equally likely.
+
+    ``w = min(half_width, center - floor)`` per element, and 0 where ``center <= floor`` (such as
+    a depot's zero demand); the mean is ``center``. ``center`` may differ per element and must be
+    integer.
+    """
+
+    name = "discrete_uniform"
+    vector_params = ("center",)
+
+    def _bounds(self, size: int) -> tuple[FloatArray, FloatArray]:
+        center = self.p("center", size)
+        if not np.all(center == np.round(center)):
+            raise ValueError("discrete_uniform: `center` must be integer")
+        width = np.full(size, float(self.params["half_width"]))
+        floor = self.params.get("floor")
+        if floor is not None:  # a center at or below the floor (a depot's 0) is the value itself
+            width = np.clip(center - float(floor), 0.0, width)
+        return center - width, center + width
+
+    def sample(self, rng: np.random.Generator, size: int) -> FloatArray:
+        """``rng.integers(low, high + 1)`` per element, as floats."""
+        low, high = self._bounds(size)
+        return rng.integers(low.astype(np.int64), high.astype(np.int64) + 1).astype(float)
+
+    def mean(self, size: int) -> FloatArray:
+        """``center``."""
+        low, high = self._bounds(size)
+        return (low + high) / 2
+
+    def _quantile(self, q: float, size: int) -> FloatArray:
+        return np.array([_discrete_quantile(v, p, q) for v, p in self.support(size)])
+
+    def support(self, size: int) -> list[Support]:
+        """Every integer between the bounds, with equal probabilities."""
+        out = []
+        for lo, hi in zip(*self._bounds(size), strict=True):
+            values = np.arange(lo, hi + 1.0)
+            out.append((values, np.full(values.size, 1.0 / values.size)))
+        return out
+
+
+@DISTRIBUTION_CLASSES.register("scaled_categorical")
+class ScaledCategorical(Distribution):
+    """``scale * factors[i]`` with probability ``probs[i]``; ``scale`` may differ per element."""
+
+    name = "scaled_categorical"
+    vector_params = ("scale",)
+
+    def _factors(self) -> tuple[FloatArray, FloatArray]:
+        probs = np.asarray(self.params["probs"], dtype=float)
+        return np.asarray(self.params["factors"], dtype=float), probs / probs.sum()
+
+    def sample(self, rng: np.random.Generator, size: int) -> FloatArray:
+        """``scale * rng.choice(factors, p=probs)``."""
+        factors, probs = self._factors()
+        return self.p("scale", size) * rng.choice(factors, size=size, p=probs)
+
+    def mean(self, size: int) -> FloatArray:
+        """``scale * sum(factors * probs)``."""
+        factors, probs = self._factors()
+        return self.p("scale", size) * float(np.dot(factors, probs))
+
+    def _quantile(self, q: float, size: int) -> FloatArray:
+        return np.array([_discrete_quantile(v, p, q) for v, p in self.support(size)])
+
+    def support(self, size: int) -> list[Support]:
+        """The scaled factors per element (equal values are kept separate)."""
+        factors, probs = self._factors()
+        return [(scale * factors, probs.copy()) for scale in self.p("scale", size)]
+
+
 @DISTRIBUTION_CLASSES.register("empirical")
 class Empirical(_Discrete):
     """Resampling of observed ``values``, uniformly or with ``weights``."""

@@ -1,13 +1,13 @@
 import pytest
 
-import fleetgym as fg
 import fleetgym.testing.env_checker as checker
 from fleetgym.errors import ValidationFailure
 from fleetgym.spec import load_spec
 from fleetgym.testing.validator import ValidationReport, Violation
+from tests.registered import registered
 
 
-@pytest.mark.parametrize("env_id", fg.REGISTRY.ids(agents="single"))
+@pytest.mark.parametrize("env_id", registered("single"))
 def test_registered_configs_pass(env_id: str):
     checker.check_env(env_id, n_rollouts=3)
 

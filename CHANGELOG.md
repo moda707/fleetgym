@@ -6,9 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- M12 (ADR 0021): `VRP-VCSD-v0` and `VRPSD-Goodson-v0`, the problem settings of Dastpak, Errico and
+  Jabali (arXiv 2109.10200); recourse rule `split` (serve what fits, the rest stays open for any
+  vehicle, restock whenever the vehicle chooses), which works with route-duration and shift limits;
+  revenue component `served_demand` (negative weight); distributions `discrete_uniform` and
+  `scaled_categorical`; generator `zones`; instance source `collection`; examples
+  `09_vrp_vcsd` and `10_vrpsd_goodson`.
+
 ### Changed
 - Examples: one folder per example, each with its script and a notebook generated from it
-  (`scripts/build_example_notebooks.py`); the tests run both and check they are in sync.
+  (`scripts/build_example_notebooks.py`); the tests run both and check their cells are in sync
+  (outputs of a local run are ignored).
+- Scope (user, 2026-11-20): the EV shortest path with charging-station occupancy (EVSPP-OI) is in
+  scope as M14.
 
 ## [0.1.0a1] - 2026-11-20
 

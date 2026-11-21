@@ -11,7 +11,8 @@ uncertainty:
 ## Distributions
 
 `fixed`, `uniform`, `normal`, `truncated_normal`, `lognormal`, `gamma`, `weibull`, `exponential`,
-`poisson`, `bernoulli`, `categorical`, `empirical` and `kde`. Each states its parameterization in its
+`poisson`, `bernoulli`, `categorical`, `discrete_uniform` (integers around a per-node center),
+`scaled_categorical` (multiples of a per-node scale), `empirical` and `kde`. Each states its parameterization in its
 docstring, offers `mean` and `quantile`, and a finite `support` when it has one. Parameters can be
 per node (`mean: from_instance`). Add your own with `fleetgym.register_distribution`
 ({doc}`../guides/build-your-own-variant`).

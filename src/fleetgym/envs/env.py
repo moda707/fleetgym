@@ -27,8 +27,8 @@ from fleetgym.sim.engine import Epoch, Simulator, Transition
 from fleetgym.sim.invariants import InvariantMonitor
 from fleetgym.sim.planned import PlannedRoutingSimulator
 from fleetgym.sim.state import RequestStatus, SimState
-from fleetgym.spec.binding import BoundProblem, bind, instance_from_source
-from fleetgym.spec.models import FilesSource, GeneratorSource, ProblemSpec
+from fleetgym.spec.binding import BoundProblem, bind, collection_instance, instance_from_source
+from fleetgym.spec.models import CollectionSource, FilesSource, GeneratorSource, ProblemSpec
 from fleetgym.spec.models.sections import INTERFACES_NEEDING_ROUTING
 from fleetgym.uncertainty.requests import resample_future_requests, sample_requests
 from fleetgym.uncertainty.sampling import resample_unrevealed, sample_scenario
@@ -95,7 +95,7 @@ def _instance_nodes(spec: ProblemSpec, instance: Instance | None) -> int:
         from fleetgym.data.generators import validate_generator_params
 
         params = validate_generator_params(source.name, _thaw(source.params))
-        n_customers = getattr(params, "n_customers", None)
+        n_customers = getattr(params, "max_customers", getattr(params, "n_customers", None))
         if isinstance(n_customers, int):
             return n_customers + 1
     elif isinstance(source, FilesSource):
@@ -107,6 +107,8 @@ def _instance_nodes(spec: ProblemSpec, instance: Instance | None) -> int:
             )
             sizes.append(instance_from_source(single.with_source(spec.source), rng).n_nodes)
         return max(sizes)
+    elif isinstance(source, CollectionSource):
+        return collection_instance(source).n_nodes
     raise ConfigError(
         "cannot infer the number of node slots; pass `max_nodes=` or an `instance=`",
         source=spec.source,
