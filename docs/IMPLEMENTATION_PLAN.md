@@ -840,6 +840,14 @@ setting of a published paper read for this purpose (numbers from the paper, neve
 complete notebook guide to building your own variant. Papers chosen by the agent with the user's
 approval; VRP-VCSD and VRPSD-Goodson use the user's paper.
 
+### M13b Spec/instance separation (added at the user's request, 2026-11-20)
+ADR 0023, design in `docs/proposals/0001-spec-instance-separation.md`. Steps: (a) instance schema
+(`fleetgym/core/1`, user extensions in YAML), the JSON instance format, instance sets (folder plus
+manifest), CVRPLIB and Solomon readers converting to it; (b) model primitives (`fleet.multi_trip`,
+`fleet.reload`, `fleet.end_route`, constraint modes, recourse `{serve, remainder}`), every number
+from the instance; (c) paper presets with grids; (d) migrate configs (families at `-v1`, `-v0`
+removed), examples, validator and docs. No instance generators remain.
+
 ### M14 EV shortest path with charging-station occupancy (added at the user's request, 2026-11-20)
 The EVSPP-OI of Dastpak, Errico, Jabali and Malucelli (arXiv 2305.11773): one EV from an origin to a
 destination over charging stations, each an M/M/1/kappa queue of exogenous EVs with a binary occupancy

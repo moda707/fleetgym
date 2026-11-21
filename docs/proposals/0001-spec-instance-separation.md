@@ -1,6 +1,6 @@
 # Proposal 0001: problem specs declare structure, instances carry numbers
 
-Status: **proposed** (for the user's review, 2026-11-20). Becomes ADRs once approved.
+Status: **accepted** with the user's answers below (2026-11-20); decisions in ADR 0023.
 
 ## Why
 
@@ -78,9 +78,8 @@ and instance `x.json` does not have".
    "nodes": {"kind": ["depot", "customer", "..."], "x": [50.0, 13.2, "..."], "y": [50.0, 7.9, "..."],
              "demand": [0, 10, "..."]}}
   ```
-* **An instance set** (many instances: test sets, training data): one Parquet file with a node
-  table and a globals table keyed by instance ID (pyarrow is already a core dependency), plus a
-  small manifest (schema, count, checksum, reference, how it was produced).
+* **An instance set** (many instances, such as a paper's test set): a folder of instance files with
+  a small manifest (schema, count, checksums, reference, how the files were produced).
 * **Benchmarks** (CVRPLIB, Solomon): readers convert them to the format; manifests keep checksums.
 
 ### 2.4 Where randomness goes
@@ -89,8 +88,8 @@ Without generators there are two kinds of randomness, kept apart:
 
 * **Which instance**: an episode draws an instance from an instance set (seeded, like today's
   `files` source). Changing customer bases (VRP-VCSD) and the training distributions of neural
-  solvers (Kool et al.) become instance sets: the paper's test set, and a training set the user
-  produces with their own script. Examples ship the scripts as examples, not library code.
+  solvers (Kool et al.) become instance sets that the user provides (training data is the user's
+  task). Examples may show a script that writes instance files; it is not library code.
 * **Within the instance**: uncertain values revealed during the episode (demands, service times,
   requests arriving) stay in the spec's `uncertainty` and `dynamics` sections, pre-sampled into the
   scenario. Their parameters may come from the instance (`center: demand`).
@@ -159,17 +158,14 @@ with the script that made them and its seed recorded in their manifest.
 * The 14 examples become presets plus notebooks; the build-your-own guide gains "define your
   instance schema" as step 1.
 
-## 6. Questions for the user
+## 6. The user's answers (2026-11-20)
 
-1. **Training data without generators.** RL training draws many instances (Kool et al. used 1.28
-   million). Is a large instance set on disk acceptable, or should the library keep one hook,
-   `instance_source: {type: python, function: "my_pkg.make:sample"}`, that calls user code each
-   episode (the library still ships no generators)?
-2. **Distribution parameters.** Goodson's variability `U` is part of the instance identity (L, Q,
-   U). Should such parameters live in instances (`factors: from_instance demand_factors`) or in the
-   preset grid as model overrides? This proposal allows both; the preset decides.
-3. **Old IDs.** Remove the `-v0` configs (we are at `0.1.0a1`), or keep them loading through a
-   translation layer for one release?
-4. **Formats.** JSON for single instances and Parquet for sets, as above?
-5. **Order.** Proposed: (a) instance schema, format and readers; (b) model primitives; (c) presets;
-   (d) migrate configs, examples and docs; then M14 (EV) on the new structure.
+1. **Training data is the user's task.** FleetGym ships no generators and no hook that produces
+   instances; users pass their own instances (files, or `instance=` / `reset(options=...)`).
+2. **Distribution parameters come from the instances** (problems and methods use different
+   distributions).
+3. **The `-v0` IDs are removed.**
+4. **Formats:** one JSON file per instance; a set is a folder (or glob) of files with a small
+   manifest. No bulk format for now (section 2.3's Parquet sets are dropped).
+5. **Order** as proposed: (a) instance schema, format and readers; (b) model primitives;
+   (c) presets; (d) migration; then M14.
