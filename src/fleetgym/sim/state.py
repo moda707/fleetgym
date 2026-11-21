@@ -81,6 +81,9 @@ class VehicleState:
     reload_due
         Reload time owed before the next departure from the depot (``fleet.reload_time``): a
         reload happens only if the vehicle leaves again.
+    in_transit
+        With stochastic travel times, while traveling: the origin node and the realized travel
+        time of the arc (``time`` is then the expected arrival, what the agent knows).
     """
 
     index: int
@@ -99,6 +102,7 @@ class VehicleState:
     plan: list[int] = field(default_factory=list)
     waiting: bool = False
     reload_due: float = 0.0
+    in_transit: tuple[int, float] | None = None
 
     @property
     def used(self) -> bool:

@@ -22,7 +22,8 @@ class TimeWindows(Constraint):
     Hard windows (``soft: false``) mask a customer if service would start after it closes, or if the
     vehicle could not then return to the depot before the depot's window closes. With
     ``waiting: forbidden``, arriving before a window opens is also masked. Soft windows mask nothing
-    and report ``lateness = max(0, service_start - close)`` at service start.
+    and report ``lateness = max(0, service_start - close)`` at service start; with ``early: serve``
+    service starts on arrival and ``earliness = max(0, open - service_start)`` is reported too.
     """
 
     name = "time_windows"
@@ -40,12 +41,13 @@ class TimeWindows(Constraint):
         assert tw is not None  # checked when binding
         arrival, start, end = info.projected(vehicle, candidates)
         ok = np.ones(candidates.shape, dtype=bool)
-        if not info.timing.waiting_allowed:
+        if not info.timing.waiting_allowed and not info.timing.serve_early:
             ok &= arrival >= tw[candidates, 0]
         if not self.soft:
             ok &= start <= tw[candidates, 1]
-            back = end + info.travel_times[candidates, DEPOT]
-            ok &= back <= tw[DEPOT, 1]
+            if self.params.model_dump()["depot"] == "enforce":
+                back = end + info.travel_times[candidates, DEPOT]
+                ok &= back <= tw[DEPOT, 1]
         return ok
 
     def penalty(self, state: Any, info: InformationState, event: Event) -> Mapping[str, float]:
@@ -54,4 +56,7 @@ class TimeWindows(Constraint):
             return {}
         tw = info.time_windows
         assert tw is not None
-        return {"lateness": max(0.0, event.time - float(tw[event.node, 1]))}
+        out = {"lateness": max(0.0, event.time - float(tw[event.node, 1]))}
+        if info.timing.serve_early:
+            out["earliness"] = max(0.0, float(tw[event.node, 0]) - event.time)
+        return out

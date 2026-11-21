@@ -237,6 +237,44 @@ class KDEParams(FrozenModel):
     bandwidth: Literal["scott", "silverman"] | PositiveFloat = "scott"
 
 
+class DiscreteTriangularParams(FrozenModel):
+    """Triangular on ``[low, high]`` with mode ``mode``, discretized on a grid of ``step``.
+
+    The grid is ``low, low + step, ..., high``. Each grid point gets the probability of its cell
+    ``[x - step/2, x + step/2]`` (clipped to ``[low, high]``) under the continuous triangular
+    density, so every grid point is possible.
+    Example (Errico et al. 2018, Basic family, R and RC classes): ``low: 8, mode: 10, high: 12,
+    step: 0.1``.
+    """
+
+    low: float
+    mode: float
+    high: float
+    step: PositiveFloat
+
+    @model_validator(mode="after")
+    def _order(self) -> DiscreteTriangularParams:
+        if not self.low <= self.mode <= self.high or not self.low < self.high:
+            raise ValueError("need low <= mode <= high and low < high")
+        cells = (self.high - self.low) / self.step
+        if abs(cells - round(cells)) > 1e-6:
+            raise ValueError("(high - low) must be a whole number of steps")
+        return self
+
+
+class GammaPerDistanceParams(FrozenModel):
+    """Travel time of an arc of length ``d``: Gamma with shape ``shape * d`` and scale ``scale``.
+
+    The sum of ``d`` independent unit-distance times Gamma(shape, scale) (Taş, Dellaert, van Woensel
+    and de Kok 2012, eq. 14-17): mean ``shape * scale * d``, variance ``shape * scale**2 * d``,
+    coefficient of variation per unit distance ``1 / sqrt(shape)``. Only for ``travel_time``; its
+    mean must equal the network's travel time (``shape * scale = 1 / speed``).
+    """
+
+    shape: PositiveFloat
+    scale: PositiveFloat
+
+
 class NormalMixtureParams(FrozenModel):
     """Isotropic normal clusters.
 
@@ -281,6 +319,8 @@ _BUILTINS: tuple[tuple[str, type[FrozenModel], str], ...] = (
     ("empirical", EmpiricalParams, "Resampling of observed values"),
     ("kde", KDEParams, "Gaussian kernel density estimate"),
     ("normal_mixture", NormalMixtureParams, "Isotropic normal clusters with weights"),
+    ("discrete_triangular", DiscreteTriangularParams, "Triangular discretized on a grid"),
+    ("gamma_per_distance", GammaPerDistanceParams, "Arc travel time Gamma(shape * d, scale)"),
 )
 for _name, _model, _description in _BUILTINS:
     DISTRIBUTIONS.register(_name, PluginEntry(_model, description=_description))
@@ -293,11 +333,11 @@ class _NoParams(FrozenModel):
 for _name, _description in (
     ("demand", "Customer demand"),
     ("service_time", "Service duration at a customer"),
+    ("travel_time", "Travel time of an arc (gamma_per_distance), revealed on arrival"),
 ):
     UNCERTAINTY_SOURCES.register(_name, PluginEntry(_NoParams, description=_description))
 for _name, _description in (
     ("presence", "Whether a known customer requests service (stochastic customers, after v0.1)"),
-    ("travel_time", "Stochastic travel times (deferred until after v0.1)"),
     ("station_wait", "Waiting time at a charging station (EV module)"),
     ("energy_consumption", "Noise on energy consumption (EV module)"),
     ("breakdown", "Vehicle breakdowns"),

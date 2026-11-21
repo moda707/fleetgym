@@ -1,7 +1,7 @@
 # Status
 
-**Current milestone:** M13b done (spec/instance separation, ADR 0023); next M14 (EVSPP-OI, design
-first). The multi-agent DVRP example (M13) is deferred by the user (2026-11-20; no suitable paper).
+**Current milestone:** M15 done (stochastic travel and service times, ADR 0025); next M14 (EVSPP-OI,
+design first). The multi-agent DVRP example (M13) is deferred by the user (2026-11-20; no suitable paper).
 v0.1 (M0 to M10b) is built; Gate 2 (`docs/gates/gate2.md`) still awaits the user's approval.
 VRP-SDO is deferred by the user (2026-11-20).
 Repository: <https://github.com/moda707/fleetgym>. `fleetgym 0.1.0a1` is on PyPI (published by the
@@ -27,6 +27,7 @@ user on 2026-11-20).
 | M12 VRP-VCSD | Done | `split` recourse, duration limits with recourse, `served_demand`; `VRP-VCSD-v0`, `VRPSD-Goodson-v0` (ADR 0021) |
 | M13 Paper-based examples | Done | 7 paper examples and the build-your-own guide (ADR 0022); DVRP: Ulmer et al. (ADR 0024); MA-DVRP deferred by the user |
 | M13b Spec/instance separation | Done | Schemas, JSON format and sets, model primitives, presets, families at -v1, generators removed (ADR 0023) |
+| M15 Stochastic travel and service times | Done | Taş et al. (travel times, soft windows) and Errico et al. (service times, hard windows), ADR 0025 |
 | M14 EVSPP-OI | Planned | EV shortest path with charging-station occupancy (arXiv 2305.11773); design first |
 
 ## Tests (M6)
@@ -55,7 +56,7 @@ user on 2026-11-20).
 | EVRP-NL-v1 | planned | EV routing, out of scope (M14 covers the EV shortest path only) |
 
 Presets: solomon1987-vrptw, florio2023-vrpsd, kool2019-cvrp, dastpak2022-vcsd, dastpak2022-goodson,
-vera2019-hetfleet, ulmer2016-vrpssr.
+vera2019-hetfleet, ulmer2016-vrpssr, tas2012-vrpsttw, errico2018-vrptwst.
 
 ## Known issues
 - `docs/DESIGN.md` was transcribed from the attached design document. Its two embedded diagrams

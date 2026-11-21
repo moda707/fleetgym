@@ -252,9 +252,12 @@ def validate(
     speed = float(network_params["speed"])
     round_up = network_params.get("time_rounding") == "ceil"
 
-    def travel(arc: float) -> float:
+    def travel(origin: int, target: int, arc: float) -> float:
         # Independent of fleetgym.network: distance / speed, rounded up to whole units with
-        # `time_rounding: ceil` (an excess of 1e-9 relative is forgiven).
+        # `time_rounding: ceil` (an excess of 1e-9 relative is forgiven); with stochastic travel
+        # times, the scenario's realized time of the arc.
+        if arc_times is not None:
+            return float(arc_times[origin, target])
         t = arc / speed
         return float(math.ceil(t - 1e-9 * max(1.0, t))) if round_up else t
 
@@ -271,6 +274,7 @@ def validate(
             truth[name] = np.asarray(scenario[name], dtype=float)
         demands = truth.get("demand", demands)
         service_times = truth.get("service_time", service_times)
+    arc_times = truth["travel_time"].reshape(n, n) if "travel_time" in truth else None
     tw = (
         np.asarray(instance.time_windows, dtype=float)
         if instance.time_windows is not None
@@ -279,6 +283,7 @@ def validate(
     tw_params = spec.constraints.items.get("time_windows")
     tw_on = tw_params is not None and tw is not None
     tw_soft = tw_params is not None and tw_params.model_dump()["mode"] == "soft"
+    serve_early = tw_params is not None and tw_params.model_dump().get("early") == "serve"
     waiting_allowed = (
         tw_params.model_dump()["waiting"] == "allowed" if tw_params is not None else True
     )
@@ -519,8 +524,8 @@ def validate(
                 v.route_start = time
                 charge("vehicles", 1.0)
             charge("distance", arc)
-            charge("time", travel(arc))
-            v.in_transit = (target, time + travel(arc))
+            charge("time", travel(origin, target, arc))
+            v.in_transit = (target, time + travel(origin, target, arc))
         elif kind == "arrive":
             v = vehicle_of(row)
             if v is None:
@@ -552,7 +557,9 @@ def validate(
             start = row["time"]
             if tw_on:
                 assert tw is not None
-                if waiting_allowed:
+                if serve_early:  # service starts on arrival; the earliness is charged
+                    charge("earliness", max(0.0, float(tw[target, 0]) - row["time"]))
+                elif waiting_allowed:
                     start = max(start, float(tw[target, 0]))
                 elif row["time"] < tw[target, 0] - tol:
                     fail(
@@ -614,12 +621,12 @@ def validate(
                 fail("load", f"logged load {row.get('load')}, recomputed {v.load}", row)
             if capacity_on and v.load > v.capacity * (1 + tol):
                 fail("capacity", f"load {v.load} exceeds capacity {v.capacity}", row, node=node)
-            if tw_on and not overtime_day:
+            if tw_on:
                 assert tw is not None
                 late = time - float(tw[node, 1])
                 if tw_soft:
                     charge("lateness", max(0.0, late))
-                elif late > tol * max(1.0, abs(time)):
+                elif late > tol * max(1.0, abs(time)) and not overtime_day:
                     fail(
                         "time_window",
                         f"service at {node} starts {late} after its window",
@@ -785,6 +792,20 @@ def validate(
             remaining[node] = 0.0
             started.add(node)
             complete(node, row["vehicle"], v)
+        elif kind == "reveal" and row.get("component") == "travel_time":
+            if arc_times is None:
+                fail("reveal", "reveal of 'travel_time', which is not uncertain", row)
+                continue
+            origin, node = row.get("from_node"), row["node"]
+            if origin is None or not _close(
+                row.get("value", math.nan), float(arc_times[origin, node]), tol
+            ):
+                fail(
+                    "reveal",
+                    f"travel time {origin}->{node} revealed as {row.get('value')}, the scenario "
+                    f"has {None if origin is None else arc_times[origin, node]}",
+                    row,
+                )
         elif kind == "reveal":
             node, name = row["node"], row.get("component")
             if name not in truth:
@@ -830,7 +851,8 @@ def validate(
                     f"route of vehicle {index} lasts {duration} > {duration_max}",
                     row,
                 )
-            if tw_on and not tw_soft and not overtime_day:
+            depot_window = tw_params is not None and tw_params.model_dump()["depot"] == "enforce"
+            if tw_on and not tw_soft and not overtime_day and depot_window:
                 assert tw is not None
                 if time > float(tw[DEPOT, 1]) * (1 + tol):
                     fail(

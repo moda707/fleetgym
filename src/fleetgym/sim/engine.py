@@ -59,6 +59,7 @@ Dynamic requests with ``next_node`` (ADR 0015)
 from __future__ import annotations
 
 import copy
+import dataclasses
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -181,8 +182,13 @@ class Simulator:
         )
         self.unlimited = spec.fleet.sizing == "unlimited"
         tw = spec.constraints.items.get("time_windows")
-        waiting = tw.model_dump()["waiting"] == "allowed" if tw is not None else True
-        self.timing = TimingRules(use_time_windows=tw is not None, waiting_allowed=waiting)
+        tw_params = tw.model_dump() if tw is not None else {}
+        serve_early = tw_params.get("early") == "serve"
+        waiting = tw_params.get("waiting", "allowed") == "allowed" and not serve_early
+        self.timing = TimingRules(
+            use_time_windows=tw is not None, waiting_allowed=waiting, serve_early=serve_early
+        )
+        self.travel_uncertain = "travel_time" in spec.uncertainty
         self.constraints: list[Constraint] = []
         for name in spec.constraints.names():
             if name in self.option_constraints:
@@ -262,14 +268,31 @@ class Simulator:
                 "recourse backlog (docs/recourse.md); only rules that never force travel (split) "
                 "work with route duration and shift limits"
             )
+        windows = self.problem.instance.time_windows
+        depot_closes = (
+            tw is not None
+            and tw.model_dump()["mode"] != "soft"
+            and tw.model_dump()["depot"] == "enforce"
+            and windows is not None
+            and bool(np.isfinite(windows[0, 1]))
+        )
         if (
             "service_time" in spec.uncertainty
             and spec.uncertainty["service_time"].revealed not in AT_START
-            and hard_time
+            and (depot_closes or _hard_duration(spec) or self.problem.shift is not None)
         ):
+            # Hard customer windows are fine: the next stop is chosen after a service ends, so a
+            # customer that can no longer be reached in time is masked and ends unserved.
             raise NotInScopeError(
-                "stochastic service times with hard time windows, route duration or shift limits "
-                "need time-window recourse (docs/recourse.md backlog)"
+                "stochastic service times with a depot closing time, a hard route duration or a "
+                "shift limit need time-window recourse (docs/recourse.md backlog)"
+            )
+        if "travel_time" in spec.uncertainty:
+            self._check_travel_time(hard_time)
+        if tw is not None and tw.model_dump()["depot"] == "ignore" and spec.dynamics is not None:
+            raise NotInScopeError(
+                "`time_windows.depot: ignore` with dynamic requests is not supported in this "
+                "version (requests close with the depot)"
             )
         if spec.fleet.sizing == "unlimited":
             if len(self.problem.vehicle_types) != 1:
@@ -301,6 +324,46 @@ class Simulator:
                 "vehicle fixed costs arrive with heterogeneous fleets (after v0.1)"
             )
 
+    def _check_travel_time(self, hard_time: bool) -> None:
+        """Stochastic travel times: the supported setting (proposal 0002, ADR 0025)."""
+        spec = self.problem.spec
+        path = "uncertainty.travel_time"
+        dist = self.problem.distributions["travel_time"]
+        if dist.name != "gamma_per_distance":
+            raise ConfigError(
+                f"travel_time needs the gamma_per_distance distribution, not {dist.name!r}",
+                source=spec.source,
+                key_path=path,
+            )
+        if spec.uncertainty["travel_time"].revealed != Revelation.ON_ARRIVAL:
+            raise ConfigError(
+                "a travel time is revealed when the vehicle arrives (`revealed: on_arrival`)",
+                source=spec.source,
+                key_path=f"{path}.revealed",
+            )
+        params = dist.params.model_dump()
+        network = spec.network.params.model_dump()
+        mean_per_distance = float(params["shape"]) * float(params["scale"])
+        if abs(mean_per_distance * float(network["speed"]) - 1.0) > 1e-9:
+            raise ConfigError(
+                f"the expected travel time per unit distance is {mean_per_distance}, but the "
+                f"network's is 1 / speed = {1 / float(network['speed'])}; make shape * scale "
+                "= 1 / speed (masks and observations use the expected times)",
+                source=spec.source,
+                key_path=path,
+            )
+        if network.get("time_rounding", "none") != "none":
+            raise ConfigError(
+                "stochastic travel times cannot be rounded (`network.time_rounding: none`)",
+                source=spec.source,
+                key_path="network.time_rounding",
+            )
+        if hard_time or spec.dynamics is not None or spec.recourse.rules:
+            raise NotInScopeError(
+                "stochastic travel times work with soft time limits only, without dynamic "
+                "requests or recourse, in this version (proposal 0002)"
+            )
+
     def _values(
         self, scenario: Scenario | None
     ) -> tuple[dict[str, NDArray[np.float64]], dict[str, NDArray[np.float64]]]:
@@ -323,6 +386,9 @@ class Simulator:
         dists = distributions(problem)
         for name, uncertain in spec.uncertainty.items():
             truth[name] = np.asarray(scenario[name], dtype=float)
+            if name == "travel_time":  # per arc; the expected times are the network's
+                truth[name] = truth[name].reshape(n, n)
+                continue
             if uncertain.forecast == "mean":
                 forecasts[name] = realize(problem, name, dists[name].mean(n))
             else:
@@ -349,6 +415,10 @@ class Simulator:
         revealed: dict[str, NDArray[np.bool_]] = {}
         known: dict[str, NDArray[np.float64]] = {}
         for name, uncertain in self.problem.spec.uncertainty.items():
+            if name == "travel_time":  # per arc, row-major; revealed when driven
+                revealed[name] = np.zeros(n * n, dtype=bool)
+                known[name] = np.full(n * n, np.nan)
+                continue
             at_start = uncertain.revealed in AT_START
             revealed[name] = np.full(n, at_start, dtype=bool)
             revealed[name][: instance.n_depots] = True
@@ -443,8 +513,10 @@ class Simulator:
         limits = [np.inf]
         tw = self.problem.instance.time_windows
         tw_spec = self.problem.spec.constraints.items.get("time_windows")
-        if tw is not None and tw_spec is not None and tw_spec.model_dump()["mode"] != "soft":
-            limits.append(float(tw[DEPOT, 1]) - travel)
+        if tw is not None and tw_spec is not None:
+            params = tw_spec.model_dump()
+            if params["mode"] != "soft" and params["depot"] == "enforce":
+                limits.append(float(tw[DEPOT, 1]) - travel)
         if self.shift_end is not None:
             limits.append(self.shift_end - travel)
         if _hard_duration(self.problem.spec) and v.route_start is not None:
@@ -707,10 +779,13 @@ class Simulator:
             If the new scenario contradicts a revealed value.
         """
         for name, revealed in self.state.revealed.items():
-            if not np.array_equal(scenario[name][revealed], self._truth[name][revealed]):
+            truth = np.ravel(self._truth[name])
+            if not np.array_equal(scenario[name][revealed], truth[revealed]):
                 raise ValueError(f"the new scenario changes revealed values of {name!r}")
         self.scenario = scenario
         self._truth, self._forecasts = self._values(scenario)
+        if self.travel_uncertain:
+            self._reschedule_arrivals()
         if "demand" in self.state.revealed:
             hidden = ~self.state.revealed["demand"]
             self.state.remaining_demand[hidden] = self._truth["demand"][hidden]
@@ -746,6 +821,8 @@ class Simulator:
     def _reveal(self, node: int, when: Revelation, vehicle: int | None, time: float) -> None:
         state = self.state
         for name, uncertain in self.problem.spec.uncertainty.items():
+            if name == "travel_time":  # per arc: revealed on arrival (`_arrive_uncertain`)
+                continue
             if uncertain.revealed != when or state.revealed[name][node]:
                 continue
             value = float(self._truth[name][node])
@@ -778,13 +855,21 @@ class Simulator:
             "depart", time=v.time, vehicle=v.index, from_node=v.node, node=node, value=distance
         )
         self._charge(v.time, "distance", distance, v.index)
-        self._charge(v.time, "time", travel, v.index)
+        arrival = v.time + travel
+        if self.travel_uncertain:
+            # The realized time is known on arrival: the arrival event uses it, while the
+            # vehicle's known time is the expected arrival, and the time cost is charged on
+            # arrival (an earlier reward would reveal it).
+            v.in_transit = (v.node, float(self._truth["travel_time"][v.node, node]))
+            arrival = v.time + v.in_transit[1]
+        else:
+            self._charge(v.time, "time", travel, v.index)
         v.distance += distance
         v.route.append(node)
         v.status = VehicleStatus.TRAVELING
         v.node = node
         v.time = v.time + travel
-        self.state.queue.push(v.time, EventKind.VEHICLE_ARRIVAL, v.index, node)
+        self.state.queue.push(arrival, EventKind.VEHICLE_ARRIVAL, v.index, node)
 
     def _charge(
         self,
@@ -870,6 +955,8 @@ class Simulator:
         if event.kind == EventKind.VEHICLE_ARRIVAL:
             self.log.append("arrive", time=event.time, vehicle=v.index, node=event.node)
             v.time = event.time
+            if v.in_transit is not None:
+                self._arrive_uncertain(v, event)
             if event.node == DEPOT:
                 if v.restocking:
                     self._restock(v)
@@ -890,6 +977,62 @@ class Simulator:
             self._reveal(event.node, Revelation.ON_COMPLETION, v.index, event.time)
             self._after_service(v, event.node, event.time)
         self._constraint_hooks(v, event)
+
+    def _reschedule_arrivals(self) -> None:
+        """Vehicles on the road arrive at the new scenario's time of their (unrevealed) arc.
+
+        A vehicle still on the road at time ``now`` is known to need more than the elapsed time
+        ``e``, so the new scenario's draw ``x`` of its arc is mapped to a draw given ``T > e``:
+        ``F^-1(F(e) + F(x) (1 - F(e)))``, with ``F`` the arc's gamma distribution.
+        """
+        import heapq
+
+        from scipy import stats
+
+        queue = self.state.queue
+        params = self.problem.distributions["travel_time"].params.model_dump()
+        for v in self.state.vehicles:
+            if v.in_transit is None:
+                continue
+            origin, old = v.in_transit
+            depart = v.time - float(self._info.travel_times[origin, v.node])
+            elapsed = max(0.0, self.state.time - depart)
+            dist = stats.gamma(
+                float(params["shape"]) * float(self._info.distances[origin, v.node]),
+                scale=float(params["scale"]),
+            )
+            draw = float(self._truth["travel_time"][origin, v.node])
+            floor = float(dist.cdf(elapsed))
+            new = float(dist.ppf(floor + float(dist.cdf(draw)) * (1.0 - floor)))
+            if not np.isfinite(new):  # a draw at the far tail: keep the old time's ordering
+                new = max(draw, elapsed)
+            self._truth["travel_time"][origin, v.node] = new
+            v.in_transit = (origin, new)
+            for i, e in enumerate(queue.heap):
+                if e.kind == EventKind.VEHICLE_ARRIVAL and e.vehicle == v.index:
+                    queue.heap[i] = dataclasses.replace(e, time=e.time - old + new)
+            heapq.heapify(queue.heap)
+
+    def _arrive_uncertain(self, v: VehicleState, event: Event) -> None:
+        """Reveal the travel time of the arc just driven and charge it."""
+        assert v.in_transit is not None
+        origin, travel = v.in_transit
+        v.in_transit = None
+        n = self.problem.instance.n_nodes
+        state = self.state
+        arc = origin * n + event.node
+        state.revealed["travel_time"][arc] = True
+        state.known_values["travel_time"][arc] = travel
+        self.log.append(
+            "reveal",
+            time=event.time,
+            vehicle=v.index,
+            node=event.node,
+            from_node=origin,
+            component="travel_time",
+            value=travel,
+        )
+        self._charge(event.time, "time", travel, v.index)
 
     def _constraint_hooks(self, v: VehicleState, event: Event) -> None:
         for i, constraint in enumerate(self.constraints):

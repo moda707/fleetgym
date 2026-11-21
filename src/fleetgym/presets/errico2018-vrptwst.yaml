@@ -1,0 +1,121 @@
+# Errico, Desaulniers, Gendreau, Rei and Rousseau, VRP with hard time windows and stochastic
+# service times (Sections 3 and 5.1). Solomon instances without demands or capacity: the first 25
+# customers of all 56 instances and the first 50 customers of the type-1 instances (85); service
+# times are discrete triangular on a 0.1 grid; the depot has no time window; the objective is the
+# distance, under a chance constraint on the success probability of the plan. Instances: the
+# example 17_vrptw_errico writes them (one set per family and instance).
+preset: errico2018-vrptwst
+name: VRP with hard time windows and stochastic service times
+reference:
+  key: errico2018vrptwst
+  title: The vehicle routing problem with hard time windows and stochastic service times
+  venue: EURO Journal on Transportation and Logistics 7, 223-251 (2018)
+  doi: 10.1007/s13676-016-0101-4
+  sections: ["3", "5.1"]
+spec:
+  extends: VRPTW-v1
+  network: {type: euclidean, rounding: none}
+  fleet: {sizing: limited}  # up to the instance's vehicle count, which never binds
+  constraints:
+    capacity: null
+    route_duration: null
+    time_windows: {mode: hard, waiting: allowed, depot: ignore}
+  uncertainty:
+    service_time: {revealed: on_completion}  # discrete_triangular from the instance
+  decisions: {interface: next_node, epochs: on_event}
+  objective: {lexicographic: null, distance: 1.0, unserved: 1000.0}
+grid:
+  family: [basic, low_probability, large_support, positive_skewed]
+  instance:
+    - c101-25
+    - c102-25
+    - c103-25
+    - c104-25
+    - c105-25
+    - c106-25
+    - c107-25
+    - c108-25
+    - c109-25
+    - c201-25
+    - c202-25
+    - c203-25
+    - c204-25
+    - c205-25
+    - c206-25
+    - c207-25
+    - c208-25
+    - r101-25
+    - r102-25
+    - r103-25
+    - r104-25
+    - r105-25
+    - r106-25
+    - r107-25
+    - r108-25
+    - r109-25
+    - r110-25
+    - r111-25
+    - r112-25
+    - r201-25
+    - r202-25
+    - r203-25
+    - r204-25
+    - r205-25
+    - r206-25
+    - r207-25
+    - r208-25
+    - r209-25
+    - r210-25
+    - r211-25
+    - rc101-25
+    - rc102-25
+    - rc103-25
+    - rc104-25
+    - rc105-25
+    - rc106-25
+    - rc107-25
+    - rc108-25
+    - rc201-25
+    - rc202-25
+    - rc203-25
+    - rc204-25
+    - rc205-25
+    - rc206-25
+    - rc207-25
+    - rc208-25
+    - c101-50
+    - c102-50
+    - c103-50
+    - c104-50
+    - c105-50
+    - c106-50
+    - c107-50
+    - c108-50
+    - c109-50
+    - r101-50
+    - r102-50
+    - r103-50
+    - r104-50
+    - r105-50
+    - r106-50
+    - r107-50
+    - r108-50
+    - r109-50
+    - r110-50
+    - r111-50
+    - r112-50
+    - rc101-50
+    - rc102-50
+    - rc103-50
+    - rc104-50
+    - rc105-50
+    - rc106-50
+    - rc107-50
+    - rc108-50
+default: {family: basic, instance: r101-25}
+instances: {folder: "{family}-{instance}"}
+notes:
+  - "Reliability thresholds of the paper: alpha = 0.95 (basic, large_support, positive_skewed) and 0.85 (low_probability). The chance constraint is not part of the simulation: report the success rate (episodes without an unserved customer) next to the cost."
+  - A customer that can no longer be reached in its window is skipped and ends unserved (charged 1000, a modeling choice); for a priori routes a route fails exactly when one of its customers is skipped (the paper's eq. 10).
+  - "Positive-skewed: the paper gives medians 7.0 (R, RC) and 63.0 (C), which no triangular distribution on those supports has; they are used as modes."
+  - "Discretization: each 0.1 grid point gets the probability of its cell under the continuous triangular density (the paper does not say how it discretizes). Travel times are Solomon distances without rounding."

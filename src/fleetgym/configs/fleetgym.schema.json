@@ -246,6 +246,24 @@
               ],
               "title": "Waiting",
               "type": "string"
+            },
+            "early": {
+              "default": "wait",
+              "enum": [
+                "wait",
+                "serve"
+              ],
+              "title": "Early",
+              "type": "string"
+            },
+            "depot": {
+              "default": "enforce",
+              "enum": [
+                "enforce",
+                "ignore"
+              ],
+              "title": "Depot",
+              "type": "string"
             }
           },
           "title": "TimeWindowsParams",
@@ -364,6 +382,36 @@
               "minItems": 1,
               "title": "Probs",
               "type": "array"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Triangular discretized on a grid",
+          "properties": {
+            "dist": {
+              "const": "discrete_triangular"
+            },
+            "low": {
+              "title": "Low",
+              "type": "number"
+            },
+            "mode": {
+              "title": "Mode",
+              "type": "number"
+            },
+            "high": {
+              "title": "High",
+              "type": "number"
+            },
+            "step": {
+              "exclusiveMinimum": 0.0,
+              "title": "Step",
+              "type": "number"
             }
           },
           "required": [
@@ -526,6 +574,29 @@
                 }
               ],
               "title": "Mean"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Arc travel time Gamma(shape * d, scale)",
+          "properties": {
+            "dist": {
+              "const": "gamma_per_distance"
+            },
+            "shape": {
+              "exclusiveMinimum": 0.0,
+              "title": "Shape",
+              "type": "number"
+            },
+            "scale": {
+              "exclusiveMinimum": 0.0,
+              "title": "Scale",
+              "type": "number"
             }
           },
           "required": [
@@ -1234,6 +1305,10 @@
           "minimum": 0,
           "type": "number"
         },
+        "earliness": {
+          "minimum": 0,
+          "type": "number"
+        },
         "emissions": {
           "minimum": 0,
           "type": "number"
@@ -1286,6 +1361,7 @@
             "enum": [
               "charging_time",
               "distance",
+              "earliness",
               "emissions",
               "energy",
               "imbalance",
@@ -1499,6 +1575,58 @@
               "minItems": 1,
               "title": "Probs",
               "type": "array"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Triangular discretized on a grid",
+          "properties": {
+            "dist": {
+              "const": "discrete_triangular"
+            },
+            "low": {
+              "title": "Low",
+              "type": "number"
+            },
+            "mode": {
+              "title": "Mode",
+              "type": "number"
+            },
+            "high": {
+              "title": "High",
+              "type": "number"
+            },
+            "step": {
+              "exclusiveMinimum": 0.0,
+              "title": "Step",
+              "type": "number"
             },
             "revealed": {
               "enum": [
@@ -1771,6 +1899,51 @@
                 }
               ],
               "title": "Mean"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Arc travel time Gamma(shape * d, scale)",
+          "properties": {
+            "dist": {
+              "const": "gamma_per_distance"
+            },
+            "shape": {
+              "exclusiveMinimum": 0.0,
+              "title": "Shape",
+              "type": "number"
+            },
+            "scale": {
+              "exclusiveMinimum": 0.0,
+              "title": "Scale",
+              "type": "number"
             },
             "revealed": {
               "enum": [
@@ -2502,7 +2675,7 @@
         },
         "travel_time": {
           "$ref": "#/$defs/UncertainSpec",
-          "description": "Stochastic travel times (deferred until after v0.1)"
+          "description": "Travel time of an arc (gamma_per_distance), revealed on arrival"
         }
       },
       "additionalProperties": false

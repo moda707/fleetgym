@@ -29,7 +29,13 @@ def _builder() -> ModuleType:
 
 BUILDER = _builder()
 NEEDS = {"06_train_agent": "sb3_contrib", "08_render": "matplotlib"}
-NETWORK = {"10_vrpsd_goodson", "12_vrptw_solomon", "13_vrpsd_florio"}  # download benchmark files
+NETWORK = {
+    "10_vrpsd_goodson",
+    "12_vrptw_solomon",
+    "13_vrpsd_florio",
+    "16_vrptw_tas",
+    "17_vrptw_errico",
+}  # download benchmark files
 SCRIPTS = [
     pytest.param(
         path,

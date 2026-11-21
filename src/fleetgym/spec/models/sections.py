@@ -333,10 +333,26 @@ class TimeWindowsParams(FrozenModel):
         for ``mode: soft``.
     waiting
         Whether a vehicle arriving early may wait for the window to open.
+    early
+        Soft windows only. ``wait``: service starts when the window opens (with ``waiting:
+        allowed``). ``serve``: service starts on arrival, and the time before the window opens is
+        charged as ``earliness`` (Taş et al. 2012: no waiting, early and late service penalized).
+    depot
+        ``enforce``: routes end before the depot's window closes (hard windows). ``ignore``: the
+        depot has no time window, routes may end at any time (Errico et al. 2018). Customer
+        windows apply either way.
     """
 
     mode: Literal["hard", "soft"] = "hard"
     waiting: Literal["allowed", "forbidden"] = "allowed"
+    early: Literal["wait", "serve"] = "wait"
+    depot: Literal["enforce", "ignore"] = "enforce"
+
+    @model_validator(mode="after")
+    def _early(self) -> TimeWindowsParams:
+        if self.early == "serve" and self.mode != "soft":
+            raise ValueError("`early: serve` needs soft windows (`mode: soft`)")
+        return self
 
     @model_validator(mode="before")
     @classmethod
@@ -844,6 +860,7 @@ for _name, _description in (
     ("time", "Total travel time"),
     ("vehicles", "Number of vehicles used"),
     ("lateness", "Total lateness under soft time windows"),
+    ("earliness", "Total time served before windows open (soft windows, `early: serve`)"),
     ("waiting", "Total waiting time"),
     ("unserved", "Requests left unserved"),
     ("overtime", "Route time beyond a soft duration limit"),

@@ -467,6 +467,58 @@ class KDE(Distribution):
         raise NotImplementedError("the KDE sampler has no quantile function")
 
 
+@DISTRIBUTION_CLASSES.register("discrete_triangular")
+class DiscreteTriangular(_Discrete):
+    """Triangular on ``[low, high]`` discretized on a grid (``DiscreteTriangularParams``)."""
+
+    name = "discrete_triangular"
+
+    def _values_probs(self) -> tuple[FloatArray, FloatArray]:
+        low, mode, high = (float(self.params[k]) for k in ("low", "mode", "high"))
+        step = float(self.params["step"])
+        values = np.asarray(low + step * np.arange(round((high - low) / step) + 1), dtype=float)
+        edges = np.clip(np.concatenate([values - step / 2, [values[-1] + step / 2]]), low, high)
+        probs = np.diff(triangular_cdf(edges, low, mode, high))
+        return values, probs / probs.sum()
+
+
+def triangular_cdf(x: FloatArray, low: float, mode: float, high: float) -> FloatArray:
+    """CDF of the continuous triangular distribution on ``[low, high]`` with mode ``mode``."""
+    x = np.clip(np.asarray(x, dtype=float), low, high)
+    width = high - low
+    left = np.where(mode > low, (x - low) ** 2 / (width * max(mode - low, 1e-300)), 0.0)
+    right = np.where(mode < high, 1 - (high - x) ** 2 / (width * max(high - mode, 1e-300)), 1.0)
+    return np.where(x <= mode, left, right)
+
+
+@DISTRIBUTION_CLASSES.register("gamma_per_distance")
+class GammaPerDistance(Distribution):
+    """Arc travel times (``GammaPerDistanceParams``); not a per-node distribution."""
+
+    name = "gamma_per_distance"
+
+    def sample(self, rng: np.random.Generator, size: int) -> FloatArray:
+        """Not per node: use `gamma_arc_times`."""
+        raise ValueError("gamma_per_distance describes arc travel times (uncertainty.travel_time)")
+
+    def mean(self, size: int) -> FloatArray:
+        """Not per node."""
+        raise ValueError("gamma_per_distance describes arc travel times (uncertainty.travel_time)")
+
+    def _quantile(self, q: float, size: int) -> FloatArray:
+        raise ValueError("gamma_per_distance describes arc travel times (uncertainty.travel_time)")
+
+
+def gamma_arc_times(
+    params: Mapping[str, Any], distances: FloatArray, rng: np.random.Generator
+) -> FloatArray:
+    """Travel time of every arc: Gamma(shape * d, scale), 0 where ``d`` is 0."""
+    d = np.asarray(distances, dtype=float)
+    shape = float(params["shape"]) * d
+    times = rng.gamma(np.where(d > 0, shape, 1.0), float(params["scale"]))
+    return np.where(d > 0, times, 0.0)
+
+
 def normal_mixture_points(
     params: Mapping[str, Any], rng: np.random.Generator, size: int
 ) -> FloatArray:

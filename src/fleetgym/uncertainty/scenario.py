@@ -1,7 +1,8 @@
 """`Scenario`: every exogenous realization of one episode (design §6, architecture rule 6).
 
 A scenario holds, for each uncertainty source of the spec (for example ``demand``), one realized
-value per node. With dynamic requests it also holds the requests of the day (``request.*`` sources,
+value per node; ``travel_time`` holds one value per arc (the n x n matrix, row-major). With dynamic
+requests it also holds the requests of the day (``request.*`` sources,
 one value per node slot; `episode_instance` turns them into the episode's nodes) and the release
 times of requests beyond ``max_requests`` (``request.overflow``, any length). It is sampled once at
 reset (`fleetgym.uncertainty.sampling`), replayed exactly, and stored as Parquet with the spec and
@@ -28,7 +29,7 @@ from numpy.typing import NDArray
 from fleetgym.data.instance import Instance
 from fleetgym.errors import ScenarioMismatchError
 
-__all__ = ["REQUEST_SOURCES", "Scenario", "episode_instance"]
+__all__ = ["MATRIX_SOURCES", "REQUEST_SOURCES", "Scenario", "episode_instance"]
 
 _META_KEY = b"fleetgym.scenario"
 
@@ -44,6 +45,8 @@ REQUEST_SOURCES = (
     "request.cancel",
 )
 _VARIABLE_LENGTH = ("request.overflow",)
+#: Per-arc sources: n x n values, row-major.
+MATRIX_SOURCES = ("travel_time",)
 
 
 @dataclass(frozen=True, eq=False)
@@ -76,7 +79,7 @@ class Scenario:
                 raise ValueError(f"scenario values of {name!r} must be one-dimensional")
             arr.setflags(write=False)
             frozen[name] = arr
-            if name not in _VARIABLE_LENGTH:
+            if name not in _VARIABLE_LENGTH and name not in MATRIX_SOURCES:
                 sizes.add(arr.size)
         if len(sizes) > 1:
             raise ValueError(f"scenario sources have different lengths: {sorted(sizes)}")
@@ -121,7 +124,11 @@ class Scenario:
                 f"scenario has sources {list(self.sources)}, the spec has {list(expected)}"
             )
         for name, arr in self.values.items():
-            if name not in _VARIABLE_LENGTH and arr.size != n_nodes:
+            if name in MATRIX_SOURCES and arr.size != n_nodes * n_nodes:
+                raise ScenarioMismatchError(
+                    f"scenario source {name!r} has {arr.size} values for {n_nodes}^2 arcs"
+                )
+            if name not in _VARIABLE_LENGTH and name not in MATRIX_SOURCES and arr.size != n_nodes:
                 raise ScenarioMismatchError(
                     f"scenario source {name!r} has {arr.size} values for {n_nodes} nodes"
                 )

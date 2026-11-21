@@ -138,6 +138,11 @@ class PlannedRoutingSimulator(Simulator):
     def _check_scope(self) -> None:
         spec = self.problem.spec
         fleet = spec.fleet
+        windows = spec.constraints.items.get("time_windows")
+        if windows is not None and windows.model_dump()["depot"] == "ignore":
+            raise NotInScopeError(
+                "`time_windows.depot: ignore` is not supported with accept_reject/assign"
+            )
         duration = spec.constraints.items.get("route_duration")
         if duration is not None and duration.model_dump()["mode"] == "soft":
             raise NotInScopeError(

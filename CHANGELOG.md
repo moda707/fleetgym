@@ -7,6 +7,12 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M15 (ADR 0025, proposal 0002): stochastic travel times (`uncertainty.travel_time`, distribution
+  `gamma_per_distance`, revealed on arrival, one draw per arc and episode); soft windows with
+  service on arrival (`time_windows.early: serve`, cost component `earliness`); hard customer
+  windows with stochastic service times (a customer that cannot be served in time ends unserved);
+  `time_windows.depot: ignore`; distribution `discrete_triangular`; presets `tas2012-vrpsttw` and
+  `errico2018-vrptwst` with examples `16_vrptw_tas` and `17_vrptw_errico`.
 - The DVRP paper example (`15_dvrp_ulmer`, preset `ulmer2016-vrpssr`, ADR 0024): Ulmer, Goodson,
   Mattfeld and Hennig's single vehicle with stochastic service requests, 18 settings. New model
   features: `normal_mixture` request locations, `network.time_rounding: ceil`,

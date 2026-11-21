@@ -34,10 +34,14 @@ class TimingRules:
         True when the spec has the ``time_windows`` constraint.
     waiting_allowed
         Whether a vehicle arriving early may wait for the window to open.
+    serve_early
+        Soft windows with ``early: serve``: service starts on arrival, even before the window
+        opens (the earliness is charged).
     """
 
     use_time_windows: bool
     waiting_allowed: bool
+    serve_early: bool = False
 
 
 class InformationState:

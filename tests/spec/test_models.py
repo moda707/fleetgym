@@ -232,13 +232,13 @@ def test_uncertain_spec_flat_form():
 def test_unknown_and_reserved_uncertainty_sources():
     with pytest.raises(ValidationError, match="unknown uncertainty source"):
         make(uncertainty={"weather": {"dist": "fixed", "value": 1, "revealed": "a_priori"}})
-    with pytest.raises(ValidationError, match=r"uncertainty\.travel_time"):
-        make(uncertainty={"travel_time": {"dist": "fixed", "value": 1, "revealed": "a_priori"}})
+    with pytest.raises(ValidationError, match=r"uncertainty\.presence"):
+        make(uncertainty={"presence": {"dist": "fixed", "value": 1, "revealed": "a_priori"}})
     planned = make(
         meta={"status": "planned"},
-        uncertainty={"travel_time": {"dist": "fixed", "value": 1, "revealed": "a_priori"}},
+        uncertainty={"presence": {"dist": "fixed", "value": 1, "revealed": "a_priori"}},
     )
-    assert planned.reserved_features() == ("uncertainty.travel_time",)
+    assert planned.reserved_features() == ("uncertainty.presence",)
 
 
 def test_correlated_with_is_reserved():
@@ -261,7 +261,12 @@ def test_constraints_are_keyed_plugins():
     )
     assert spec.constraints.names() == ("capacity", "time_windows", "route_duration", "outsourcing")
     assert "capacity" in spec.constraints
-    assert spec.constraints["time_windows"].model_dump() == {"mode": "soft", "waiting": "allowed"}
+    assert spec.constraints["time_windows"].model_dump() == {
+        "mode": "soft",
+        "waiting": "allowed",
+        "early": "wait",
+        "depot": "enforce",
+    }
     assert spec.to_dict()["constraints"]["route_duration"] == {
         "mode": "hard",
         "max": "depot_due_time",

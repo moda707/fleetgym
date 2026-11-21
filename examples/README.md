@@ -27,6 +27,8 @@ mapping the paper's definitions to the model and the instances).
 | `13_vrpsd_florio/` | preset `florio2023-vrpsd`: Poisson demands on CVRPLIB X instances (Florio et al. 2023) | download |
 | `14_ma_cvrp_vera/` | preset `vera2019-hetfleet`: multi-agent CVRP with a heterogeneous fleet (Vera and Abad 2019) | |
 | `15_dvrp_ulmer/` | preset `ulmer2016-vrpssr`: one vehicle, stochastic service requests decided at the vehicle's arrivals (Ulmer et al. 2016), 18 settings | |
+| `16_vrptw_tas/` | preset `tas2012-vrpsttw`: stochastic travel times with soft windows, earliness, delay and overtime costs (Taş et al. 2012) | download |
+| `17_vrptw_errico/` | preset `errico2018-vrptwst`: hard windows with stochastic service times; success rates of a priori plans (Errico et al. 2018) | download |
 
 Run a script with `python examples/01_first_environment/first_environment.py`, or open
 `first_environment.ipynb` with the notebook's folder as the working directory (Jupyter's default).

@@ -29,6 +29,8 @@ replicated against a benchmark. `planned`: the config validates but cannot be ru
 | `dastpak2022-goodson` | Goodson et al. (2016) via Dastpak et al., Appendix B.1.2 | 3 limits x 3 capacities x 3 variabilities | example `10_vrpsd_goodson` |
 | `vera2019-hetfleet` | Vera and Abad (2019), Table 1 | VRP10, 20, 50, 80 | example `14_ma_cvrp_vera` |
 | `ulmer2016-vrpssr` | Ulmer, Goodson, Mattfeld and Hennig (2016), Section 6.1 | 2 areas x 3 request rates x 3 location distributions | example `15_dvrp_ulmer` |
+| `tas2012-vrpsttw` | Taş, Dellaert, van Woensel and de Kok (2012), Section 5 | 56 Solomon instances x CV 0.25, 1, 4 of travel times | example `16_vrptw_tas` |
+| `errico2018-vrptwst` | Errico, Desaulniers, Gendreau, Rei and Rousseau (2018), Section 5.1 | 4 service-time families x 85 instances | example `17_vrptw_errico` |
 
 Any model can be modified with overrides or extended by a new YAML file:
 {doc}`guides/build-your-own-variant`.

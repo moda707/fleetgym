@@ -15,7 +15,9 @@ GRID_SIZES = {
     "dastpak2022-vcsd": 15,
     "florio2023-vrpsd": 4,
     "kool2019-cvrp": 3,
+    "errico2018-vrptwst": 340,
     "solomon1987-vrptw": 56,
+    "tas2012-vrpsttw": 168,
     "ulmer2016-vrpssr": 18,
     "vera2019-hetfleet": 4,
 }

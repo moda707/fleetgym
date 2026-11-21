@@ -8,6 +8,7 @@ source                    revelations
 ``demand``                ``a_priori``, ``on_request``, ``on_departure``, ``on_arrival``
 ``service_time``          ``a_priori``, ``on_request``, ``on_departure``, ``on_arrival``,
                           ``on_completion``
+``travel_time``           ``on_arrival`` (per arc: known when the vehicle arrives)
 ========================  ===================================================================
 
 ``on_request`` equals ``a_priori`` for customers known at the start (static requests). Demand
@@ -40,6 +41,7 @@ ALLOWED_REVELATIONS: dict[str, frozenset[Revelation]] = {
             Revelation.ON_COMPLETION,
         }
     ),
+    "travel_time": frozenset({Revelation.ON_ARRIVAL}),
 }
 
 #: Revelations that make a static customer's value known at reset.

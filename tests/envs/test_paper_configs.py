@@ -193,3 +193,79 @@ def test_ulmer_preset_runs_on_the_examples_instances(tmp_path):
         assert validate(env.event_log, env.problem_spec, day, scenario=env.scenario).ok
         overtime += bool(env.event_log.of_kind("initial_overtime"))
     assert overtime >= 3
+
+
+def local_solomon(customers: int | None = None):
+    import dataclasses
+
+    base = read_instance(FIXTURES / "tiny_solomon.txt")
+    if customers is None:
+        return base
+    keep = customers + 1
+    assert (
+        base.time_windows is not None and base.service_times is not None and base.coords is not None
+    )
+    return dataclasses.replace(
+        base,
+        coords=base.coords[:keep],
+        demands=base.demands[:keep],
+        time_windows=base.time_windows[:keep],
+        service_times=base.service_times[:keep],
+    )
+
+
+def test_tas_instances_follow_section_5(tmp_path, monkeypatch):
+    tas = example_module("16_vrptw_tas")
+    base = local_solomon()
+    monkeypatch.setattr(tas, "solomon", lambda name: base)
+    for cv, (alpha, lam) in {"0.25": (16, 0.0625), "1": (1, 1), "4": (0.0625, 16)}.items():
+        inst = tas.tas_instance(base, cv)
+        assert inst.vehicle_types[0]["capacity"] == 200.0
+        assert inst.extra["max_route_duration"] == 480.0
+        params = inst.distributions["travel_time"]
+        assert (params["shape"], params["scale"]) == (alpha, lam)
+        assert params["shape"] * params["scale"] == 1.0  # expected travel time = distance
+        assert 1 / np.sqrt(params["shape"]) == pytest.approx(float(cv))
+    tas.write_tas(tmp_path, ["r101"])
+    env = fg.make_preset("tas2012-vrpsttw", instances=tmp_path, instance="r101", cv="4")
+    assert isinstance(env, fg.FleetGymEnv)
+    run_episode(env, NearestNeighbor(), seed=0)
+    assert validate(env.event_log, env.problem_spec, env.base_instance, scenario=env.scenario).ok
+    assert env.event_log.of_kind("reveal")  # travel times revealed on arrival
+
+
+def test_errico_instances_follow_section_5_1(tmp_path, monkeypatch):
+    errico = example_module("17_vrptw_errico")
+    assert len(errico.paper_instances()) == 85
+    base = local_solomon(4)
+    monkeypatch.setattr(errico, "solomon", lambda name, customers: base)
+    expected = {
+        "basic": (8.0, 10.0, 12.0),
+        "low_probability": (8.0, 10.0, 12.0),
+        "large_support": (5.0, 10.0, 15.0),
+        "positive_skewed": (5.0, 7.0, 15.0),
+    }
+    for family, (low, mode, high) in expected.items():
+        inst = errico.errico_instance(base, family)
+        params = inst.distributions["service_time"]
+        assert (params["low"], params["mode"], params["high"], params["step"]) == (
+            low,
+            mode,
+            high,
+            0.1,
+        )
+        assert np.all(inst.demands == 0)
+    assert errico.FAMILIES["large_support"]["c"] == (45.0, 90.0, 135.0)
+    assert errico.ALPHA == {
+        "basic": 0.95,
+        "low_probability": 0.85,
+        "large_support": 0.95,
+        "positive_skewed": 0.95,
+    }
+    errico.write_errico(tmp_path, ["r101-25"], families=["large_support"])
+    env = fg.make_preset(
+        "errico2018-vrptwst", instances=tmp_path, family="large_support", instance="r101-25"
+    )
+    assert isinstance(env, fg.FleetGymEnv)
+    run_episode(env, NearestNeighbor(), seed=0)
+    assert validate(env.event_log, env.problem_spec, env.base_instance, scenario=env.scenario).ok

@@ -99,5 +99,5 @@ env = fg.make_preset("dastpak2022-vcsd", instances="instances", density="high", 
 ```
 
 Presets whose instances are generated take the folder their example wrote (`instances=`); the
-examples `09` to `15` write them. Every grid point resolves to one frozen spec and one instance set,
+examples `09` to `17` write them. Every grid point resolves to one frozen spec and one instance set,
 both hashed, so a reported result names exactly what was run.

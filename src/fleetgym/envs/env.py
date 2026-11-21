@@ -394,7 +394,12 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         scenario: Scenario | None = options.get("scenario")
         stochastic = bool(self.spec_.uncertainty) or self.spec_.dynamics is not None
         if scenario is None and self.spec_.uncertainty:
-            scenario = sample_scenario(base_problem, self._episode_seed)
+            distances = (
+                self._network_for(base_problem).distance_matrix()
+                if "travel_time" in self.spec_.uncertainty
+                else None
+            )
+            scenario = sample_scenario(base_problem, self._episode_seed, distances=distances)
         elif scenario is None and self.spec_.dynamics is not None:
             values = sample_requests(base_problem, self._episode_seed)
             scenario = Scenario(
@@ -688,7 +693,13 @@ class FleetGymEnv(gym.Env[dict[str, NDArray[Any]], np.int64]):
         if self.spec_.dynamics is not None:
             twin._replace_future(seed)  # pyright: ignore[reportPrivateUsage]
         else:
-            fresh = resample_unrevealed(sim.problem, sim.scenario, sim.revealed_masks(), seed)
+            fresh = resample_unrevealed(
+                sim.problem,
+                sim.scenario,
+                sim.revealed_masks(),
+                seed,
+                distances=sim.network.distance_matrix(),
+            )
             twin.simulator.replace_scenario(fresh)
         return twin
 

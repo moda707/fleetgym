@@ -130,7 +130,11 @@ class PyVRPReoptimization(NearestNeighbor):
         hard_tw = tw_spec is not None and tw_spec.model_dump()["mode"] != "soft"
         windows = instance.time_windows if hard_tw else None
         late = _BIG
-        if windows is not None:
+        if (
+            windows is not None
+            and tw_spec is not None
+            and tw_spec.model_dump()["depot"] == "enforce"
+        ):
             late = round(float(windows[DEPOT, 1]) * scale)
         if sim.shift_end is not None:
             late = min(late, round(sim.shift_end * scale))
