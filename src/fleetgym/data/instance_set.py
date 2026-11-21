@@ -103,18 +103,26 @@ def write_instance_set(
     name: str,
     reference: str = "",
     produced_by: str = "",
+    overwrite: bool = False,
     **info: Any,
 ) -> InstanceSet:
     """Write instances as ``0001.json``, ``0002.json``, ... and a manifest into ``folder``.
 
+    ``overwrite=True`` replaces a set already in ``folder`` (its files and manifest only).
+
     Raises
     ------
     InstanceError
-        If the instances do not all follow one schema, or the folder already holds a set.
+        If the instances do not all follow one schema, or the folder already holds a set (without
+        ``overwrite``).
     """
     root = Path(folder)
     if (root / MANIFEST).exists():
-        raise InstanceError(f"{root}: already holds an instance set")
+        if not overwrite:
+            raise InstanceError(f"{root}: already holds an instance set (pass overwrite=True)")
+        for name, _ in read_instance_set(root).files:
+            (root / name).unlink()
+        (root / MANIFEST).unlink()
     root.mkdir(parents=True, exist_ok=True)
     files: list[tuple[str, str]] = []
     schema: str | None = None

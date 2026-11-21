@@ -7,7 +7,6 @@ import pytest
 torch = pytest.importorskip("torch")
 pytest.importorskip("sb3_contrib")
 
-import fleetgym as fg  # noqa: E402
 from fleetgym.nn import (  # noqa: E402
     AttentionModelEncoder,
     Embeddings,
@@ -20,6 +19,7 @@ from fleetgym.nn import (  # noqa: E402
 )
 from fleetgym.nn.adapters import GraphBatch  # noqa: E402
 from fleetgym.testing.module_checker import ModuleCheckError, check_module, synthetic_batch  # noqa: E402
+from tests.families import make_env  # noqa: E402
 
 pytestmark = pytest.mark.extras_sb3
 
@@ -81,11 +81,11 @@ def test_graph_policy_acts_validly():
     from fleetgym.baselines import run_episode
     from fleetgym.nn.policies import MaskableGraphPolicy
 
-    env = fg.make("VRPTW-v0")
+    env = make_env("VRPTW-v1")
     for encoder in ("gat", "attention", "mlp"):
         model = MaskablePPO(
             MaskableGraphPolicy,
-            DummyVecEnv([lambda: fg.make("VRPTW-v0")]),
+            DummyVecEnv([lambda: make_env("VRPTW-v1")]),
             n_steps=32,
             batch_size=16,
             seed=0,

@@ -26,7 +26,7 @@ validated, and results carry confidence intervals, CVaR and paired tests.
 From the command line:
 
 ```bash
-fleetgym eval VRPSD-v0 --baseline insertion --episodes 64 --reference nearest --out report.json
+fleetgym eval SVRP-v1 --instances data/svrp --baseline insertion --episodes 64 --reference nearest --out report.json
 ```
 
 A report card records the spec hash, seeds, costs, summary statistics, package versions and platform;

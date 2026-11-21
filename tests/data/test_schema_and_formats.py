@@ -241,7 +241,7 @@ def test_environments_draw_episodes_from_an_instance_set(tmp_path):
     ]
     write_instance_set(instances, tmp_path / "train", name="train")
     spec = {
-        "extends": "CVRP-v0",
+        "extends": "CVRP-v1",
         "instance_source": {"type": "files", "paths": [str(tmp_path / "train")]},
     }
     env = fg.make(spec)

@@ -1,0 +1,17 @@
+{
+ "format": "fleetgym-instance-set/1",
+ "name": "tests/cvrp",
+ "schema": "fleetgym/core/1",
+ "reference": "FleetGym test suite",
+ "produced_by": "tests/fixtures/sets/build.py",
+ "max_nodes": 21,
+ "max_vehicles": 0,
+ "files": {
+  "0001.json": "5ad02dfdb68c55b13a935295dfe3dc2b66361eb273ee654cc22bd3a459f3fc20",
+  "0002.json": "b4b915269c52c7c4a6736af26e168805afca45098e7efe4512196b9b66a0a3ec",
+  "0003.json": "eabac9639059f9ae884a5cee7857c54e8165f47aad20ec244c23b0fad6050baf",
+  "0004.json": "e754a0469e4cd7e852bd14e730bb4350aa5f8c29cd6a03df3589dfe73da548db",
+  "0005.json": "3a403b7417372e9b29854d0f1ea5ddda99ec9ee47349b1ca6ffd0bec042e30c7",
+  "0006.json": "d841ea619fc4ab9edb8e27ccfd47576d04ebabb9c9a481f860cef27a68eaa75c"
+ }
+}

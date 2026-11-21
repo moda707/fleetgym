@@ -145,12 +145,15 @@ def _distances(spec: ProblemSpec, instance: Instance) -> NDArray[np.float64]:
         return np.asarray(instance.distance_matrix, dtype=float)
     assert instance.coords is not None
     coords = np.asarray(instance.coords, dtype=float)
+    rounding = params["rounding"]
+    if rounding == "from_instance":  # the instance's convention (its own short table)
+        rounding = {"EUC_2D": "nearest_int"}.get(instance.edge_weight_type or "", "none")
     n = coords.shape[0]
     out = np.empty((n, n))
     for i in range(n):
         for j in range(n):
             d = math.hypot(coords[i, 0] - coords[j, 0], coords[i, 1] - coords[j, 1])
-            out[i, j] = math.floor(d + 0.5) if params["rounding"] == "nearest_int" else d
+            out[i, j] = math.floor(d + 0.5) if rounding == "nearest_int" else d
     return out
 
 

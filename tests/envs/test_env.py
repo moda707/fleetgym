@@ -15,6 +15,7 @@ from fleetgym.data import read_instance
 from fleetgym.errors import ConfigError, InfeasibleActionError, NotInScopeError
 from fleetgym.eventlog import EventLog
 from fleetgym.testing.strategies import random_masked_rollout
+from tests.families import first_instance, make_env, spec_for
 from tests.registered import registered
 from tests.sim.helpers import LINE_XS, env_for, line_instance, play
 
@@ -23,7 +24,7 @@ REGISTERED = registered("single")
 
 
 def rollout_digest(env_id: str, seed: int) -> tuple[str, float]:
-    env = fg.make(env_id)
+    env = make_env(env_id)
     total = random_masked_rollout(env, np.random.default_rng(seed), seed=seed)
     return env.event_log.digest(), total
 
@@ -34,7 +35,10 @@ def rollout_digest(env_id: str, seed: int) -> tuple[str, float]:
 @pytest.mark.parametrize("env_id", REGISTERED)
 def test_check_env_passes_for_every_registered_config(env_id: str):
     # check_env steps random, unmasked actions, so it runs with invalid_action="repair"
-    env = gym.make(f"fleetgym/{env_id}", invalid_action="repair", render_mode="ansi")
+    instance = first_instance(env_id)
+    env = gym.make(
+        f"fleetgym/{env_id}", instance=instance, invalid_action="repair", render_mode="ansi"
+    )
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         check_env(env.unwrapped)
@@ -42,15 +46,15 @@ def test_check_env_passes_for_every_registered_config(env_id: str):
 
 def test_registration_and_planned_configs():
     assert {f"fleetgym/{i}" for i in fg.REGISTRY.ids(agents="single")} <= set(gym.registry)
-    assert "fleetgym/EVRP-NL-v0" not in gym.registry
+    assert "fleetgym/EVRP-NL-v1" not in gym.registry
     with pytest.raises(NotInScopeError, match="planned"):
-        fg.make("EVRP-NL-v0")
+        fg.make("EVRP-NL-v1")
     assert fleetgym.envs.register_envs() == []  # idempotent
 
 
 @pytest.mark.parametrize("env_id", REGISTERED)
 def test_observations_are_in_the_space(env_id: str):
-    env = fg.make(env_id)
+    env = make_env(env_id)
     obs, info = env.reset(seed=1)
     rng = np.random.default_rng(1)
     terminated = False
@@ -119,7 +123,7 @@ def test_padding_slots_and_repair_from_padding():
 )
 def test_constructor_argument_checks(kwargs, match):
     with pytest.raises(ValueError, match=match):
-        fg.make("CVRP-v0", **kwargs)
+        make_env("CVRP-v1", **kwargs)
 
 
 def test_step_before_reset_and_after_end():
@@ -137,8 +141,8 @@ def test_step_before_reset_and_after_end():
 
 
 def test_same_seed_same_episode_and_seed_sequence():
-    a = fg.make("VRPTW-v0")
-    b = fg.make("VRPTW-v0")
+    a = make_env("VRPTW-v1")
+    b = make_env("VRPTW-v1")
     for env in (a, b):
         env.reset(seed=5)
     assert a.problem.instance_hash == b.problem.instance_hash
@@ -147,10 +151,10 @@ def test_same_seed_same_episode_and_seed_sequence():
     b.reset()
     assert a.episode_seed == b.episode_seed != 5
     assert a.problem.instance_hash == b.problem.instance_hash
-    c = fg.make("VRPTW-v0")
+    c = make_env("VRPTW-v1")
     c.reset(seed=6)
     assert c.problem.instance_hash != a.problem.instance_hash
-    unseeded = fg.make("CVRP-v0")
+    unseeded = make_env("CVRP-v1")
     unseeded.reset()
     assert unseeded.episode_seed >= 0
     with pytest.raises(ValueError, match="non-negative"):
@@ -167,9 +171,10 @@ def test_same_seed_same_trajectory(env_id: str):
 
 def test_trajectories_match_across_processes():
     code = (
-        "import numpy as np, fleetgym as fg;"
+        "import numpy as np;"
         "from fleetgym.testing.strategies import random_masked_rollout;"
-        "env = fg.make('VRPTW-v0');"
+        "from tests.families import first_instance, make_env;"
+        "env = make_env('VRPTW-v1');"
         "t = random_masked_rollout(env, np.random.default_rng(11), seed=11);"
         "print(env.event_log.digest(), repr(t))"
     )
@@ -179,7 +184,7 @@ def test_trajectories_match_across_processes():
         ).stdout
         for _ in range(2)
     }
-    digest, total = rollout_digest("VRPTW-v0", 11)
+    digest, total = rollout_digest("VRPTW-v1", 11)
     assert outputs == {f"{digest} {total!r}\n"}
 
 
@@ -188,7 +193,7 @@ def test_trajectories_match_across_processes():
 
 @pytest.mark.parametrize("env_id", REGISTERED)
 def test_snapshot_restore_is_exact(env_id: str):
-    env = fg.make(env_id)
+    env = make_env(env_id)
     env.reset(seed=2)
     rng = np.random.default_rng(2)
     for _ in range(3):
@@ -213,7 +218,7 @@ def test_snapshot_restore_is_exact(env_id: str):
 
 
 def test_clone_is_independent():
-    env = fg.make("CVRP-v0")
+    env = make_env("CVRP-v1")
     env.reset(seed=4)
     env.step(int(np.flatnonzero(env.action_masks())[0]))
     twin = env.clone()
@@ -222,11 +227,11 @@ def test_clone_is_independent():
     assert len(twin.event_log) > len(env.event_log)
     assert env.simulator.state.epoch_count == 2
     assert twin.simulator.state.epoch_count == 3
-    fresh = fg.make("CVRP-v0").clone()
+    fresh = make_env("CVRP-v1").clone()
     with pytest.raises(ResetNeeded):
         fresh.step(0)
     with pytest.raises(ValueError, match="different spec"):
-        fg.make("VRPTW-v0").set_state(env.get_state())
+        make_env("VRPTW-v1").set_state(env.get_state())
 
 
 # ------------------------------------------------------------------ rewards, costs and logs
@@ -234,7 +239,7 @@ def test_clone_is_independent():
 
 @pytest.mark.parametrize("env_id", REGISTERED)
 def test_return_equals_minus_weighted_total_cost(env_id: str):
-    env = fg.make(env_id)
+    env = make_env(env_id)
     total = random_masked_rollout(env, np.random.default_rng(9), seed=9)
     costs = env.simulator.state.total_costs
     assert total == pytest.approx(-env.reward_model.cost(costs), rel=1e-12)
@@ -247,14 +252,14 @@ def test_return_equals_minus_weighted_total_cost(env_id: str):
 
 
 def test_lexicographic_reward_scalarization():
-    env = fg.make("VRPTW-v0")
+    env = make_env("VRPTW-v1")
     total = random_masked_rollout(env, np.random.default_rng(0), seed=0)
     costs = env.simulator.state.total_costs
     assert total == pytest.approx(-(1e6 * costs["vehicles"] + costs["distance"]))
 
 
 def test_event_log_round_trips_through_parquet(tmp_path: Path):
-    env = fg.make("VRPTW-v0")
+    env = fg.make("VRPTW-v1", instance=first_instance("VRPTW-v1"))  # the registered ID
     random_masked_rollout(env, np.random.default_rng(1), seed=1)
     path = tmp_path / "log.parquet"
     env.event_log.write(path)
@@ -263,15 +268,15 @@ def test_event_log_round_trips_through_parquet(tmp_path: Path):
     assert again.metadata["spec_hash"] == env.problem.spec_hash
     assert again.metadata["instance_hash"] == env.problem.instance_hash
     assert again.metadata["episode_seed"] == "1"
-    assert again.metadata["env_id"] == "VRPTW-v0"
+    assert again.metadata["env_id"] == "VRPTW-v1"
 
 
 def test_render_ansi():
-    env = fg.make("CVRP-v0", render_mode="ansi")
+    env = make_env("CVRP-v1", render_mode="ansi")
     random_masked_rollout(env, np.random.default_rng(0), seed=0)
     text = env.render()
     assert text is not None and text.startswith("t=") and "vehicle 0 [done]" in text
-    assert fg.make("CVRP-v0").render() is None
+    assert make_env("CVRP-v1").render() is None
 
 
 # ------------------------------------------------------------------ instances and slots
@@ -279,7 +284,7 @@ def test_render_ansi():
 
 def test_fixed_instance_and_reset_option():
     inst = read_instance(FIXTURES / "tiny.vrp")
-    env = fg.make("CVRP-v0", instance=inst)
+    env = make_env("CVRP-v1", instance=inst)
     assert env.max_nodes == 5
     env.reset(seed=0)
     assert env.problem.instance is inst
@@ -287,9 +292,9 @@ def test_fixed_instance_and_reset_option():
     env.reset(seed=0, options={"instance": other})
     assert env.problem.instance is other
     assert env.simulator.network.distance(0, 1) == 5.0  # (0, 0) to (3, 4)
-    big = fg.make("CVRP-v0")  # 21 node slots
+    big = make_env("CVRP-v1")  # 21 node slots
     with pytest.raises(ConfigError, match="node slots"):
-        fg.make("CVRP-v0", max_nodes=3).reset(seed=0)
+        make_env("CVRP-v1", max_nodes=3).reset(seed=0)
     assert big.max_nodes == 21
 
 
@@ -327,16 +332,16 @@ def test_vehicle_slots_must_fit_the_fleet():
 
 
 def test_make_vec():
-    vec = fg.make_vec("CVRP-v0", 3, invalid_action="repair")
+    vec = fg.make_vec(spec_for("CVRP-v1"), 3, invalid_action="repair")
     obs, _ = vec.reset(seed=0)
     assert obs["nodes"].shape == (3, 21, 10)
     obs, rewards, *_ = vec.step(np.array([1, 2, 3]))
     assert rewards.shape == (3,)
     vec.close()
     with pytest.raises(ValueError, match="n_envs"):
-        fg.make_vec("CVRP-v0", 0)
+        fg.make_vec(spec_for("CVRP-v1"), 0)
     with pytest.raises(ValueError, match="mode"):
-        fg.make_vec("CVRP-v0", 1, mode="threads")  # pyright: ignore[reportArgumentType]
+        fg.make_vec(spec_for("CVRP-v1"), 1, mode="threads")  # pyright: ignore[reportArgumentType]
 
 
 def test_episode_without_any_decision_has_one_final_step():

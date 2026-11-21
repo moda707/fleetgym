@@ -9,6 +9,7 @@ import fleetgym as fg
 from fleetgym.envs import FleetGymEnv
 from fleetgym.testing.strategies import problems, random_masked_rollout
 from fleetgym.testing.validator import validate
+from tests.families import make_env
 from tests.gate1.oracle import Rules, route_feasible
 from tests.registered import registered
 
@@ -56,7 +57,7 @@ def test_validator_accepts_random_problem_rollouts(problem, seed):
 
 @pytest.mark.parametrize("env_id", registered("single"))
 def test_validator_accepts_registered_config_rollouts(env_id: str):
-    env = fg.make(env_id)
+    env = make_env(env_id)
     for seed in range(10):
         random_masked_rollout(env, np.random.default_rng(seed), seed=seed)
         validate(
@@ -69,7 +70,7 @@ def test_gate1_ten_thousand_rollouts():
     """Gate 1: 10,000 random masked rollouts across configs and random problems, all valid."""
     count = 0
     for env_id in fg.REGISTRY.ids(agents="single"):
-        env = fg.make(env_id)
+        env = make_env(env_id)
         for seed in range(2_000):
             random_masked_rollout(env, np.random.default_rng(seed), seed=seed)
             validate(

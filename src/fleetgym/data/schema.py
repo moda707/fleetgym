@@ -317,6 +317,7 @@ CORE_SCHEMA = register_schema(
             "shift_start": {"unit": "time", "description": "Start of the working day"},
             "shift_end": {"unit": "time", "description": "End of the working day"},
             "reload_time": {"min": 0, "unit": "time", "description": "Time to reload at the depot"},
+            "cutoff": {"min": 0, "unit": "time", "description": "No request arrives after it"},
             "edge_weight_type": {"type": "str", "description": "VRPLIB distance convention"},
         },
         "node": {

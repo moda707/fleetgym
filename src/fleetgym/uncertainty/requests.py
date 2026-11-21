@@ -64,8 +64,9 @@ def arrival_window(problem: BoundProblem) -> tuple[float, float]:
         If the window has no end (homogeneous Poisson without a cutoff or depot time window).
     """
     spec = problem.spec
-    assert spec.dynamics is not None
-    dyn = spec.dynamics
+    assert problem.dynamics is not None
+    dyn = problem.dynamics
+    assert dyn.arrivals is not None  # binding resolves it (spec or instance)
     start = problem.shift[0] if problem.shift is not None else 0.0
     ends: list[float] = []
     if dyn.cutoff is not None:
@@ -110,8 +111,8 @@ def _scalar(
     problem: BoundProblem, attr: str, rng: np.random.Generator, size: int
 ) -> NDArray[np.float64]:
     spec = problem.spec
-    assert spec.dynamics is not None
-    dist = getattr(spec.dynamics.request_class, attr)
+    assert problem.dynamics is not None
+    dist = getattr(problem.dynamics.request_class, attr)
     if dist is None:
         return np.zeros(size)
     path = f"dynamics.request_class.{attr}"
@@ -130,8 +131,9 @@ def sample_requests(problem: BoundProblem, seed: int) -> dict[str, NDArray[np.fl
         If more than ``max_requests`` requests arrive and ``overflow`` is ``error``.
     """
     spec = problem.spec
-    assert spec.dynamics is not None
-    dyn = spec.dynamics
+    assert problem.dynamics is not None
+    dyn = problem.dynamics
+    assert dyn.arrivals is not None  # binding resolves it (spec or instance)
     instance = problem.instance
     streams = StreamFactory(seed)
     start, end = arrival_window(problem)
@@ -237,9 +239,9 @@ def resample_future_requests(
     ``[now, D]``. Arrivals after ``now`` are drawn afresh on ``[now, end)`` into the remaining
     slots.
     """
-    spec = problem.spec
-    assert spec.dynamics is not None
-    dyn = spec.dynamics
+    assert problem.dynamics is not None
+    dyn = problem.dynamics
+    assert dyn.arrivals is not None  # binding resolves it (spec or instance)
     fresh_problem_seed = int(seed)
     out = {name: np.array(values, dtype=float) for name, values in current.items()}
     release = out["request.release"]

@@ -37,7 +37,7 @@ from fleetgym.spec.binding import (
     instance_from_source,
     source_files,
 )
-from fleetgym.spec.models import CollectionSource, FilesSource, GeneratorSource, ProblemSpec
+from fleetgym.spec.models import CollectionSource, FilesSource, ProblemSpec
 from fleetgym.spec.models.sections import INTERFACES_NEEDING_ROUTING
 from fleetgym.uncertainty.requests import resample_future_requests, sample_requests
 from fleetgym.uncertainty.sampling import resample_unrevealed, sample_scenario
@@ -100,14 +100,7 @@ def _instance_nodes(spec: ProblemSpec, instance: Instance | None) -> int:
     if instance is not None:
         return instance.n_nodes
     source = spec.instance_source
-    if isinstance(source, GeneratorSource):
-        from fleetgym.data.generators import validate_generator_params
-
-        params = validate_generator_params(source.name, _thaw(source.params))
-        n_customers = getattr(params, "max_customers", getattr(params, "n_customers", None))
-        if isinstance(n_customers, int):
-            return n_customers + 1
-    elif isinstance(source, FilesSource):
+    if isinstance(source, FilesSource):
         sizes = []
         for entry in source.paths:
             path = Path(entry)
@@ -118,10 +111,11 @@ def _instance_nodes(spec: ProblemSpec, instance: Instance | None) -> int:
             else:
                 sizes.append(read_instance(path, fmt=source.format).n_nodes)
         return max(sizes)
-    elif isinstance(source, CollectionSource):
+    if isinstance(source, CollectionSource):
         return collection_instance(source).n_nodes
     raise ConfigError(
-        "cannot infer the number of node slots; pass `max_nodes=` or an `instance=`",
+        "no instances: pass `instance=` (or `max_nodes=` and instances at reset), or give the spec "
+        "an `instance_source` (files, an instance set, or a benchmark collection)",
         source=spec.source,
         key_path="instance_source",
     )

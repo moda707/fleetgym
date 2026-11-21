@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# Capacitated VRP. The model says what exists; the instance gives the numbers: customers and
+# demands, the vehicle capacity (vehicle_types) and its distance convention (edge_weight_type:
+# CVRPLIB's EUC_2D rounds each arc to the nearest integer).
+id: CVRP-v1
+meta:
+  name: Capacitated vehicle routing problem
+  status: stable
+  references: [dantzig1959]
+  instances: {source: cvrplib, set: X}
+network: {type: euclidean, rounding: from_instance}
+fleet: {sizing: unlimited, types: from_instance}
+constraints: {capacity: {}}
+objective: {distance: 1.0}
+decisions: {interface: next_node, epochs: sequential}

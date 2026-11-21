@@ -22,6 +22,7 @@ from fleetgym.viz import (  # noqa: E402
     episode_figure,
     vehicle_segments,
 )
+from tests.families import SETS, make_env  # noqa: E402
 from tests.registered import registered  # noqa: E402
 
 pytestmark = pytest.mark.extras_viz
@@ -31,7 +32,7 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "instances"
 
 @pytest.mark.parametrize("env_id", SINGLE)
 def test_every_view_renders_for_every_config(env_id):
-    env = fg.make(env_id, render_mode="rgb_array")
+    env = make_env(env_id, render_mode="rgb_array")
     run_episode(env, NearestNeighbor(), seed=2)
     image = env.render()
     assert image.dtype == np.uint8 and image.ndim == 3 and image.shape[2] == 3
@@ -56,7 +57,7 @@ def test_every_view_renders_for_every_config(env_id):
 def test_rendering_does_not_change_the_trajectory():
     digests = []
     for mode in (None, "rgb_array", "ansi"):
-        env = fg.make("VRPSD-v0", render_mode=mode)
+        env = make_env("SVRP-v1", render_mode=mode)
         obs, info = env.reset(seed=5)
         policy = NearestNeighbor()
         policy.reset(env)
@@ -71,7 +72,7 @@ def test_rendering_does_not_change_the_trajectory():
 
 
 def test_human_mode_and_partial_episodes():
-    env = fg.make("DVRP-StochReq-v0", render_mode="human")
+    env = make_env("DVRP-v1", render_mode="human")
     _, info = env.reset(seed=1)
     assert env.render() is None
     env.step(int(np.flatnonzero(info["action_mask"])[0]))
@@ -82,7 +83,7 @@ def test_human_mode_and_partial_episodes():
 def test_views_on_axes_and_errors():
     import matplotlib.pyplot as plt
 
-    env = fg.make("CVRP-v0")
+    env = make_env("CVRP-v1")
     run_episode(env, NearestNeighbor(), seed=0)
     fig, (a, b) = plt.subplots(1, 2)
     draw_map(a, env.event_log, env.problem.instance, t=0.0)
@@ -98,7 +99,21 @@ def test_views_on_axes_and_errors():
 def test_cli_render(tmp_path: Path, capsys):
     out = tmp_path / "figs" / "episode.png"
     assert (
-        main(["render", "VRPTW-v0", "--policy", "insertion", "--seed", "1", "--out", str(out)]) == 0
+        main(
+            [
+                "render",
+                "VRPTW-v1",
+                "--instances",
+                str(SETS / "vrptw"),
+                "--policy",
+                "insertion",
+                "--seed",
+                "1",
+                "--out",
+                str(out),
+            ]
+        )
+        == 0
     )
     assert out.exists() and out.stat().st_size > 1000
     assert "saved" in capsys.readouterr().out

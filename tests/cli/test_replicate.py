@@ -29,7 +29,7 @@ def test_replicate_with_fixture(monkeypatch, capsys, published, code, word, tmp_
         "fetch",
         lambda coll, name, kind="instance": FIXTURES / "tiny.vrp" if kind == "instance" else sol,
     )
-    assert main(["replicate", "CVRP-v0", "--limit", "1"]) == code
+    assert main(["replicate", "CVRP-v1", "--limit", "1"]) == code
     out, err = capsys.readouterr()
     assert "tiny-n5" in out and word in out
     assert f"{1 - code}/1 instances" in err
@@ -44,15 +44,15 @@ def test_replicate_reports_infeasible_solutions(monkeypatch, capsys, tmp_path: P
         "fetch",
         lambda coll, name, kind="instance": FIXTURES / "tiny.vrp" if kind == "instance" else sol,
     )
-    assert main(["replicate", "CVRP-v0", "--instances", "tiny-n5"]) == 1
+    assert main(["replicate", "CVRP-v1", "--instances", "tiny-n5"]) == 1
     assert "capacity" in capsys.readouterr().out
 
 
 def test_collection_for(tmp_path: Path, capsys):
-    assert replicate.collection_for("CVRP-v0") == "cvrplib/X"
-    assert replicate.collection_for("VRPTW-v0") == "solomon/100"
+    assert replicate.collection_for("CVRP-v1") == "cvrplib/X"
+    assert replicate.collection_for("VRPTW-v1") == "solomon/100"
     config = tmp_path / "Mine-v0.yaml"
-    config.write_text("id: Mine-v0\nextends: CVRP-v0\n")  # meta is not inherited
+    config.write_text("id: Mine-v0\nextends: CVRP-v1\n")  # meta is not inherited
     assert main(["replicate", str(config)]) == 1
     assert "no replication data" in capsys.readouterr().err
 
@@ -74,6 +74,6 @@ def test_published_cost_falls_back_to_the_manifest(monkeypatch, capsys, tmp_path
         "fetch",
         lambda coll, name, kind="instance": FIXTURES / "tiny.vrp" if kind == "instance" else sol,
     )
-    assert main(["replicate", "CVRP-v0"]) == 0
+    assert main(["replicate", "CVRP-v1"]) == 0
     assert "17.004" in capsys.readouterr().out
-    assert main(["replicate", "CVRP-v0", "--tolerance", "0"]) == 1
+    assert main(["replicate", "CVRP-v1", "--tolerance", "0"]) == 1

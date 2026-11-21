@@ -13,8 +13,8 @@ nodes with an attention decoder; `MaskableDQN` masks Q-values in selection and t
 From the command line:
 
 ```bash
-fleetgym train CVRP-v0 --algo maskable_ppo --policy gat --steps 200000 --out runs/cvrp
-fleetgym eval CVRP-v0 --model runs/cvrp --episodes 64 --reference nearest
+fleetgym train CVRP-v1 --instances data/train --algo maskable_ppo --policy gat --steps 200000 --out runs/cvrp
+fleetgym eval CVRP-v1 --instances data/test --model runs/cvrp --episodes 64 --reference nearest
 ```
 
 ## Your own network

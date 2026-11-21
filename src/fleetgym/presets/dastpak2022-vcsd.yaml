@@ -1,0 +1,31 @@
+# Dastpak, Errico and Jabali, VRP with a highly variable customer basis and stochastic demands
+# (Section 3.1; instances in Appendix B.1.1). New customers every day, demands revealed on the first
+# visit, split deliveries, reloading whenever the vehicle chooses, a duration limit, and the
+# expected served demand as the objective. Instances: the example 09_vrp_vcsd writes them (one set
+# per density and capacity; the vehicle count and duration limit come with the density).
+preset: dastpak2022-vcsd
+name: VRP with a highly variable customer basis and stochastic demands
+reference:
+  key: dastpak2022vcsd
+  title: Off-line approximate dynamic programming for the vehicle routing problem with a highly variable customer basis and stochastic demands
+  arxiv: "2109.10200"
+  sections: ["3.1", "6.1.1", "B.1.1"]
+spec:
+  extends: SVRP-v1
+  network: {type: euclidean, rounding: none}
+  fleet: {sizing: fixed, multi_trip: true, end_route: when_nothing_reachable}
+  constraints:
+    capacity: {}
+    route_duration: {mode: hard}
+  recourse:
+    capacity_failure: {serve: what_fits, remainder: open}
+  decisions: {interface: next_node, epochs: on_event}
+  objective: {served_demand: -1.0}
+grid:
+  density: [very_low, low, moderate, high, very_high]
+  capacity: [25, 50, 75]
+default: {density: moderate, capacity: 50}
+instances: {folder: "{density}-q{capacity}"}
+notes:
+  - The paper's Figure 4 zone layout is not in its text; the example uses a fixed random draw of 15 zones (seed 2109).
+  - Vehicles deciding at the same time decide in index order; the paper picks one at random.

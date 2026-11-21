@@ -11,7 +11,7 @@
 # before the depot closes. The objective is hierarchical, as in the SINTEF tables: first the number
 # of vehicles, then the total distance (Euclidean, not rounded, travel time = distance).
 #
-# | Benchmark | FleetGym (`VRPTW-v0`) |
+# | Benchmark | FleetGym (preset `solomon1987-vrptw`, family `VRPTW-v1`) |
 # | --- | --- |
 # | hard windows, waiting allowed, depot due time | `time_windows: {soft: false, waiting: allowed}`, `route_duration: depot_due_time` |
 # | vehicles first, then distance | `objective: {lexicographic: [vehicles, distance]}` |
@@ -38,7 +38,9 @@ print("published:", published["vehicles"], "vehicles, distance", published["cost
 # ## Replay the best-known solution
 
 # %%
-spec = fg.load_spec("VRPTW-v0")
+preset = fg.load_preset("solomon1987-vrptw")
+print(len(preset.points()), "instances in the preset's grid")
+spec = fg.load_spec("VRPTW-v1")
 distance = replay_solution(spec, instance, solution)
 vehicles = replay_solution(spec, instance, solution, component="vehicles")
 assert distance.validation is not None
@@ -50,7 +52,7 @@ assert round(distance.cost or 0.0, 2) == published["cost"]
 # ## A baseline on the same instance
 
 # %%
-env = fg.make("VRPTW-v0", instance=instance)
+env = fg.make_preset("solomon1987-vrptw", instance=NAME)
 result = run_episode(env, NearestNeighbor(), seed=0)
 print(
     f"nearest neighbor: {result.costs['vehicles']:.0f} vehicles, distance {result.costs['distance']:.2f}"

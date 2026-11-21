@@ -311,7 +311,7 @@ def test_dynamics_spec():
         }
     )
     assert spec.dynamics is not None
-    assert spec.dynamics.arrivals.name == "nhpp"
+    assert spec.dynamics.arrivals is not None and spec.dynamics.arrivals.name == "nhpp"
     assert spec.dynamics.overflow == "error"
 
 
@@ -507,10 +507,8 @@ def test_ev_section_is_reserved_and_opaque():
 
 
 def test_instance_source_variants():
-    gen = make(
-        instance_source={"type": "generator", "name": "uniform", "params": {"n_customers": 5}}
-    )
-    assert gen.instance_source is not None and gen.instance_source.type == "generator"
+    with pytest.raises(ValidationError, match="does not match any of the expected tags"):
+        make(instance_source={"type": "generator", "name": "uniform"})  # no generators (ADR 0023)
     files = make(instance_source={"type": "files", "paths": ["a.vrp"], "format": "vrplib"})
     assert files.instance_source is not None and files.instance_source.type == "files"
     with pytest.raises(ValidationError):

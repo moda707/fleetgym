@@ -1,7 +1,7 @@
 # Status
 
-**Current milestone:** M13 done (two examples wait for papers); next the spec/instance separation
-(proposal 0001, ADR 0023), then M14 (EVSPP-OI).
+**Current milestone:** M13b done (spec/instance separation, ADR 0023); next M14 (EVSPP-OI, design
+first). Two M13 examples (DVRP, multi-agent DVRP) wait for papers from the user.
 v0.1 (M0 to M10b) is built; Gate 2 (`docs/gates/gate2.md`) still awaits the user's approval.
 VRP-SDO is deferred by the user (2026-11-20).
 Repository: <https://github.com/moda707/fleetgym>. `fleetgym 0.1.0a1` is on PyPI (published by the
@@ -26,7 +26,7 @@ user on 2026-11-20).
 | M11 Gate 2 | Awaiting approval | Review of v0.1; VRP-SDO deferred by the user |
 | M12 VRP-VCSD | Done | `split` recourse, duration limits with recourse, `served_demand`; `VRP-VCSD-v0`, `VRPSD-Goodson-v0` (ADR 0021) |
 | M13 Paper-based examples | Done | 6 paper examples and the build-your-own guide (ADR 0022); DVRP and MA-DVRP wait for PDFs |
-| M13b Spec/instance separation | In progress | Steps a-b done (schemas, JSON format, sets, model primitives); c presets, d migration next (ADR 0023) |
+| M13b Spec/instance separation | Done | Schemas, JSON format and sets, model primitives, presets, families at -v1, generators removed (ADR 0023) |
 | M14 EVSPP-OI | Planned | EV shortest path with charging-station occupancy (arXiv 2305.11773); design first |
 
 ## Tests (M6)
@@ -47,16 +47,15 @@ user on 2026-11-20).
 ## Registered configs
 | ID | Status | Notes |
 | --- | --- | --- |
-| CVRP-v0 | stable | Reproduces CVRPLIB X exactly |
-| VRPTW-v0 | stable | Reproduces Solomon (SINTEF) best-known solutions; lexicographic objective (Q15) |
-| DVRP-StochReq-v0 | experimental | NHPP requests, accept_reject with cheapest insertion; illustrative parameters |
-| MA-CVRP-v0 | experimental | Multi-agent CVRP (Parallel, priority conflicts) |
-| MA-DVRP-v0 | experimental | Multi-agent dynamic VRP with wait (Parallel) |
-| VRPSD-v0 | experimental | Poisson demands revealed on arrival, return-to-depot recourse |
-| VRP-VCSD-v0 | experimental | Dastpak, Errico and Jabali (arXiv 2109.10200); fixed random zone layout |
-| VRPSD-Goodson-v0 | experimental | R101 first 75 customers, 11 vehicles; downloads R101 (network tests) |
-| VRPSD-Outsource-v0 | planned | VRP-SDO, deferred after v0.1 (selection on top of routing) |
-| EVRP-NL-v0 | planned | EV module out of scope |
+| CVRP-v1 | stable | Reproduces CVRPLIB X exactly (rounding from the instance) |
+| VRPTW-v1 | stable | Reproduces Solomon (SINTEF) best-known solutions |
+| SVRP-v1 | experimental | Demand distribution from the instance, detour-to-depot recourse |
+| DVRP-v1 | experimental | Arrivals and request distributions from the instance; accept/reject |
+| VRPSD-Outsource-v1 | planned | VRP-SDO, deferred (selection on top of routing) |
+| EVRP-NL-v1 | planned | EV routing, out of scope (M14 covers the EV shortest path only) |
+
+Presets: solomon1987-vrptw, florio2023-vrpsd, kool2019-cvrp, dastpak2022-vcsd, dastpak2022-goodson,
+vera2019-hetfleet.
 
 ## Known issues
 - `docs/DESIGN.md` was transcribed from the attached design document. Its two embedded diagrams

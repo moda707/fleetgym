@@ -20,28 +20,25 @@ from fleetgym.eval import (
     summarize,
     write_report_card,
 )
+from tests.families import instance_source
 
 SMALL = {
-    "extends": "CVRP-v0",
-    "instance_source": {
-        "type": "generator",
-        "name": "uniform",
-        "params": {"n_customers": 5, "size": 100, "capacity": 10, "demand": {"low": 1, "high": 5}},
-    },
+    "extends": "CVRP-v1",
+    "instance_source": instance_source("small"),
 }
 
 
 def test_scenario_seeds_are_fixed_and_disjoint():
-    test = scenario_seeds("CVRP-v0", "test", 50)
-    assert test == scenario_seeds("CVRP-v0", "test", 50)
-    assert scenario_seeds("CVRP-v0", "test", 10) == test[:10]
-    train = set(scenario_seeds("CVRP-v0", "train", 50))
+    test = scenario_seeds("CVRP-v1", "test", 50)
+    assert test == scenario_seeds("CVRP-v1", "test", 50)
+    assert scenario_seeds("CVRP-v1", "test", 10) == test[:10]
+    train = set(scenario_seeds("CVRP-v1", "train", 50))
     assert not train & set(test)
-    assert scenario_seeds("VRPTW-v0", "test", 5) != test[:5]
+    assert scenario_seeds("VRPTW-v1", "test", 5) != test[:5]
     with pytest.raises(ValueError, match="positive"):
-        scenario_seeds("CVRP-v0", "test", 0)
+        scenario_seeds("CVRP-v1", "test", 0)
     with pytest.raises(ValueError, match="unknown split"):
-        scenario_seeds("CVRP-v0", "dev", 3)  # pyright: ignore[reportArgumentType]
+        scenario_seeds("CVRP-v1", "dev", 3)  # pyright: ignore[reportArgumentType]
 
 
 def test_statistics_agree_with_scipy():

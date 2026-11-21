@@ -53,6 +53,18 @@ def _freeze_extra(value: Any) -> Any:
     return value
 
 
+def _thaw(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {k: _thaw(v) for k, v in value.items()}
+    if isinstance(value, tuple):
+        return tuple(_thaw(v) for v in value)
+    return value
+
+
+def _rebuild_instance(fields: dict[str, Any]) -> Instance:
+    return Instance(**fields)
+
+
 def _array_digest(array: NDArray[Any]) -> list[Any]:
     little = np.ascontiguousarray(array, dtype=array.dtype.newbyteorder("<"))
     return [str(little.dtype), list(little.shape), hashlib.sha256(little.tobytes()).hexdigest()]
@@ -176,9 +188,10 @@ class Instance:
         set_(self, "extra", MappingProxyType({k: _freeze_extra(v) for k, v in self.extra.items()}))
         set_(self, "meta", MappingProxyType({k: _freeze_extra(v) for k, v in self.meta.items()}))
         for source, dist in self.distributions.items():
-            if not isinstance(dist, Mapping) or "dist" not in dist:
+            if not isinstance(dist, Mapping) or not ({"dist", "process"} & set(dist)):
                 raise InstanceError(
-                    f"{self.name}: distributions.{source} must be a mapping with a `dist` name"
+                    f"{self.name}: distributions.{source} must be a mapping with a `dist` name "
+                    "(or a `process` name, for arrivals)"
                 )
         set_(
             self,
@@ -293,6 +306,16 @@ class Instance:
                 if missing or not self.vehicle_types:
                     problems.append(f"required vehicle type field {name!r} is missing")
         return problems
+
+    # ------------------------------------------------------------------- copying
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> Instance:
+        return self  # immutable: a copy would be identical
+
+    def __reduce__(self) -> tuple[Any, tuple[Any, ...]]:
+        """Pickle through plain data (read-only mappings cannot be pickled)."""
+        fields = {name: _thaw(getattr(self, name)) for name in self.__dataclass_fields__}
+        return (_rebuild_instance, (fields,))
 
     # ------------------------------------------------------------------- derived values
 

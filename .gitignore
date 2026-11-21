@@ -22,6 +22,8 @@ htmlcov/
 *.parquet
 !tests/fixtures/**/*.parquet
 runs/
+# Instances written by the example notebooks
+examples/**/instances/
 .cache/
 
 # OS / editors

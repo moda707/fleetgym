@@ -2,7 +2,8 @@
 
 Example::
 
-    fleetgym train CVRP-v0 --algo maskable_ppo --policy gat --steps 100000 --seed 0 --out runs/cvrp
+    fleetgym train CVRP-v1 --instances data/cvrp --algo maskable_ppo --policy gat \
+        --steps 100000 --seed 0 --out runs/cvrp
 
 Writes ``<out>/model.zip`` and ``<out>/run.json`` (environment, spec hash, algorithm, policy,
 hyperparameters, seed, steps, package versions).
@@ -15,7 +16,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fleetgym.spec import load_spec
+from fleetgym.cli.common import add_instances_argument, load_with_instances
 
 __all__ = ["add_parser"]
 
@@ -33,6 +34,7 @@ def add_parser(subparsers: Any) -> None:
     parser.add_argument("--n-envs", type=int, default=4)
     parser.add_argument("--embed-dim", type=int, default=64)
     parser.add_argument("--out", type=Path, default=Path("runs/latest"), help="output directory")
+    add_instances_argument(parser)
     parser.set_defaults(handler=_run)
 
 
@@ -41,9 +43,9 @@ def _run(args: argparse.Namespace) -> int:
     from fleetgym.agents.sb3 import make_sb3_vec, policy_settings, sb3_defaults
     from fleetgym.eval.report_card import _versions  # pyright: ignore[reportPrivateUsage]
 
-    spec = load_spec(args.env)
+    spec = load_with_instances(args.env, args.instances)
     env_id = spec.id or str(args.env)
-    vec = make_sb3_vec(args.env, args.n_envs, seed=args.seed)
+    vec = make_sb3_vec(spec, args.n_envs, seed=args.seed)
     policy, policy_kwargs = policy_settings(args.algo, args.policy, embed_dim=args.embed_dim)
     hyper = sb3_defaults(env_id, args.algo)
     if args.algo == "maskable_ppo":

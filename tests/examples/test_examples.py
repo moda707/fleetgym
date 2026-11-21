@@ -61,11 +61,8 @@ def _isolated(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]
     ]:
         if name in registry:
             registry.unregister(name)
-    from fleetgym.data import GENERATORS
-
-    if "villages" in GENERATORS:
-        GENERATORS.unregister("villages")
-    sys.modules.pop("plugins", None)
+    for module in ("plugins", "instances"):  # each example folder has its own
+        sys.modules.pop(module, None)
 
 
 def _needs(script: Path) -> None:

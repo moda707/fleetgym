@@ -10,11 +10,13 @@ from fleetgym.spec import load_spec
 from fleetgym.spec.binding import bind, instance_from_source
 from fleetgym.uncertainty.requests import RequestOverflowError, arrival_window, sample_requests
 from fleetgym.uncertainty.scenario import Scenario, episode_instance
+from tests.families import instance_source
 
 
 def dynamic(**changes):
     base = {
-        "extends": "VRPTW-v0",
+        "extends": "VRPTW-v1",
+        "instance_source": instance_source("vrptw"),
         "fleet": {
             "sizing": "fixed",
             "types": [{"name": "t", "capacity": "from_instance", "count": 2}],

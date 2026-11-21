@@ -1,128 +1,134 @@
-"""VRP-VCSD-v0 and VRPSD-Goodson-v0 follow Dastpak, Errico and Jabali (arXiv 2109.10200).
+"""The paper examples' instances follow their papers, and the presets run on them (ADR 0023).
 
-Every number below is from the paper: Section 6.1.1 and Appendix B.1.1 (VRP-VCSD), Section 6.2.1 and
-Appendix B.1.2 (VRPSD).
+Numbers are from the papers: Dastpak, Errico and Jabali (arXiv 2109.10200, Appendices B.1.1 and
+B.1.2), Kool et al. (arXiv 1803.08475, Appendix C.1), Vera and Abad (arXiv 1912.03341, Table 1).
 """
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
+from types import ModuleType
 
 import numpy as np
 import pytest
+from scipy import stats
 
 import fleetgym as fg
-import fleetgym.spec.binding as binding
 from fleetgym.baselines import NearestNeighbor, run_episode
-from fleetgym.errors import InstanceError
-from fleetgym.spec import load_spec
-from fleetgym.spec.binding import collection_instance
-from fleetgym.spec.models import CollectionSource
+from fleetgym.data import read_instance
 from fleetgym.testing.validator import validate
 
+EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "instances"
 
 
-def test_vcsd_config_matches_the_paper_moderate_instance():
-    spec = load_spec("VRP-VCSD-v0")
-    (vehicle,) = spec.fleet.types
-    assert (vehicle.capacity, vehicle.count) == (50, 3)  # Moderate: m = 3; Q in {25, 50, 75}
-    assert spec.constraints["route_duration"].model_dump()["max"] == 221.47
-    params = spec.to_dict()["instance_source"]["params"]
-    assert len(params["active_zones"]) == 15 and params["grid"] == 5 and params["size"] == 100
-    assert params["customers_per_zone"] == {"values": [0, 1, 2, 3], "probs": [0.1, 0.4, 0.4, 0.1]}
-    assert params["demand"]["values"] == [5, 10, 15]
-    assert spec.objective.scalar_weights() == {"served_demand": -1.0}
+def example_module(folder: str) -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        f"instances_{folder}", EXAMPLES / folder / "instances.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def test_vcsd_episodes_sample_the_paper_distributions():
-    env = fg.make("VRP-VCSD-v0")
-    n_customers, total_expected = [], []
-    for seed in range(300):
-        env.reset(seed=seed)
-        instance = env.base_instance
-        expected = instance.demands[1:]
+VCSD = example_module("09_vrp_vcsd")
+
+
+def zone_of(points: np.ndarray) -> np.ndarray:
+    return (np.floor(points[:, 1] / 20) * 5 + np.floor(points[:, 0] / 20)).astype(int)
+
+
+def test_vcsd_instances_follow_appendix_b11():
+    rng = np.random.default_rng(0)
+    counts, demands = [], []
+    for k in range(800):
+        instance = VCSD.vcsd_instance(rng, "moderate", 50, f"t{k}")
+        assert instance.coords is not None
+        np.testing.assert_array_equal(instance.coords[0], [50.0, 50.0])
+        zones = zone_of(instance.coords[1:])
+        assert set(zones) <= set(VCSD.ACTIVE_ZONES)
+        counts += [int(np.sum(zones == z)) for z in VCSD.ACTIVE_ZONES]
+        demands += instance.demands[1:].tolist()
+    observed = np.bincount(counts, minlength=4)
+    assert stats.chisquare(observed, np.array([0.1, 0.4, 0.4, 0.1]) * len(counts)).pvalue > 1e-3
+    assert np.mean(counts) * 15 == pytest.approx(22.5, rel=0.03)  # 1.5 customers per zone
+    assert set(demands) == {5.0, 10.0, 15.0}
+    assert np.mean(demands) == pytest.approx(10.0, rel=0.03)
+
+
+@pytest.mark.parametrize(
+    ("density", "vehicles", "limit"),
+    [
+        ("very_low", 2, 143.71),
+        ("low", 2, 201.38),
+        ("moderate", 3, 221.47),
+        ("high", 7, 195.54),
+        ("very_high", 11, 187.29),
+    ],
+)
+def test_vcsd_density_fixes_fleet_and_limit(density, vehicles, limit):
+    instance = VCSD.vcsd_instance(np.random.default_rng(1), density, 25, "t")
+    assert instance.vehicle_types[0]["count"] == vehicles
+    assert instance.vehicle_types[0]["capacity"] == 25.0
+    assert instance.extra["max_route_duration"] == limit
+    assert dict(instance.distributions["demand"]) == VCSD.DEMAND
+
+
+def test_vcsd_preset_runs_on_the_examples_instances(tmp_path):
+    VCSD.write_vcsd(tmp_path, n_instances=3, seed=0)
+    preset = fg.load_preset("dastpak2022-vcsd")
+    for point in preset.points():
+        env = fg.make_preset("dastpak2022-vcsd", instances=tmp_path, **point)
+        assert isinstance(env, fg.FleetGymEnv)
+        episode = run_episode(env, NearestNeighbor(), seed=1)
+        assert validate(
+            env.event_log, env.problem_spec, env.base_instance, scenario=env.scenario
+        ).ok
+        assert episode.costs.get("served_demand", 0.0) > 0
         assert env.scenario is not None
-        actual = env.scenario["demand"][1:]
+        expected = env.base_instance.demands[1:]
         width = np.where(expected == 5, 4, 5)  # +- 4 when the expected demand is 5
-        assert np.all(np.abs(actual - expected) <= width)
-        assert np.all(actual >= 1) and np.all(actual == np.round(actual))
-        n_customers.append(instance.n_customers)
-        total_expected.append(expected.sum())
-    # Paper: 1.5 expected customers per zone, 15 zones, average expected demand 10.
-    assert np.mean(n_customers) == pytest.approx(22.5, rel=0.05)
-    assert np.mean(total_expected) == pytest.approx(225.0, rel=0.05)
+        assert np.all(np.abs(env.scenario["demand"][1:] - expected) <= width)
 
 
-def test_vcsd_density_variants_load_as_overrides():
-    very_high = load_spec(
-        "VRP-VCSD-v0",
-        overrides=[
-            "instance_source.params.customers_per_zone.values=[4,5,6,7]",
-            "fleet.types.0.count=11",
-            "fleet.types.0.capacity=25",
-            "constraints.route_duration.max=187.29",
-        ],
+def test_goodson_instances_run_offline_on_a_local_base(tmp_path, monkeypatch):
+    goodson = example_module("10_vrpsd_goodson")
+    base = read_instance(FIXTURES / "tiny_solomon.txt")
+    import dataclasses
+
+    base = dataclasses.replace(base, time_windows=None, service_times=None)
+    monkeypatch.setattr(goodson, "r101_75", lambda: base)
+    goodson.write_goodson(tmp_path)
+    env = fg.make_preset(
+        "dastpak2022-goodson", instances=tmp_path, limit="long", capacity=25, variability="high"
     )
-    env = fg.make(very_high)
-    assert env.max_nodes == 15 * 7 + 1
-    episode = run_episode(env, NearestNeighbor(), seed=1)
+    assert isinstance(env, fg.FleetGymEnv)
+    run_episode(env, NearestNeighbor(), seed=0)
     assert validate(env.event_log, env.problem_spec, env.base_instance, scenario=env.scenario).ok
-    assert episode.costs["served_demand"] > 0
-
-
-def _fake_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(binding, "fetch", lambda collection, name: FIXTURES / "tiny_solomon.txt")
-
-
-def test_collection_source_keeps_the_first_customers_and_drops_fields(monkeypatch):
-    _fake_fetch(monkeypatch)
-    source = CollectionSource(
-        collection="solomon/100",
-        name="r101",
-        first_customers=2,
-        drop=("time_windows", "service_times"),
-    )
-    instance = collection_instance(source)
-    assert instance.n_customers == 2 and instance.name.endswith("-n2")
-    assert instance.time_windows is None and instance.service_times is None
-    np.testing.assert_array_equal(instance.coords, [[0, 0], [3, 4], [0, 2]])
-    np.testing.assert_array_equal(instance.demands, [0, 5, 3])
-    kept = collection_instance(CollectionSource(collection="solomon/100", name="r101"))
-    assert kept.time_windows is not None and kept.n_customers >= 3
-    with pytest.raises(InstanceError, match="fewer than first_customers"):
-        collection_instance(
-            CollectionSource(collection="solomon/100", name="r101", first_customers=99)
-        )
-    with pytest.raises(ValueError, match="no instance"):
-        CollectionSource(collection="solomon/100", name="r999")
-
-
-def test_goodson_config_runs_offline_on_a_local_instance(monkeypatch):
-    _fake_fetch(monkeypatch)
-    spec = load_spec("VRPSD-Goodson-v0")
-    instance = collection_instance(
-        CollectionSource(
-            collection="solomon/100", name="r101", drop=("time_windows", "service_times")
-        )
-    )
-    env = fg.make(spec, instance=instance)
-    for seed in range(5):
-        run_episode(env, NearestNeighbor(), seed=seed)
-        assert validate(env.event_log, spec, instance, scenario=env.scenario).ok
-        assert env.scenario is not None
-        factors = env.scenario["demand"][1:] / instance.demands[1:]
-        assert set(np.round(factors, 9)) <= {0.0, 0.5, 1.0, 1.5, 2.0}
+    assert env.base_instance.extra["max_route_duration"] == 240.45
+    assert env.scenario is not None
+    factors = env.scenario["demand"][1:] / base.demands[1:]
+    assert set(np.round(factors, 9)) <= {0.0, 0.5, 1.0, 1.5, 2.0}
 
 
 @pytest.mark.network
-def test_goodson_instance_is_the_papers_r101_subset():
-    env = fg.make("VRPSD-Goodson-v0")
-    env.reset(seed=0)
-    instance = env.base_instance
-    assert instance.n_customers == 75
-    assert instance.demands.sum() == 1079.0  # the paper's total expected demand
-    assert instance.time_windows is None and instance.service_times is None
-    (vehicle,) = env.problem_spec.fleet.types
-    assert (vehicle.capacity, vehicle.count) == (50, 11)
-    assert env.problem_spec.constraints["route_duration"].model_dump()["max"] == 171.75
+def test_goodson_base_is_the_papers_r101_subset():
+    base = example_module("10_vrpsd_goodson").r101_75()
+    assert base.n_customers == 75 and base.demands.sum() == 1079.0  # the paper's total
+
+
+def test_kool_and_vera_instances_follow_their_papers():
+    kool = example_module("11_cvrp_kool")
+    for n, capacity in ((20, 30), (50, 40), (100, 50)):
+        instance = kool.kool_instance(np.random.default_rng(n), n, "t")
+        assert instance.n_customers == n and instance.vehicle_types[0]["capacity"] == capacity
+        assert instance.coords is not None and np.all(
+            (instance.coords >= 0) & (instance.coords <= 1)
+        )
+        assert set(instance.demands[1:]) <= set(range(1, 10))
+    vera = example_module("14_ma_cvrp_vera")
+    instance = vera.vera_instance(np.random.default_rng(0), "vrp20", "t")
+    assert [vt["capacity"] for vt in instance.vehicle_types] == [20.0, 30.0, 35.0]
+    assert instance.n_customers == 20

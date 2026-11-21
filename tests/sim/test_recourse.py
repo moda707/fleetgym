@@ -18,6 +18,7 @@ from fleetgym.spec.registries import RECOURSE_RULES
 from fleetgym.testing.non_anticipativity import check_non_anticipativity
 from fleetgym.testing.validator import validate
 from fleetgym.uncertainty.scenario import Scenario
+from tests.families import make_env, spec_for
 
 # Depot at 0, customers at x = 1, 2, 3 on a line; capacity 4.
 LINE = Instance(
@@ -292,18 +293,17 @@ def test_fork_redraws_only_hidden_values_and_clone_keeps_the_future():
         assert f.simulator.state.revealed["demand"].tolist() == [True, True, False, False]
     assert any(f.scenario["demand"][2] != truth["demand"][2] for f in forks if f.scenario)
     assert env.clone().scenario == truth
-    deterministic = load_spec("CVRP-v0")
+    deterministic = spec_for("CVRP-v1")
     det = FleetGymEnv(deterministic, instance=LINE)
     det.reset(seed=0)
     assert det.fork(seed=1).scenario is None
 
 
 def test_vrpsd_is_non_anticipative():
-    import fleetgym as fg
 
     for seed in range(3):
-        assert check_non_anticipativity(fg.make("VRPSD-v0"), seed=seed) > 0
-    leaky = fg.make("VRPSD-v0")
+        assert check_non_anticipativity(make_env("SVRP-v1"), seed=seed) > 0
+    leaky = make_env("SVRP-v1")
     original = leaky._observation  # pyright: ignore[reportPrivateUsage]
 
     def peek():

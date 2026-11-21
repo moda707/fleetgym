@@ -823,10 +823,18 @@
     },
     "DynamicsSpec": {
       "additionalProperties": false,
-      "description": "Requests arriving during the day.\n\nAttributes\n----------\ncutoff\n    Time after which no requests arrive.\nmax_requests\n    Upper bound on the number of requests per episode; observations are padded to it.\noverflow\n    What happens if a scenario has more requests than ``max_requests``: ``error`` raises,\n    ``reject`` rejects the extra requests automatically (logged and charged as rejected).\ninitial_requests\n    ``instance``: the instance's customers are requests known at the start. ``none``: only\n    requests arriving during the day (the instance's customers serve as data, for example\n    for the location distribution).",
+      "description": "Requests arriving during the day.\n\nThe model declares that requests arrive and how they are handled; the numbers may come from\neach instance (ADR 0023): the instance's ``distributions`` block gives ``arrivals`` (the\nprocess, written like the spec's), ``request.location``, ``request.demand``,\n``request.time_window_width``, ``request.service_time`` and ``cancellation``, and its global\n``cutoff`` field the cutoff. What the spec gives is used first.\n\nAttributes\n----------\ncutoff\n    Time after which no requests arrive.\nmax_requests\n    Upper bound on the number of requests per episode; observations are padded to it.\noverflow\n    What happens if a scenario has more requests than ``max_requests``: ``error`` raises,\n    ``reject`` rejects the extra requests automatically (logged and charged as rejected).\ninitial_requests\n    ``instance``: the instance's customers are requests known at the start. ``none``: only\n    requests arriving during the day (the instance's customers serve as data, for example\n    for the location distribution).",
       "properties": {
         "arrivals": {
-          "$ref": "#/$defs/ArrivalSpec"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArrivalSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "request_class": {
           "$ref": "#/$defs/RequestClassSpec"
@@ -936,12 +944,20 @@
           "type": "string"
         },
         "types": {
-          "default": [],
-          "items": {
-            "$ref": "#/$defs/VehicleTypeSpec"
-          },
-          "title": "Types",
-          "type": "array"
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/VehicleTypeSpec"
+              },
+              "title": "Types",
+              "type": "array"
+            },
+            {
+              "const": "from_instance"
+            }
+          ],
+          "default": "from_instance",
+          "description": "The instance's vehicle types (from_instance), or explicit types"
         },
         "shift": {
           "anyOf": [
@@ -1001,28 +1017,6 @@
         }
       },
       "title": "FleetSpec",
-      "type": "object"
-    },
-    "GeneratorSource": {
-      "additionalProperties": false,
-      "description": "Generate a fresh instance per episode with a registered generator.\n\n``params`` are checked against the generator's parameter model when the config is loaded.",
-      "properties": {
-        "type": {
-          "const": "generator",
-          "default": "generator",
-          "title": "Type",
-          "type": "string"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "params": {
-          "default": null,
-          "title": "Params"
-        }
-      },
-      "title": "GeneratorSource",
       "type": "object"
     },
     "InstanceRef": {
@@ -1114,7 +1108,8 @@
               "default": "none",
               "enum": [
                 "none",
-                "nearest_int"
+                "nearest_int",
+                "from_instance"
               ],
               "title": "Rounding",
               "type": "string"
@@ -2311,15 +2306,11 @@
           "discriminator": {
             "mapping": {
               "collection": "#/$defs/CollectionSource",
-              "files": "#/$defs/FilesSource",
-              "generator": "#/$defs/GeneratorSource"
+              "files": "#/$defs/FilesSource"
             },
             "propertyName": "type"
           },
           "anyOf": [
-            {
-              "$ref": "#/$defs/GeneratorSource"
-            },
             {
               "$ref": "#/$defs/FilesSource"
             },

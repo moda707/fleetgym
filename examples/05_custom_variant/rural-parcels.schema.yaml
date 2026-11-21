@@ -1,0 +1,12 @@
+# The instance schema of the rural parcel collection variant: FleetGym's core fields plus the
+# numbers this variant needs. Every instance file names this schema; the spec and the plugins read
+# these fields by name.
+schema: examples/rural-parcels/1
+extends: fleetgym/core/1
+description: Rural parcel collection (FleetGym example 05)
+global:
+  max_stops: {type: int, min: 1, required: true, unit: count, description: Customers per route at most}
+  restock_radius: {min: 0, required: true, unit: distance, description: Restock when the depot is this close}
+  courier_price: {min: 0, required: true, unit: money, description: Price per unit a courier takes}
+node:
+  village: {type: int, min: 0, description: Village the customer belongs to (the depot has 0)}

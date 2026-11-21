@@ -1,0 +1,51 @@
+{
+ "format": "fleetgym-instance/1",
+ "schema": "fleetgym/core/1",
+ "name": "small_sd-1",
+ "source": "tests",
+ "vehicle_types": [
+  {
+   "capacity": 10
+  }
+ ],
+ "nodes": {
+  "kind": [
+   "depot",
+   "customer",
+   "customer",
+   "customer",
+   "customer",
+   "customer"
+  ],
+  "x": [
+   50.0,
+   34.31617943093331,
+   77.61789913259824,
+   24.766767080593823,
+   85.07147092263185,
+   79.7320955958965
+  ],
+  "y": [
+   50.0,
+   59.852426956462104,
+   27.51073335416954,
+   23.072747187947474,
+   43.501037872469524,
+   79.04626261453146
+  ],
+  "demand": [
+   0.0,
+   2.0,
+   5.0,
+   2.0,
+   4.0,
+   1.0
+  ]
+ },
+ "distributions": {
+  "demand": {
+   "dist": "poisson",
+   "mean": "demand"
+  }
+ }
+}

@@ -34,7 +34,7 @@ from fleetgym.spec.registries import (
 
 __all__ = ["ENV_ID_PATTERN", "ProblemSpec"]
 
-#: Environment IDs: a name followed by ``-v<version>``, for example ``DVRP-StochReq-v0``.
+#: Environment IDs: a name followed by ``-v<version>``, for example ``DVRP-v1``.
 ENV_ID_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]*-v\d+$")
 
 
@@ -51,7 +51,7 @@ class ProblemSpec(FrozenModel):
     Attributes
     ----------
     id
-        Environment ID, for example ``CVRP-v0``. Optional for ad-hoc specs.
+        Environment ID, for example ``CVRP-v1``. Optional for ad-hoc specs.
     meta
         Documentation and replication data (not hashed).
     instance_source

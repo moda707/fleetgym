@@ -1,0 +1,19 @@
+# Kool, van Hoof and Welling (2019), Appendix C.1, after Nazari et al. (2018): depot and customers
+# uniform in the unit square, integer demands uniform on 1..9, capacity 30/40/50 for n = 20/50/100,
+# total route length, any number of routes. Instances: the example 11_cvrp_kool writes them.
+preset: kool2019-cvrp
+name: CVRP with the instance distribution of Kool et al. (2019)
+reference:
+  key: kool2019attention
+  title: "Attention, Learn to Solve Routing Problems!"
+  venue: ICLR 2019
+  arxiv: "1803.08475"
+  sections: ["5.1", "C.1"]
+spec: {extends: CVRP-v1}
+grid:
+  n: [20, 50, 100]
+default: {n: 20}
+instances: {folder: "n{n}"}
+notes:
+  - The distance metric is not stated in the paper; Euclidean without rounding is assumed.
+  - The paper normalizes demands by the capacity; the instances keep integer demands and capacities.

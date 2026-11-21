@@ -3,12 +3,16 @@
 **Reinforcement learning environments for vehicle routing, built for stochastic and dynamic problems.**
 
 FleetGym turns vehicle routing problems into [Gymnasium](https://gymnasium.farama.org) and
-[PettingZoo](https://pettingzoo.farama.org) environments. One YAML file describes a problem: the
-fleet, the network, the constraints, what is uncertain and when it becomes known, how the agent
-decides and what it pays. Changing a variant means editing that file, not writing a new simulator.
+[PettingZoo](https://pettingzoo.farama.org) environments. A YAML **model** describes what a problem
+has: the fleet, the constraints, what is uncertain and when it becomes known, how the agent decides
+and what it pays. **Instances**, in a published format with your own fields, carry every number.
+Changing a variant means editing YAML and data, not writing a new simulator.
 
 - **Problems as data**: CVRP, VRPTW, stochastic demands with recourse, requests arriving during
-  the day, multi-agent fleets, and your own variants, all from YAML files that extend each other.
+  the day, multi-agent fleets, and your own variants, from YAML models that extend each other and
+  instances that follow extensible schemas.
+- **Published settings as presets**: Solomon, CVRPLIB, Kool et al., Florio et al., Dastpak et al.,
+  Vera and Abad, each with the paper's grid.
 - **One simulator for everything**: a discrete-event engine with exact snapshots, an event log of
   everything that happened, and action masks that only use what is known.
 - **Trustworthy results**: an independent validator re-checks every episode; benchmark solutions
@@ -33,6 +37,7 @@ getting-started/quickstart
 :caption: Concepts
 
 concepts/problem-specs
+concepts/instances
 concepts/simulation
 concepts/uncertainty
 concepts/recourse

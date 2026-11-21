@@ -1,26 +1,25 @@
-# A new VRP variant: rural parcel collection. Customers cluster around villages (a custom generator),
-# demands are uncertain (a custom distribution), a van makes at most 5 stops per route (a custom
-# constraint), and a van that cannot fit a parcel restocks if the depot is near, else hands the
-# rest to a courier (a custom recourse rule). The building blocks are in plugins.py.
-id: MyVariant-v0
-extends: VRPSD-v0
+# A new VRP variant: rural parcel collection. The model says what exists; the instances (schema
+# rural-parcels.schema.yaml, written by instances.py) carry every number. Demands are uncertain
+# (a custom distribution), a van makes at most `max_stops` stops per route (a custom constraint), and
+# a van that cannot fit a parcel restocks if the depot is near, else a courier takes the rest (a
+# custom recourse rule). The building blocks are in plugins.py.
+id: MyVariant-v1
+extends: SVRP-v1
 meta:
   name: Rural parcel collection with a stop limit
   status: experimental
-instance_source:
-  type: generator
-  name: villages
-  params: {n_customers: 24, n_villages: 4, spread: 6.0}
+instance_source: {type: files, paths: [instances/rural]}
 network: {type: euclidean, rounding: none}
-fleet:
-  sizing: fixed
-  types: [{name: van, capacity: 15, count: 6}]
+fleet: {sizing: fixed}
 decisions: {interface: next_node, epochs: on_event}
 uncertainty:
-  demand: {dist: triangular_demand, low: 0, mode: from_instance, high: 12, revealed: on_arrival}
+  demand: {revealed: on_arrival}
 constraints:
   capacity: {}
-  max_stops: {max: 5}
+  max_stops: {max: {from_instance: max_stops}}
 recourse:
-  capacity_failure: {rule: near_depot_restock, radius: 40, per_unit: 3.0}
+  capacity_failure:
+    rule: near_depot_restock
+    radius: {from_instance: restock_radius}
+    per_unit: {from_instance: courier_price}
 objective: {distance: 1.0, outsourcing: 1.0, unserved: 200.0}

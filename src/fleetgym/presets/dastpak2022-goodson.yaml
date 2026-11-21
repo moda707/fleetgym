@@ -1,0 +1,31 @@
+# The VRPSD with a duration limit of Goodson, Thomas and Ohlmann (2016), as used by Dastpak, Errico
+# and Jabali (Section 6.2, Appendix B.1.2): the first 75 customers of Solomon's R101 (their demands
+# as expected demands), 11 vehicles, duration limit L, capacity Q and demand variability U, with the
+# VRP-VCSD's decisions and objective. Instances: the example 10_vrpsd_goodson writes them from R101.
+preset: dastpak2022-goodson
+name: VRP with stochastic demands and a duration limit
+reference:
+  key: dastpak2022vcsd
+  title: Off-line approximate dynamic programming for the vehicle routing problem with a highly variable customer basis and stochastic demands
+  arxiv: "2109.10200"
+  sections: ["6.2.1", "B.1.2"]
+  also: goodson2016
+spec:
+  extends: SVRP-v1
+  network: {type: euclidean, rounding: none}
+  fleet: {sizing: fixed, multi_trip: true, end_route: when_nothing_reachable}
+  constraints:
+    capacity: {}
+    route_duration: {mode: hard}
+  recourse:
+    capacity_failure: {serve: what_fits, remainder: open}
+  decisions: {interface: next_node, epochs: on_event}
+  objective: {served_demand: -1.0}
+grid:
+  limit: [short, medium, long]
+  capacity: [25, 50, 75]
+  variability: [low, moderate, high]
+default: {limit: medium, capacity: 50, variability: moderate}
+instances: {folder: "{limit}-q{capacity}-{variability}"}
+notes:
+  - Not stated in the paper's text and assumed here; Euclidean distances without rounding, no service times or time windows.

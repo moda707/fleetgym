@@ -87,6 +87,6 @@ def test_shipped_configs_validate_against_the_schema(path: Path):
 
 def test_schema_rejects_unknown_keys_and_bad_values():
     validator = _validator()
-    raw = yaml.safe_load((SHIPPED.parent / "deterministic" / "CVRP-v0.yaml").read_text())
+    raw = yaml.safe_load((SHIPPED.parent / "deterministic" / "CVRP-v1.yaml").read_text())
     assert list(validator.iter_errors({**raw, "objectve": {"distance": 1}}))
     assert list(validator.iter_errors({**raw, "network": {"type": "euclidean", "rounding": "up"}}))

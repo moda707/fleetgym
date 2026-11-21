@@ -5,8 +5,8 @@
 # vehicle routing with stochastic demands: Bayesian learning for correlated demands and elementary
 # branch-price-and-cut*, European Journal of Operational Research 306 (2023), arXiv:2302.02538.
 # Section 6.1 benchmarks the classical VRPSD on CVRPLIB instances (sets A, E, P and four X
-# instances, among them X-n101-k25). This example reproduces that **setting** with `VRPSD-v0`, not
-# the paper's methods or results.
+# instances, among them X-n101-k25). This example reproduces that **setting** with the preset
+# `florio2023-vrpsd` (family `SVRP-v1`), not the paper's methods or results.
 #
 # **Problem.** "Customer demands follow Poisson distributions with rates as given by the
 # deterministic demands in the original instances" (Section 6.1); demands are revealed on arrival;
@@ -16,12 +16,12 @@
 # decisions, which a FleetGym policy can do by returning to the depot early). The objective is the
 # expected total distance.
 #
-# | Paper (Section 6.1) | FleetGym (`VRPSD-v0`) |
+# | Paper (Section 6.1) | FleetGym (preset `florio2023-vrpsd`) |
 # | --- | --- |
-# | Poisson demand, rate = the instance's demand, revealed on arrival | `uncertainty.demand: {dist: poisson, mean: from_instance, revealed: on_arrival}` |
+# | Poisson demand, rate = the instance's demand, revealed on arrival | the preset's `uncertainty.demand: {dist: poisson, mean: from_instance}` (CVRPLIB files carry no distribution) |
 # | restock at the depot, all demand served | `recourse: {capacity_failure: return_to_depot}` |
 # | unlimited fleet, load factor 1 | `fleet.sizing: unlimited`, the instance's capacity |
-# | CVRPLIB instance X-n101-k25 | `instance=` from the `cvrplib/X` collection |
+# | CVRPLIB instance X-n101-k25 | the preset's grid: 4 X instances of Table 5, downloaded with checksums |
 
 # %%
 import numpy as np
@@ -74,7 +74,7 @@ class PlannedRoutes(PolicyBase):
         return int(valid_actions(info)[0])
 
 
-env = fg.make("VRPSD-v0", instance=instance)
+env = fg.make_preset("florio2023-vrpsd", instance=NAME)
 costs = []
 for seed in range(100):
     result = run_episode(env, PlannedRoutes(solution.routes), seed=seed)

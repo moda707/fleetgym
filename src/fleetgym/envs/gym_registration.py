@@ -1,7 +1,7 @@
 """Register every config with Gymnasium under the ``fleetgym/`` namespace.
 
-After ``import fleetgym``, ``gymnasium.make("fleetgym/CVRP-v0")`` works. Without importing first,
-use Gymnasium's module prefix: ``gymnasium.make("fleetgym:fleetgym/CVRP-v0")``. Planned configs
+After ``import fleetgym``, ``gymnasium.make("fleetgym/CVRP-v1")`` works. Without importing first,
+use Gymnasium's module prefix: ``gymnasium.make("fleetgym:fleetgym/CVRP-v1")``. Planned configs
 and multi-agent configs (PettingZoo, see `fleetgym.make_multi`) are not registered.
 """
 

@@ -4,7 +4,8 @@
 * ``constraints`` merges by name (it is a map keyed by constraint name).
 * ``null`` in the child deletes the inherited key, so the default applies.
 * If a child map changes a discriminator (``dist``, ``type``, ``process``, ``model``,
-  ``function``, ``rule``), the subtree is replaced instead of merged.
+  ``function``, ``rule``), the subtree is replaced instead of merged. A recourse rule written as
+  ``rule`` in one and ``remainder`` in the other (two spellings of one choice) is replaced too.
 * ``objective`` is always replaced, never merged.
 * ``meta`` and ``id`` are never inherited.
 """
@@ -35,8 +36,23 @@ def drop_nulls(value: Any) -> Any:
     return value
 
 
+#: Keys that name the same choice in two spellings (a recourse rule: ``rule`` or ``remainder``).
+EQUIVALENT_DISCRIMINATORS = (("rule", "remainder"),)
+
+
 def _changes_discriminator(parent: Mapping[str, Any], child: Mapping[str, Any]) -> bool:
-    return any(d in parent and d in child and parent[d] != child[d] for d in DISCRIMINATORS)
+    if any(d in parent and d in child and parent[d] != child[d] for d in DISCRIMINATORS):
+        return True
+    for group in EQUIVALENT_DISCRIMINATORS:
+        parent_keys = {k for k in group if k in parent}
+        child_keys = {k for k in group if k in child}
+        if parent_keys and child_keys and parent_keys != child_keys:
+            return True
+    return any(
+        k in parent and k in child and parent[k] != child[k]
+        for group in EQUIVALENT_DISCRIMINATORS
+        for k in group
+    )
 
 
 def merge_maps(parent: Mapping[str, Any], child: Mapping[str, Any]) -> dict[str, Any]:

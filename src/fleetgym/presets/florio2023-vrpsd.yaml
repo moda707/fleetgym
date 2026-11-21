@@ -1,0 +1,24 @@
+# Florio, Gendreau, Hartl, Minner and Vidal (2023), Section 6.1: the classical VRPSD on CVRPLIB
+# instances, "Customer demands follow Poisson distributions with rates as given by the deterministic
+# demands in the original instances"; unlimited fleet with the original capacity (load factor 1);
+# demands revealed on arrival. The four X instances of their Table 5 are available here.
+preset: florio2023-vrpsd
+name: VRP with stochastic demands on CVRPLIB instances
+reference:
+  key: florio2023recent
+  title: "Recent advances in vehicle routing with stochastic demands: Bayesian learning for correlated demands and elementary branch-price-and-cut"
+  venue: European Journal of Operational Research 306 (2023)
+  arxiv: "2302.02538"
+  sections: ["2.2", "3.1", "6.1"]
+spec:
+  extends: SVRP-v1
+  uncertainty:
+    demand: {dist: poisson, mean: from_instance, revealed: on_arrival}
+grid:
+  instance: [X-n101-k25, X-n110-k13, X-n148-k46, X-n195-k51]
+default: {instance: X-n101-k25}
+instances: {collection: cvrplib/X, name: "{instance}"}
+notes:
+  - Benchmark files carry no demand distribution, so this preset gives it (Poisson with the instance's demands as means).
+  - The paper optimizes restocking decisions; the model uses detour-to-depot recourse, and a policy may restock early by returning to the depot.
+  - Sets A, E and P of the paper are not shipped with manifests yet.

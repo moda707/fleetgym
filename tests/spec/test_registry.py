@@ -97,7 +97,7 @@ def test_entry_points_add_config_folders(tmp_path: Path, monkeypatch: pytest.Mon
     monkeypatch.setattr(registry_module, "entry_points", lambda group: eps)
     reg = ConfigRegistry()
     ids = reg.ids(include_planned=True)
-    assert {"X-v0", "Y-v0", "CVRP-v0"} <= set(ids)
+    assert {"X-v0", "Y-v0", "CVRP-v1"} <= set(ids)
     assert reg.entry("X-v0").origin == "entry point from_callable"
 
 
@@ -117,9 +117,5 @@ def test_bad_entry_points(monkeypatch: pytest.MonkeyPatch, target):
 
 
 def test_package_registry_contains_the_shipped_configs():
-    assert set(REGISTRY.ids()) >= {"CVRP-v0", "VRPTW-v0"}
-    assert set(REGISTRY.ids(include_planned=True)) >= {
-        "DVRP-StochReq-v0",
-        "VRPSD-Outsource-v0",
-        "EVRP-NL-v0",
-    }
+    assert set(REGISTRY.ids()) == {"CVRP-v1", "VRPTW-v1", "SVRP-v1", "DVRP-v1"}
+    assert set(REGISTRY.ids(include_planned=True)) >= {"VRPSD-Outsource-v1", "EVRP-NL-v1"}

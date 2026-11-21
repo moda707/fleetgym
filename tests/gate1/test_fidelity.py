@@ -14,8 +14,8 @@ import pytest
 
 from fleetgym.data import read_instance, read_solution
 from fleetgym.data.download import fetch, load_collection
-from fleetgym.spec import load_spec
 from fleetgym.testing.replication import replay_solution
+from tests.families import spec_for
 
 X = load_collection("cvrplib/X")
 SOLOMON = load_collection("solomon/100")
@@ -25,7 +25,7 @@ def replay(name: str) -> None:
     instance = read_instance(fetch("cvrplib/X", name))
     solution = read_solution(fetch("cvrplib/X", name, kind="solution"))
     assert solution.cost == X.published_cost(name)
-    result = replay_solution(load_spec("CVRP-v0"), instance, solution)
+    result = replay_solution(spec_for("CVRP-v1"), instance, solution)
     assert result.feasible, result.errors
     assert result.validation is not None
     assert result.validation.ok, result.validation.violations
@@ -50,7 +50,7 @@ def replay_solomon(name: str) -> None:
     published = SOLOMON.info(name)
     instance = read_instance(fetch("solomon/100", name), fmt="solomon")
     solution = read_solution(fetch("solomon/100", name, kind="solution"))
-    spec = load_spec("VRPTW-v0")
+    spec = spec_for("VRPTW-v1")
     result = replay_solution(spec, instance, solution)
     assert result.feasible, result.errors
     assert result.validation is not None

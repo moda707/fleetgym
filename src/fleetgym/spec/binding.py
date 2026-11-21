@@ -25,16 +25,16 @@ from typing import Any
 import numpy as np
 
 from fleetgym.data.download import fetch, load_collection
-from fleetgym.data.generators import generate
 from fleetgym.data.instance import Instance
 from fleetgym.data.instance_set import read_instance_set
 from fleetgym.data.readers import read_instance
 from fleetgym.errors import ConfigError, InstanceError, NotInScopeError
 from fleetgym.spec.models import (
+    ArrivalSpec,
     CollectionSource,
     DistSpec,
+    DynamicsSpec,
     FilesSource,
-    GeneratorSource,
     ProblemSpec,
 )
 from fleetgym.spec.models.base import FROM_INSTANCE
@@ -68,7 +68,7 @@ SYMBOLIC_VALUES: tuple[tuple[str, str, str], ...] = (
 
 _SKIPPED_SECTIONS = ("meta", "ev")
 #: Paths whose ``from_instance`` is bound by dedicated code (vehicle types from the instance).
-_BOUND_ELSEWHERE = frozenset({"fleet.types", "fleet.shift"})
+_BOUND_ELSEWHERE = frozenset({"fleet.types", "fleet.shift", "network.rounding"})
 
 
 @dataclass(frozen=True)
@@ -105,6 +105,8 @@ class BoundProblem:
     """The distribution of each uncertainty source: the spec's, or else the instance's."""
     shift: tuple[float, float] | None = None
     """The working day (start, end): the spec's, or the instance's with ``from_instance``."""
+    dynamics: DynamicsSpec | None = None
+    """``spec.dynamics`` with every part the spec leaves out taken from the instance."""
 
     @property
     def spec_hash(self) -> str:
@@ -224,7 +226,78 @@ def bind(spec: ProblemSpec, instance: Instance) -> BoundProblem:
         vehicle_types=vehicle_types,
         distributions=MappingProxyType(dists),
         shift=_bind_shift(spec, instance),
+        dynamics=_bind_dynamics(spec, instance, refs),
     )
+
+
+def _instance_dist(
+    spec: ProblemSpec, instance: Instance, key: str, path: str, refs: dict[str, Any]
+) -> DistSpec | None:
+    """The instance's distribution ``key`` (field names resolved), or ``None`` if it has none."""
+    raw = instance.distributions.get(key)
+    if raw is None:
+        return None
+    fields = set(instance.keys()) | set(instance.extra)
+    data: dict[str, Any] = {}
+    for name, value in raw.items():
+        if (
+            name != "dist"
+            and isinstance(value, str)
+            and (value in _FIELD_ALIASES or value in fields)
+        ):
+            field_name = _FIELD_ALIASES.get(value, value)
+            refs[f"{path}.{name}"] = instance.get(field_name)
+            data[name] = {FROM_INSTANCE: field_name}
+        else:
+            data[name] = list(value) if isinstance(value, tuple) else value
+    try:
+        return DistSpec.model_validate(data)
+    except ValueError as exc:
+        raise _config_error(
+            spec, path, f"instance {instance.name!r} distributions.{key} is invalid: {exc}"
+        ) from None
+
+
+def _bind_dynamics(
+    spec: ProblemSpec, instance: Instance, refs: dict[str, Any]
+) -> DynamicsSpec | None:
+    dyn = spec.dynamics
+    if dyn is None:
+        return None
+    updates: dict[str, Any] = {}
+    if dyn.arrivals is None:
+        raw = instance.distributions.get("arrivals")
+        if raw is None:
+            raise _config_error(
+                spec,
+                "dynamics.arrivals",
+                f"the spec gives no arrival process and instance {instance.name!r} has no "
+                "distributions.arrivals",
+            )
+        try:
+            updates["arrivals"] = ArrivalSpec.model_validate(dict(raw))
+        except ValueError as exc:
+            raise _config_error(
+                spec,
+                "dynamics.arrivals",
+                f"instance {instance.name!r} distributions.arrivals is invalid: {exc}",
+            ) from None
+    request: dict[str, Any] = {}
+    for attr in ("location", "demand", "time_window_width", "service_time"):
+        if getattr(dyn.request_class, attr) is None:
+            path = f"dynamics.request_class.{attr}"
+            found = _instance_dist(spec, instance, f"request.{attr}", path, refs)
+            if found is not None:
+                request[attr] = found
+    if request:
+        updates["request_class"] = dyn.request_class.model_copy(update=request)
+    if dyn.cancellations is None:
+        found = _instance_dist(spec, instance, "cancellation", "dynamics.cancellations", refs)
+        if found is not None:
+            updates["cancellations"] = found
+    if dyn.cutoff is None and "cutoff" in instance.extra:
+        updates["cutoff"] = float(instance.extra["cutoff"])
+    return dyn.model_copy(update=updates) if updates else dyn
 
 
 def _bind_shift(spec: ProblemSpec, instance: Instance) -> tuple[float, float] | None:
@@ -256,33 +329,15 @@ def _bind_distribution(
     path = f"uncertainty.{name}"
     if dist is not None:
         return dist
-    raw = instance.distributions.get(name)
-    if raw is None:
+    found = _instance_dist(spec, instance, name, path, refs)
+    if found is None:
         raise _config_error(
             spec,
             path,
             f"the spec gives no distribution for {name!r} and instance {instance.name!r} has no "
             f"distributions.{name}",
         )
-    fields = set(instance.keys()) | set(instance.extra)
-    data: dict[str, Any] = {}
-    for key, value in raw.items():
-        if (
-            key != "dist"
-            and isinstance(value, str)
-            and (value in _FIELD_ALIASES or value in fields)
-        ):
-            field_name = _FIELD_ALIASES.get(value, value)
-            refs[f"{path}.{key}"] = instance.get(field_name)
-            data[key] = {FROM_INSTANCE: field_name}
-        else:
-            data[key] = list(value) if isinstance(value, tuple) else value
-    try:
-        return DistSpec.model_validate(data)
-    except ValueError as exc:
-        raise _config_error(
-            spec, path, f"instance {instance.name!r} distributions.{name} is invalid: {exc}"
-        ) from None
+    return found
 
 
 #: Schema field names that the instance stores under another key.
@@ -378,8 +433,9 @@ def _check_compatibility(
 def instance_from_source(spec: ProblemSpec, rng: np.random.Generator) -> Instance:
     """Draw an instance from ``spec.instance_source``.
 
-    A generator source generates a new instance from ``rng``. A files source picks one of its files
-    uniformly at random with ``rng``; relative paths resolve against the config file's folder.
+    A files source picks one of its files (or of its instance sets' files) uniformly at random with
+    ``rng``; relative paths resolve against the config file's folder. A collection source gives
+    its benchmark instance.
 
     Raises
     ------
@@ -389,14 +445,13 @@ def instance_from_source(spec: ProblemSpec, rng: np.random.Generator) -> Instanc
     source = spec.instance_source
     if source is None:
         raise ConfigError(
-            "no `instance_source`: pass an instance explicitly, or declare a generator or files",
+            "no instances: pass `instance=` (or reset options), or give `instance_source` (files, "
+            "an instance set, or a benchmark collection). FleetGym ships no instance generators: "
+            "write instances in the FleetGym format (fleetgym.data.write_instance)",
             source=spec.source,
             key_path="instance_source",
         )
     try:
-        if isinstance(source, GeneratorSource):
-            params = source.params if source.params is not None else {}
-            return generate(source.name, _thaw(params), rng)
         if isinstance(source, CollectionSource):
             return collection_instance(source)
         assert isinstance(source, FilesSource)
@@ -423,6 +478,8 @@ def source_files(spec: ProblemSpec) -> list[Path]:
         path = Path(entry)
         if not path.is_absolute() and spec.source is not None and not spec.source.startswith("<"):
             path = Path(spec.source).parent / path
+        if not path.exists():
+            raise InstanceError(f"{path}: no such instance file or folder")
         files += list(read_instance_set(path).paths) if path.is_dir() else [path]
     return files
 

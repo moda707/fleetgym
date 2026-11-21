@@ -12,6 +12,7 @@ from fleetgym.testing.strategies import random_masked_rollout
 from fleetgym.testing.validator import validate
 from fleetgym.uncertainty.sampling import resample_unrevealed, sample_scenario
 from fleetgym.uncertainty.scenario import Scenario
+from tests.families import instance_source, make_env
 
 DEMAND = {"dist": "poisson", "mean": "from_instance", "revealed": "on_arrival"}
 SERVICE = {"dist": "gamma", "shape": 2.0, "mean": 3.0, "revealed": "on_completion"}
@@ -20,7 +21,8 @@ SERVICE = {"dist": "gamma", "shape": 2.0, "mean": 3.0, "revealed": "on_completio
 def stochastic(**uncertainty) -> ProblemSpec:
     return load_spec(
         {
-            "extends": "CVRP-v0",
+            "extends": "CVRP-v1",
+            "instance_source": instance_source("cvrp"),
             "uncertainty": uncertainty or {"demand": DEMAND},
             "recourse": {"capacity_failure": "return_to_depot"},
         }
@@ -110,7 +112,7 @@ def test_replay_gives_the_identical_trajectory_and_mismatches_raise():
             },
         )
     with pytest.raises(ValueError, match="no uncertain parameters"):
-        fg.make("CVRP-v0").reset(seed=0, options={"scenario": scenario})
+        make_env("CVRP-v1").reset(seed=0, options={"scenario": scenario})
     with pytest.raises(ValueError, match="scenario"):
         validate(env.event_log, spec, instance)
 

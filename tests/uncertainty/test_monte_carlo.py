@@ -22,13 +22,15 @@ Z = stats.norm.ppf(1 - 0.001 / 2)  # 99.9% two-sided
 
 
 def test_poisson_mean_cost_is_within_the_confidence_interval():
-    instance = Instance(name="mc", source="test", demands=MEANS, coords=COORDS, capacity=Q)
-    spec = load_spec(
-        {
-            "extends": "VRPSD-v0",
-            "network": {"type": "euclidean", "rounding": "none"},
-        }
+    instance = Instance(
+        name="mc",
+        source="test",
+        demands=MEANS,
+        coords=COORDS,
+        capacity=Q,
+        distributions={"demand": {"dist": "poisson", "mean": "demand"}},
     )
+    spec = load_spec({"extends": "SVRP-v1", "network": {"type": "euclidean", "rounding": "none"}})
     env = FleetGymEnv(spec, instance=instance)
     policy = AprioriRoute(ORDER)
     costs = np.array([policy.run(env, seed=seed) for seed in range(N)])

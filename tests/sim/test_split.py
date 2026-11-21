@@ -20,6 +20,7 @@ from fleetgym.spec import load_spec
 from fleetgym.testing.non_anticipativity import check_non_anticipativity
 from fleetgym.testing.validator import validate
 from fleetgym.uncertainty.scenario import Scenario
+from tests.families import spec_for
 
 LINE = Instance(
     name="line",
@@ -272,7 +273,7 @@ def test_reload_time_comes_from_the_instance_and_delays_departure():
 
 
 def test_planned_routing_rejects_fleet_behaviors():
-    raw = fg.load_spec("DVRP-StochReq-v0").to_dict()
+    raw = spec_for("DVRP-v1").to_dict()
     raw["fleet"]["multi_trip"] = True
     with pytest.raises(NotInScopeError, match=r"fleet\.multi_trip"):
         fg.make(load_spec(raw)).reset(seed=0)

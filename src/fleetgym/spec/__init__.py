@@ -5,7 +5,7 @@ Frozen pydantic models, YAML loading, merging and the config registry.
 Examples
 --------
 >>> from fleetgym.spec import load_spec
->>> spec = load_spec("CVRP-v0")
+>>> spec = load_spec("CVRP-v1")
 >>> spec.decisions.interface
 'next_node'
 """

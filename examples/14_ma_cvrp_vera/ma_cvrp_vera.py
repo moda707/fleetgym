@@ -11,11 +11,10 @@
 # total route length of all vehicles, serving every customer. Instance VRP20 (Table 1): 20
 # customers, 3 vehicles of capacities 20, 30 and 35.
 #
-# | Paper | FleetGym (`MA-CVRP-v0` with overrides) |
+# | Paper | FleetGym (preset `vera2019-hetfleet`) |
 # | --- | --- |
-# | 3 vehicles, capacities 20, 30, 35 | three vehicle types with `count: 1` |
-# | depot and customers uniform in the unit square | generator `uniform`, `size: 1`, `depot: random` |
-# | demands: integers 1-9 (Algorithm 1) | `demand: {low: 1, high: 9}` |
+# | 3 vehicles, capacities 20, 30, 35 | the instance: three vehicle types with `count: 1` |
+# | depot and customers uniform in the unit square, demands 1-9 | the instances (`instances.py`) |
 # | refill at the depot and continue | `fleet.multi_trip: true` |
 # | total length, all customers served | `objective: {distance: 1, unserved: 100}` |
 # | one vehicle acts at a time | PettingZoo AEC |
@@ -25,39 +24,22 @@
 # order at every step; here the vehicle that becomes free first acts (ties by index).
 
 # %%
-import numpy as np
+import inspect
+import sys
+from pathlib import Path
 
-import fleetgym as fg
-from fleetgym.testing.validator import validate
+HERE = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+sys.path.insert(0, str(HERE))  # this folder's instances.py
 
-VRP20 = {
-    "extends": "MA-CVRP-v0",
-    "instance_source": {
-        "type": "generator",
-        "name": "uniform",
-        "params": {
-            "n_customers": 20,
-            "size": 1.0,
-            "depot": "random",
-            "demand": {"low": 1, "high": 9},
-        },
-    },
-    "network": {"type": "euclidean", "rounding": "none"},
-    "fleet": {
-        "sizing": "fixed",
-        "types": [
-            {"name": "small", "capacity": 20, "count": 1},
-            {"name": "medium", "capacity": 30, "count": 1},
-            {"name": "large", "capacity": 35, "count": 1},
-        ],
-        "multi_trip": True,
-        "end_route": "when_nothing_reachable",
-    },
-    "objective": {"distance": 1.0, "unserved": 100.0},
-    "agents": {"mode": "multi", "api": "aec", "reward": "global"},
-}
-spec = fg.load_spec(VRP20)
-env = fg.make_multi(spec, api="aec")
+import instances  # noqa: E402
+import numpy as np  # noqa: E402
+
+import fleetgym as fg  # noqa: E402
+from fleetgym.testing.validator import validate  # noqa: E402
+
+print(inspect.getsource(instances.vera_instance))
+instances.write_vera("instances", n_instances=5, seed=0)
+env = fg.make_preset("vera2019-hetfleet", instances="instances", size="vrp20")
 env.reset(seed=0)
 print("agents:", env.agents)
 

@@ -11,7 +11,7 @@ from fleetgym.envs.multi import FleetGymAECEnv, FleetGymParallelEnv
 from fleetgym.errors import ConfigError
 from fleetgym.spec import ProblemSpec, load_spec
 
-__all__ = ["make", "make_multi"]
+__all__ = ["make", "make_multi", "make_preset"]
 
 
 def make(
@@ -25,7 +25,7 @@ def make(
     Parameters
     ----------
     env
-        Environment ID (``"CVRP-v0"``), path to a YAML config, or a `ProblemSpec`.
+        Environment ID (``"CVRP-v1"``), path to a YAML config, or a `ProblemSpec`.
     overrides
         Dotted-path overrides, for example ``["fleet.types.0.capacity=80"]``.
     **env_kwargs
@@ -97,3 +97,39 @@ def make_multi(
     if chosen == "parallel":
         return FleetGymParallelEnv(spec, **env_kwargs)
     return FleetGymAECEnv(spec, **env_kwargs)
+
+
+def make_preset(
+    name: str,
+    *,
+    instances: str | Path | None = None,
+    env_kwargs: Mapping[str, Any] | None = None,
+    **choice: Any,
+) -> FleetGymEnv | FleetGymAECEnv | FleetGymParallelEnv:
+    """Make the environment of a paper preset at one point of its grid.
+
+    Parameters
+    ----------
+    name
+        The preset, for example ``"dastpak2022-vcsd"`` (see `fleetgym.preset_names`).
+    instances
+        The folder the paper's example wrote the instances to (presets whose instances are
+        generated); benchmark presets download theirs.
+    env_kwargs
+        Keyword arguments for the environment (``render_mode``, ``max_nodes``, ...).
+    **choice
+        Grid values, for example ``density="high", capacity=25``; the rest are the defaults.
+
+    Returns
+    -------
+    FleetGymEnv, or a PettingZoo environment when the preset is multi-agent.
+    """
+    from fleetgym.spec.presets import load_preset
+
+    spec = load_preset(name).spec(instances, **choice)
+    kwargs = dict(env_kwargs or {})
+    if spec.agents.mode == "multi":
+        if spec.agents.api == "parallel":
+            return make_multi(spec, api="parallel", **kwargs)
+        return make_multi(spec, api="aec", **kwargs)
+    return make(spec, **kwargs)

@@ -1,0 +1,17 @@
+{
+ "format": "fleetgym-instance-set/1",
+ "name": "tests/fleet",
+ "schema": "fleetgym/core/1",
+ "reference": "FleetGym test suite",
+ "produced_by": "tests/fixtures/sets/build.py",
+ "max_nodes": 21,
+ "max_vehicles": 4,
+ "files": {
+  "0001.json": "785847a49421ba2af1bed57f791f6c2a8f383e849d20aa6b5bad7f8b271623a1",
+  "0002.json": "1251af9dbaee82aa401e2074238bd514671e784207e19c74830f2cc19233a21b",
+  "0003.json": "b3b5df12c16d889be3bd5965514e6a8c49cd21772baa8ef7bfd5b9f9b50876e1",
+  "0004.json": "dff8e367dc4dbf59d0f2e8e8c9afd4eca02707ce780cea79f2a3acd8c6b1030f",
+  "0005.json": "371d5b0b7ba6523517c569572f6850932b84db7c8b560716b193bc1844be233a",
+  "0006.json": "d09f17a033b6d3f391fc0e41b05144b8e02c5b21c817dc4b681622076db4b3c0"
+ }
+}

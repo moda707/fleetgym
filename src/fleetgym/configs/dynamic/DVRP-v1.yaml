@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# Dynamic VRP: requests arrive during the day and are accepted or rejected; accepted requests are
+# inserted where they are cheapest. The instance gives the arrival process, the request
+# distributions and the cutoff (`distributions.arrivals`, `distributions.request.*`, global
+# `cutoff`), plus the fleet and time windows.
+id: DVRP-v1
+extends: VRPTW-v1
+meta:
+  name: Dynamic VRP with stochastic requests
+  status: experimental
+  references: [bent2004, hvattum2006]
+fleet: {sizing: fixed}
+dynamics: {max_requests: 250}
+decisions: {epochs: on_event, interface: accept_reject, routing: cheapest_insertion}
+objective: {distance: 1.0, rejected: 50.0}

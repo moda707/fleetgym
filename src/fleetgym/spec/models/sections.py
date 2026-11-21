@@ -22,8 +22,6 @@ from pydantic import (
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import CoreSchema
 
-from fleetgym.data.generators import validate_generator_params
-from fleetgym.plugins import PluginError
 from fleetgym.spec.models.base import (
     FlatPluginModel,
     FrozenJSON,
@@ -34,7 +32,6 @@ from fleetgym.spec.models.base import (
     PositiveOrRef,
     ReservedParams,
     StatusLiteral,
-    deep_thaw,
     reraise_nested,
     validate_plugin_params,
 )
@@ -61,7 +58,6 @@ __all__ = [
     "DynamicsSpec",
     "FilesSource",
     "FleetSpec",
-    "GeneratorSource",
     "InstanceSourceSpec",
     "Meta",
     "NetworkSpec",
@@ -112,37 +108,6 @@ class Meta(FrozenModel):
 # --------------------------------------------------------------------------- instance source
 
 
-class GeneratorSource(FrozenModel):
-    """Generate a fresh instance per episode with a registered generator.
-
-    ``params`` are checked against the generator's parameter model when the config is loaded.
-    """
-
-    type: Literal["generator"] = "generator"
-    name: str
-    params: FrozenJSON = None
-
-    @model_validator(mode="after")
-    def _known_generator(self) -> GeneratorSource:
-        try:
-            validate_generator_params(self.name, deep_thaw(self.params) if self.params else {})
-        except PluginError as exc:
-            raise ValidationError.from_exception_data(
-                type(self).__name__,
-                [
-                    {
-                        "type": "value_error",
-                        "loc": ("name",),
-                        "input": self.name,
-                        "ctx": {"error": ValueError(str(exc))},
-                    }
-                ],
-            ) from None
-        except ValidationError as exc:
-            raise reraise_nested(exc, type(self).__name__, ("params",)) from None
-        return self
-
-
 class FilesSource(FrozenModel):
     """Load instances from files or instance sets (relative paths resolve against the config file).
 
@@ -191,9 +156,7 @@ class CollectionSource(FrozenModel):
         return self
 
 
-InstanceSourceSpec = Annotated[
-    GeneratorSource | FilesSource | CollectionSource, Field(discriminator="type")
-]
+InstanceSourceSpec = Annotated[FilesSource | CollectionSource, Field(discriminator="type")]
 
 
 # --------------------------------------------------------------------------- network
@@ -206,14 +169,16 @@ class EuclideanParams(FrozenModel):
     ----------
     rounding
         ``none`` keeps double precision. ``nearest_int`` rounds each arc to the nearest integer,
-        as in the TSPLIB ``EUC_2D`` convention.
+        as in the TSPLIB ``EUC_2D`` convention. ``from_instance``: the instance's convention, its
+        global ``edge_weight_type`` (``EUC_2D`` rounds to the nearest integer; no value or
+        ``EXACT_2D`` keeps double precision).
     speed
         Travel time equals distance divided by ``speed``.
     time_model
         Reserved for time-dependent travel (not in this version).
     """
 
-    rounding: Literal["none", "nearest_int"] = "none"
+    rounding: Literal["none", "nearest_int", "from_instance"] = "none"
     speed: PositiveFloat = 1.0
     time_model: FrozenJSON = None
 
@@ -300,6 +265,22 @@ class FleetSpec(FrozenModel):
     @field_serializer("types")
     def _types_out(self, value: tuple[VehicleTypeSpec, ...]) -> Any:
         return "from_instance" if not value else [t.model_dump(mode="json") for t in value]
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, core_schema: CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        schema = handler.resolve_ref_schema(handler(core_schema))
+        types = schema["properties"]["types"]
+        schema["properties"]["types"] = {
+            "anyOf": [
+                {k: v for k, v in types.items() if k != "default"},
+                {"const": "from_instance"},
+            ],
+            "default": "from_instance",
+            "description": "The instance's vehicle types (from_instance), or explicit types",
+        }
+        return schema
 
     @model_validator(mode="after")
     def _consistent(self) -> FleetSpec:
@@ -521,6 +502,12 @@ class RequestClassSpec(FrozenModel):
 class DynamicsSpec(FrozenModel):
     """Requests arriving during the day.
 
+    The model declares that requests arrive and how they are handled; the numbers may come from
+    each instance (ADR 0023): the instance's ``distributions`` block gives ``arrivals`` (the
+    process, written like the spec's), ``request.location``, ``request.demand``,
+    ``request.time_window_width``, ``request.service_time`` and ``cancellation``, and its global
+    ``cutoff`` field the cutoff. What the spec gives is used first.
+
     Attributes
     ----------
     cutoff
@@ -536,7 +523,7 @@ class DynamicsSpec(FrozenModel):
         for the location distribution).
     """
 
-    arrivals: ArrivalSpec
+    arrivals: ArrivalSpec | None = None
     request_class: RequestClassSpec = Field(default_factory=RequestClassSpec)
     cutoff: NonNegativeFloat | None = None
     cancellations: DistSpec | None = None

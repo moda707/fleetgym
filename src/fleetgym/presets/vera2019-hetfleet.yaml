@@ -1,0 +1,25 @@
+# Vera and Abad (2019), Sections 3.1 and 4, Table 1: a fixed fleet of vehicles with different
+# capacities, each an agent; depot and customers uniform in the unit square; vehicles refill at the
+# depot and continue; total route length, every customer served. Instances: the example
+# 14_ma_cvrp_vera writes them.
+preset: vera2019-hetfleet
+name: Multi-agent CVRP with a heterogeneous fleet
+reference:
+  key: vera2019deep
+  title: Deep Reinforcement Learning for Routing a Heterogeneous Fleet of Vehicles
+  arxiv: "1912.03341"
+  sections: ["3.1", "4", "5"]
+spec:
+  extends: CVRP-v1
+  network: {type: euclidean, rounding: none}
+  fleet: {sizing: fixed, multi_trip: true, end_route: when_nothing_reachable}
+  decisions: {interface: next_node, epochs: on_event}
+  objective: {distance: 1.0, unserved: 100.0}
+  agents: {mode: multi, api: aec, reward: global}
+grid:
+  size: [vrp10, vrp20, vrp50, vrp80]
+default: {size: vrp20}
+instances: {folder: "{size}"}
+notes:
+  - The text gives demands uniform on 11..99 but Algorithm 1 uses 1..9; 1..9 is the one consistent with the capacities.
+  - The paper's vehicles act in a fixed alternating order; here the vehicle that becomes free first acts.

@@ -1,14 +1,14 @@
 {
-  "CVRP/insertion": 472.0,
-  "CVRP/nearest": 580.0,
-  "CVRP/random": 1339.0,
-  "DVRP-accept/insertion": 5854.685825,
-  "DVRP-accept/nearest": 5854.685825,
-  "DVRP-accept/random": 5759.003499,
-  "VRPSD/insertion": 551.0,
-  "VRPSD/nearest": 526.0,
-  "VRPSD/random": 1339.0,
-  "VRPTW/insertion": 3000681.137994,
-  "VRPTW/nearest": 6000730.11823,
-  "VRPTW/random": 10001356.759853
+  "CVRP/insertion": 522.56407,
+  "CVRP/nearest": 491.146432,
+  "CVRP/random": 1100.163412,
+  "DVRP-accept/insertion": 5718.91473,
+  "DVRP-accept/nearest": 5718.91473,
+  "DVRP-accept/random": 6008.956692,
+  "VRPSD/insertion": 545.201553,
+  "VRPSD/nearest": 551.932148,
+  "VRPSD/random": 1100.163412,
+  "VRPTW/insertion": 4000699.185853,
+  "VRPTW/nearest": 5000695.764532,
+  "VRPTW/random": 12001314.897172
 }

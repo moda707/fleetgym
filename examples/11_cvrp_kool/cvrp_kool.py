@@ -4,73 +4,50 @@
 # **Paper.** W. Kool, H. van Hoof and M. Welling, *Attention, Learn to Solve Routing Problems!*,
 # ICLR 2019, arXiv:1803.08475 (Appendix C.1). Their instance distribution, taken from Nazari et
 # al. (2018), is the standard benchmark of neural VRP solvers. This example reproduces the problem
-# **setting** with `CVRP-v0`, not the model or its results.
+# **setting** with the preset `kool2019-cvrp`, not the model or its results.
 #
-# **Problem.** One depot and `n` customers, all uniform in the unit square; integer demands
-# uniform on {1, ..., 9}; capacity 30, 40 or 50 for n = 20, 50 or 100. Routes start and end at the
-# depot and carry at most the capacity; the objective is the total length. There is no fleet limit
-# (one vehicle making as many routes as needed).
+# **Problem.** One depot and `n` customers, all uniform in the unit square; integer demands uniform
+# on {1, ..., 9}; capacity 30, 40 or 50 for n = 20, 50 or 100. Routes start and end at the depot and
+# carry at most the capacity; the objective is the total length, with any number of routes.
 #
 # | Paper | FleetGym |
 # | --- | --- |
-# | depot and customers uniform in the unit square | generator `uniform`, `size: 1`, `depot: random` |
-# | demands uniform on {1..9}, capacity 30 / 40 / 50 | `demand: {low: 1, high: 9}`, `capacity` |
+# | depot and customers uniform in the unit square, demands 1..9, capacity by n | the instances (`instances.py`) |
+# | total route length, any number of routes | `CVRP-v1`: distance objective, unlimited fleet |
+# | Euclidean distance (implied; not stated in the paper) | no rounding (the instances carry no `edge_weight_type`) |
 # | demands normalized by the capacity | not needed: the same instance in other units |
-# | total route length, any number of routes | `objective: {distance: 1}`, `fleet.sizing: unlimited` |
-# | Euclidean distance (implied; not stated in the paper) | `network: {type: euclidean, rounding: none}` |
 # | the depot is never visited twice in a row | a route cannot be empty (same effect) |
 
 # %%
-import numpy as np
+import inspect
+import sys
+from pathlib import Path
 
-import fleetgym as fg
-from fleetgym.baselines import NearestNeighbor, RandomPolicy, run_episode
+HERE = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+sys.path.insert(0, str(HERE))  # this folder's instances.py
 
-CAPACITY = {20: 30, 50: 40, 100: 50}  # paper, Appendix C.1
+import instances  # noqa: E402
+import numpy as np  # noqa: E402
 
+import fleetgym as fg  # noqa: E402
+from fleetgym.baselines import NearestNeighbor, RandomPolicy, run_episode  # noqa: E402
 
-def kool_spec(n: int) -> fg.ProblemSpec:
-    """CVRP-v0 with the instance distribution of Kool et al. for ``n`` customers."""
-    return fg.load_spec(
-        {
-            "extends": "CVRP-v0",
-            "instance_source": {
-                "type": "generator",
-                "name": "uniform",
-                "params": {
-                    "n_customers": n,
-                    "size": 1.0,
-                    "depot": "random",
-                    "demand": {"low": 1, "high": 9},
-                    "capacity": CAPACITY[n],
-                },
-            },
-            "network": {"type": "euclidean", "rounding": "none"},
-        }
-    )
-
-
-env = fg.make(kool_spec(20))
-obs, info = env.reset(seed=0)
-instance = env.base_instance
-print(instance.n_customers, "customers, capacity", instance.capacity)
-print("demands:", instance.demands[1:].astype(int))
+print(inspect.getsource(instances.kool_instance))
+sets = instances.write_kool("instances", n_instances=50, seed=0)
+print({n: len(s) for n, s in sets.items()})
 
 # %% [markdown]
-# ## Baselines on fresh instances
+# ## Baselines on held-out instances
 #
-# Each seed draws a new instance. Learned policies are trained on this distribution and evaluated
-# on held-out instances (the paper uses 10,000 test instances).
+# Each episode draws an instance from the set. Learned policies are trained on this distribution
+# and evaluated on other instances (the paper uses 10,000 test instances).
 
 # %%
 for n in (20, 50, 100):
-    env = fg.make(kool_spec(n))
+    env = fg.make_preset("kool2019-cvrp", instances="instances", n=n)
     for policy in (RandomPolicy(), NearestNeighbor()):
-        lengths = [run_episode(env, policy, seed=s).costs["distance"] for s in range(50)]
-        routes = len(env.event_log.of_kind("route_end"))
-        print(
-            f"n={n:3d} {policy.name:>8}: mean length {np.mean(lengths):6.2f} ({routes} routes in the last)"
-        )
+        lengths = [run_episode(env, policy, seed=s).costs["distance"] for s in range(20)]
+        print(f"n={n:3d} {policy.name:>8}: mean length {np.mean(lengths):6.2f}")
 
 # %% [markdown]
 # The observation is a padded graph (`obs["nodes"]`: coordinates, demand, flags) with an action

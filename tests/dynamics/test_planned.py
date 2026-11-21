@@ -17,6 +17,7 @@ from fleetgym.testing.non_anticipativity import check_non_anticipativity
 from fleetgym.testing.strategies import instances, random_masked_rollout
 from fleetgym.testing.validator import validate
 from fleetgym.uncertainty.scenario import Scenario
+from tests.families import instance_source, make_env
 from tests.gate1.oracle import Rules, route_feasible
 
 
@@ -147,7 +148,8 @@ def test_planned_routing_scope_checks():
     with pytest.raises(ConfigError, match="rejected"):
         FleetGymEnv(no_reject, instance=LINE).reset(seed=0)
     dyn_next = {
-        "extends": "DVRP-StochReq-v0",
+        "extends": "DVRP-v1",
+        "instance_source": instance_source("dvrp"),
         "decisions": {"epochs": "on_event", "interface": "next_node"},
     }
     env_next = fg.make(dyn_next)
@@ -179,7 +181,8 @@ def test_outsourcing_option():
 
 
 DYN = {
-    "extends": "DVRP-StochReq-v0",
+    "extends": "DVRP-v1",
+    "instance_source": instance_source("dvrp"),
     "dynamics": {
         "arrivals": {"process": "poisson", "rate": 0.15},
         "cutoff": 300,
@@ -274,7 +277,7 @@ def random_masked_rollout_from_here(env):
 @pytest.mark.parametrize("seed", [0, 1])
 def test_dynamic_configs_are_non_anticipative(seed):
     assert check_non_anticipativity(fg.make(DYN), seed=seed, n_forks=2) > 0
-    assert check_non_anticipativity(fg.make("DVRP-StochReq-v0"), seed=seed, n_forks=1) > 0
+    assert check_non_anticipativity(make_env("DVRP-v1"), seed=seed, n_forks=1) > 0
 
 
 def test_validator_catches_dynamic_corruptions():

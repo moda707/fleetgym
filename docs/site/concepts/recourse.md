@@ -23,7 +23,7 @@ Each visit that delivers something takes the customer's service time.
 With `split`, the policy decides when to restock: every trip to the depot during the day empties
 the vehicle and the route goes on. `end_early: false` (the paper's rule) lets a vehicle end its day
 only when no customer is reachable. Because `split` never forces travel, it is the one rule that may
-be combined with a route-duration or shift limit (`VRP-VCSD-v0`, `VRPSD-Goodson-v0`).
+be combined with a route-duration or shift limit (presets `dastpak2022-vcsd`, `dastpak2022-goodson`).
 
 Expected costs are verified exactly: over all 1,024 scenarios of a small instance, the environment's
 expected cost of an a priori route equals an independent dynamic program to 1e-9 for every

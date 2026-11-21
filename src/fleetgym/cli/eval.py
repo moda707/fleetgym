@@ -2,8 +2,8 @@
 
 Examples::
 
-    fleetgym eval CVRP-v0 --model runs/cvrp --episodes 32 --out runs/cvrp/report.json
-    fleetgym eval CVRP-v0 --baseline nearest --episodes 32
+    fleetgym eval CVRP-v1 --instances data/cvrp --model runs/cvrp --out runs/cvrp/report.json
+    fleetgym eval CVRP-v1 --instances data/cvrp --baseline nearest --episodes 32
 
 Seeds come from `fleetgym.eval.scenario_seeds` (``--split``, default ``test``). Every episode is
 validated. The report card is printed as JSON, and written to ``--out`` if given.
@@ -17,9 +17,9 @@ from pathlib import Path
 from typing import Any
 
 from fleetgym.baselines import CheapestInsertion, NearestNeighbor, RandomPolicy
+from fleetgym.cli.common import add_instances_argument, load_with_instances
 from fleetgym.errors import ConfigError
 from fleetgym.eval import evaluate, report_card, scenario_seeds, write_report_card
-from fleetgym.spec import load_spec
 
 __all__ = ["BASELINES", "add_parser"]
 
@@ -43,6 +43,7 @@ def add_parser(subparsers: Any) -> None:
     parser.add_argument("--split", choices=("train", "validation", "test"), default="test")
     parser.add_argument("--reference", choices=sorted(BASELINES), help="baseline to compare with")
     parser.add_argument("--out", type=Path, help="write the report card here")
+    add_instances_argument(parser)
     parser.set_defaults(handler=_run)
 
 
@@ -64,7 +65,7 @@ def _model_policy(directory: Path) -> Any:
 
 
 def _run(args: argparse.Namespace) -> int:
-    spec = load_spec(args.env)
+    spec = load_with_instances(args.env, args.instances)
     env_id = spec.id or str(args.env)
     seeds = scenario_seeds(env_id, args.split, args.episodes)
     training: dict[str, Any] = {}
@@ -75,8 +76,8 @@ def _run(args: argparse.Namespace) -> int:
         training = run
     else:
         policy = BASELINES[args.baseline]()
-    result = evaluate(args.env, policy, seeds)
-    reference = evaluate(args.env, BASELINES[args.reference](), seeds) if args.reference else None
+    result = evaluate(spec, policy, seeds)
+    reference = evaluate(spec, BASELINES[args.reference](), seeds) if args.reference else None
     card = report_card(result, reference=reference, training=training)
     if args.out is not None:
         write_report_card(card, args.out)

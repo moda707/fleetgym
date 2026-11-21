@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# Planned, after v0.1 (deferred by the user on 2026-11-20): the VRP-SDO decision is a selection on
+# top of routing and needs its own interface. Model, parameters and instances will come from the
+# VRP-SDO paper. The recourse and outsourcing settings below are provisional.
+id: VRPSD-Outsource-v1
+extends: CVRP-v1
+meta:
+  name: Stochastic demands with outsourcing
+  status: planned
+  references: [vrpsdo_under_review]
+fleet:
+  sizing: fixed
+  types: [{name: truck, capacity: from_instance, count: from_instance}]
+uncertainty:
+  demand: {dist: poisson, mean: from_instance, revealed: on_arrival}
+constraints:
+  outsourcing: {cost: per_customer, value: from_instance}
+# Provisional until Gate 2: the policy chooses between restocking and outsourcing.
+recourse:
+  capacity_failure: {rule: agent_decides, per_customer: {from_instance: outsourcing_costs}}
+decisions: {epochs: on_event, interface: next_node}
+objective: {distance: 1.0, outsourcing: 1.0}

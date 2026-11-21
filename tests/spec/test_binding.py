@@ -10,6 +10,7 @@ from fleetgym.errors import ConfigError, NotInScopeError
 from fleetgym.network import EuclideanNetwork, MatrixNetwork, build_network
 from fleetgym.spec import load_spec
 from fleetgym.spec.binding import bind, instance_from_source
+from tests.families import spec_for
 from tests.spec.helpers import spec_dict, write_yaml
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "instances"
@@ -163,14 +164,14 @@ def test_multiple_depots_are_rejected():
 
 
 def test_planned_specs_cannot_be_bound():
-    with pytest.raises(NotInScopeError, match=r"EVRP-NL-v0 is planned.*reserved features: ev"):
-        bind(load_spec("EVRP-NL-v0"), tiny())
-    with pytest.raises(NotInScopeError, match="VRPSD-Outsource-v0 is planned"):
-        bind(load_spec("VRPSD-Outsource-v0"), tiny())
+    with pytest.raises(NotInScopeError, match=r"EVRP-NL-v1 is planned.*reserved features: ev"):
+        bind(load_spec("EVRP-NL-v1"), tiny())
+    with pytest.raises(NotInScopeError, match="VRPSD-Outsource-v1 is planned"):
+        bind(load_spec("VRPSD-Outsource-v1"), tiny())
 
 
 def test_build_network_follows_the_spec():
-    euclid = build_network(bind(load_spec("CVRP-v0"), tiny()))
+    euclid = build_network(bind(spec_for("CVRP-v1"), tiny()))
     assert isinstance(euclid, EuclideanNetwork)
     assert euclid.distance(0, 4) == 3.0  # nearest_int: 2.5 rounds up
     plain = build_network(bind(load_spec(spec_dict()), tiny()))
@@ -186,7 +187,7 @@ def test_build_network_follows_the_spec():
 
 
 def test_instance_from_generator_source():
-    spec = load_spec("VRPTW-v0")
+    spec = spec_for("VRPTW-v1")
     a = instance_from_source(spec, np.random.default_rng(1))
     b = instance_from_source(spec, np.random.default_rng(1))
     assert a.content_hash() == b.content_hash()
@@ -209,10 +210,10 @@ def test_instance_from_files_source(tmp_path: Path):
 
 
 def test_instance_source_errors(tmp_path: Path):
-    with pytest.raises(ConfigError, match="no `instance_source`"):
+    with pytest.raises(ConfigError, match="ships no instance generators"):
         instance_from_source(load_spec(spec_dict()), np.random.default_rng(0))
     spec = load_spec(
         spec_dict(instance_source={"type": "files", "paths": [str(tmp_path / "nope.vrp")]})
     )
-    with pytest.raises(ConfigError, match="not found"):
+    with pytest.raises(ConfigError, match="no such instance file or folder"):
         instance_from_source(spec, np.random.default_rng(0))

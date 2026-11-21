@@ -23,16 +23,13 @@ from fleetgym.agents import (  # noqa: E402
     sb3_defaults,
 )
 from fleetgym.cli.__main__ import main  # noqa: E402
+from tests.families import SETS, instance_source  # noqa: E402
 
 pytestmark = pytest.mark.extras_sb3
 
 TINY = {
-    "extends": "CVRP-v0",
-    "instance_source": {
-        "type": "generator",
-        "name": "uniform",
-        "params": {"n_customers": 4, "size": 20, "capacity": 10, "demand": {"low": 1, "high": 3}},
-    },
+    "extends": "CVRP-v1",
+    "instance_source": instance_source("tiny"),
 }
 
 
@@ -98,18 +95,30 @@ def test_helpers_and_callbacks(tmp_path):
 @pytest.mark.parametrize("algo", ["maskable_ppo", "maskable_dqn"])
 def test_cli_train_then_eval(tmp_path: Path, algo: str, capsys):
     out = tmp_path / algo
-    args = ["train", "CVRP-v0", "--algo", algo, "--policy", "mlp", "--steps", "1000"]
+    data = ["--instances", str(SETS / "cvrp")]
+    args = ["train", "CVRP-v1", *data, "--algo", algo, "--policy", "mlp", "--steps", "1000"]
     assert main([*args, "--n-envs", "2", "--embed-dim", "16", "--out", str(out)]) == 0
     run = json.loads((out / "run.json").read_text())
     assert run["algo"] == algo and run["steps"] == 1000
     report = tmp_path / "report.json"
-    args = ["eval", "CVRP-v0", "--model", str(out), "--episodes", "3", "--reference", "nearest"]
+    args = [
+        "eval",
+        "CVRP-v1",
+        *data,
+        "--model",
+        str(out),
+        "--episodes",
+        "3",
+        "--reference",
+        "nearest",
+    ]
     assert main([*args, "--out", str(report)]) == 0
     card = json.loads(report.read_text())
     assert card["training"]["algo"] == algo and card["reference"]["policy"] == "nearest"
-    assert main(["eval", "CVRP-v0", "--baseline", "insertion", "--episodes", "2"]) == 0
-    assert main(["eval", "CVRP-v0", "--model", str(tmp_path), "--episodes", "2"]) == 1
-    assert main(["eval", "VRPTW-v0", "--model", str(out), "--episodes", "2"]) == 1
+    assert main(["eval", "CVRP-v1", *data, "--baseline", "insertion", "--episodes", "2"]) == 0
+    assert main(["eval", "CVRP-v1", *data, "--model", str(tmp_path), "--episodes", "2"]) == 1
+    tw = ["--instances", str(SETS / "vrptw")]
+    assert main(["eval", "VRPTW-v1", *tw, "--model", str(out), "--episodes", "2"]) == 1
 
 
 @pytest.mark.slow
@@ -119,13 +128,9 @@ def test_maskable_ppo_learns_a_tiny_instance():
     from stable_baselines3.common.vec_env import DummyVecEnv
 
     from fleetgym.baselines import PerfectInformation, run_episode
-    from fleetgym.data import generate
+    from tests.families import first_instance
 
-    instance = generate(
-        "uniform",
-        {"n_customers": 4, "size": 20, "capacity": 10, "demand": {"low": 1, "high": 3}},
-        np.random.default_rng(3),
-    )
+    instance = first_instance("CVRP-v1", instances="tiny")
     env = fg.make(TINY, instance=instance)
     optimum = run_episode(env, PerfectInformation(), seed=0).cost
     policy, kwargs = policy_settings("maskable_ppo", "attention", embed_dim=32)

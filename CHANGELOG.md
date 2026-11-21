@@ -7,6 +7,19 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M13b steps c-d (ADR 0023): model families `CVRP-v1`, `VRPTW-v1`, `SVRP-v1`, `DVRP-v1`; paper
+  presets (`fleetgym/presets/`, `fg.load_preset`, `fg.make_preset`, `fg.preset_names`):
+  `solomon1987-vrptw`, `florio2023-vrpsd`, `kool2019-cvrp`, `dastpak2022-vcsd`,
+  `dastpak2022-goodson`, `vera2019-hetfleet`; dynamic-request numbers from instances; distance
+  rounding from the instance (`network.rounding: from_instance`); `--instances` for `fleetgym
+  train/eval/render`; every example writes its own instances (the paper examples in `instances.py`);
+  the concept page *Models, instances and presets*.
+
+### Removed
+- The `-v0` configs (`CVRP-v0`, `VRPTW-v0`, `VRPSD-v0`, `DVRP-StochReq-v0`, `MA-CVRP-v0`,
+  `MA-DVRP-v0`, `VRP-VCSD-v0`, `VRPSD-Goodson-v0`); planned configs are now `EVRP-NL-v1` and
+  `VRPSD-Outsource-v1`. Instance generators (`uniform`, `clustered`, `zones`), the `generator`
+  instance source and `register_generator`: FleetGym ships no instances (ADR 0023).
 - M13b steps a-b (ADR 0023): instance schemas (`fleetgym/core/1`, user schemas in YAML via
   `load_schema`/`register_schema`); the FleetGym JSON instance format (`write_instance`,
   `read_instance`) with CVRPLIB and Solomon conversion; instance sets (folder plus checksummed

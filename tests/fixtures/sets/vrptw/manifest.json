@@ -1,0 +1,17 @@
+{
+ "format": "fleetgym-instance-set/1",
+ "name": "tests/vrptw",
+ "schema": "fleetgym/core/1",
+ "reference": "FleetGym test suite",
+ "produced_by": "tests/fixtures/sets/build.py",
+ "max_nodes": 21,
+ "max_vehicles": 0,
+ "files": {
+  "0001.json": "c44fb20419cc5edaa15a44c7cff36327e7b5b02a5778d291d9d7cb30b8683a8a",
+  "0002.json": "b85cbcc552d960dcd14df1f30365f0f01a71adc6f104d071f7d47448c7c2689d",
+  "0003.json": "e0994f30c68a1ca3e43608f6fd6e834ebf84a7c4af3892cf3abd4d2a543326b0",
+  "0004.json": "4dc3401e389348fbe977a63512d1ca13e86bd3a43a2b7637820f32ba42d8962f",
+  "0005.json": "4f183e003de6697ecbcd9485a822e7fdb2f2cb48784c47697b06942850cef6b5",
+  "0006.json": "51539bff3c7d1d689eadf597c39a38ee1abee4ffbfb6cbd674e79ca5baac1ad0"
+ }
+}

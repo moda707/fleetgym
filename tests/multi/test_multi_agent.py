@@ -16,6 +16,7 @@ from fleetgym.errors import ConfigError, InfeasibleActionError
 from fleetgym.spec import load_spec
 from fleetgym.spec.models import ProblemSpec
 from fleetgym.testing.validator import validate
+from tests.families import ma_cvrp, ma_dvrp, spec_for
 
 # Depot at 0; customers 1 and 2 left, 3 and 4 right of the depot.
 LINE = Instance(
@@ -43,27 +44,27 @@ def spec(count: int = 2, **agents: Any) -> ProblemSpec:
     )
 
 
-@pytest.mark.parametrize("env_id", ["MA-CVRP-v0", "MA-DVRP-v0"])
-def test_pettingzoo_api(env_id):
+@pytest.mark.parametrize("make_spec", [ma_cvrp, ma_dvrp], ids=["ma-cvrp", "ma-dvrp"])
+def test_pettingzoo_api(make_spec):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)  # dict observations, inactive agents' masks
-        api_test(fg.make_multi(env_id, api="aec"), num_cycles=300)
-        parallel_api_test(fg.make_multi(env_id, api="parallel"), num_cycles=300)
+        api_test(fg.make_multi(make_spec(), api="aec"), num_cycles=300)
+        parallel_api_test(fg.make_multi(make_spec(), api="parallel"), num_cycles=300)
 
 
 def test_factories_and_registration():
     import gymnasium as gym
 
     with pytest.raises(ConfigError, match="make_multi"):
-        fg.make("MA-CVRP-v0")
-    assert isinstance(fg.make_multi("MA-CVRP-v0"), FleetGymParallelEnv)
-    assert isinstance(fg.make_multi("MA-CVRP-v0", api="aec"), FleetGymAECEnv)
-    assert "fleetgym/MA-CVRP-v0" not in gym.registry
-    assert set(fg.REGISTRY.ids(agents="multi")) == {"MA-CVRP-v0", "MA-DVRP-v0"}
+        fg.make(ma_cvrp())
+    assert isinstance(fg.make_multi(ma_cvrp()), FleetGymParallelEnv)
+    assert isinstance(fg.make_multi(ma_cvrp(), api="aec"), FleetGymAECEnv)
+    assert "fleetgym/CVRP-v1" in gym.registry  # families are single-agent; multi is an option
+    assert set(fg.REGISTRY.ids(agents="multi")) == set()
     with pytest.raises(ConfigError, match="next_node"):
-        FleetGymAECEnv(load_spec("DVRP-StochReq-v0"))
+        FleetGymAECEnv(spec_for("DVRP-v1"))
     with pytest.raises(ConfigError, match="fixed or limited"):
-        FleetGymAECEnv(load_spec("CVRP-v0"))
+        FleetGymAECEnv(spec_for("CVRP-v1"))
     with pytest.raises(ConfigError, match="number of agents"):
         FleetGymAECEnv(
             load_spec(
@@ -241,7 +242,7 @@ def test_aec_rewards_and_state():
 
 
 def test_dynamic_multi_agent_episodes_validate():
-    env = fg.make_multi("MA-DVRP-v0", api="parallel")
+    env = fg.make_multi(ma_dvrp(), api="parallel")
     for seed in range(3):
         obs, _ = env.reset(seed=seed)
         rng = np.random.default_rng(seed)

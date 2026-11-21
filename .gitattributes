@@ -2,3 +2,5 @@
 * text=auto eol=lf
 *.zip binary
 *.parquet binary
+# Instance sets are verified by SHA-256 checksums: never convert their line endings.
+tests/fixtures/sets/** -text

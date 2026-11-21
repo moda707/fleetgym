@@ -87,9 +87,33 @@ def _build(problem: BoundProblem) -> Network:
         )
     return EuclideanNetwork(
         coords,
-        rounding=params.rounding,  # pyright: ignore[reportAttributeAccessIssue]
+        rounding=resolve_rounding(params.rounding, problem.instance.edge_weight_type),  # pyright: ignore[reportAttributeAccessIssue]
         speed=params.speed,  # pyright: ignore[reportAttributeAccessIssue]
     )
+
+
+#: VRPLIB ``EDGE_WEIGHT_TYPE`` values and their rounding conventions.
+EDGE_WEIGHT_ROUNDING = {"EUC_2D": "nearest_int", "EXACT_2D": "none", "FLOAT_2D": "none"}
+
+
+def resolve_rounding(rounding: str, edge_weight_type: str | None) -> Rounding:
+    """The rounding to apply: the spec's, or the instance's convention for ``from_instance``.
+
+    Raises
+    ------
+    InstanceError
+        If the instance's ``edge_weight_type`` has no known Euclidean convention.
+    """
+    if rounding != "from_instance":
+        return rounding  # pyright: ignore[reportReturnType]
+    if edge_weight_type is None:
+        return "none"
+    if edge_weight_type not in EDGE_WEIGHT_ROUNDING:
+        raise InstanceError(
+            f"edge_weight_type {edge_weight_type!r} has no Euclidean rounding convention; "
+            "give `network.rounding` explicitly"
+        )
+    return EDGE_WEIGHT_ROUNDING[edge_weight_type]  # pyright: ignore[reportReturnType]
 
 
 NETWORK_BUILDERS.register("euclidean", _build)

@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# VRP with hard time windows. The instance gives the windows (tw_open, tw_close), service times
+# and the depot's closing time, which limits route durations. Objective as in Solomon's benchmark
+# tables: first the number of vehicles, then the distance.
+id: VRPTW-v1
+extends: CVRP-v1
+meta:
+  name: VRP with time windows
+  status: stable
+  references: [solomon1987]
+  instances: {source: solomon, set: "100"}
+constraints:
+  time_windows: {mode: hard, waiting: allowed}
+  route_duration: {mode: hard, max: depot_due_time}
+objective: {lexicographic: [vehicles, distance]}

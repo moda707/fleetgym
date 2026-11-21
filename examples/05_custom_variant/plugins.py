@@ -1,14 +1,12 @@
-"""Building blocks of a new VRP variant: a distribution, a constraint, a recourse rule, a generator.
+"""Building blocks of a new VRP variant: a distribution, a constraint and a recourse rule.
 
 Importing this module registers them; the YAML file then uses them by name. To ship them as a
 package, expose a function that imports this module under the ``fleetgym.plugins`` entry point.
 """
 
 import numpy as np
-from pydantic import BaseModel, Field
 
 import fleetgym as fg
-from fleetgym.data import Instance
 from fleetgym.spec.models import FrozenModel
 from fleetgym.spec.models.base import NumberOrRef
 
@@ -41,11 +39,11 @@ class TriangularDemand(fg.Distribution):
         raise NotImplementedError("not needed here")
 
 
-# 2. A constraint: at most `max` customers per route.
+# 2. A constraint: at most `max` customers per route (the number comes from the instance).
 class MaxStopsParams(FrozenModel):
-    """Maximum number of customers on one route."""
+    """Maximum number of customers on one route: a number, or a field of the instance."""
 
-    max: int
+    max: NumberOrRef
 
 
 @fg.register_constraint("max_stops", params=MaxStopsParams)
@@ -54,19 +52,19 @@ class MaxStops(fg.Constraint):
 
     def mask(self, state, info, vehicle, candidates):
         """Customers allowed while the vehicle's route has fewer than ``max`` customers."""
-        stops = len(
-            {node for node in info.vehicle(vehicle).route if node != 0}
-        )  # revisits count once
-        return np.full(candidates.shape, stops < self.params.max)
+        limit = int(self.problem.value("constraints.max_stops.max"))  # the instance's number
+        route = info.vehicle(vehicle).route
+        stops = len({node for node in route if node != 0})  # a revisit is not a new stop
+        return np.full(candidates.shape, stops < limit)
 
 
 # 3. A recourse rule: restock if the customer is near the depot, else outsource the rest.
 class NearDepotParams(FrozenModel):
-    """``radius`` around the depot; outsourcing costs ``per_unit`` per unit."""
+    """``radius`` around the depot; outsourcing costs ``per_unit`` per unit (numbers or fields)."""
 
-    radius: float
-    per_unit: float
-    per_customer: float = 0.0
+    radius: NumberOrRef
+    per_unit: NumberOrRef
+    per_customer: NumberOrRef = 0.0
 
 
 @fg.register_recourse("near_depot_restock", params=NearDepotParams)
@@ -75,33 +73,6 @@ class NearDepotRestock(fg.RecourseRule):
 
     def on_failure(self, failure, info):
         """Restock near the depot, outsource far from it."""
-        near = info.distances[failure.node, 0] <= self.params.radius
+        radius = float(self.problem.value(f"{self.path}.radius"))
+        near = info.distances[failure.node, 0] <= radius
         return "return_to_depot" if near else "outsource"
-
-
-# 4. An instance generator: customers around a few villages, a new layout every episode.
-class VillagesParams(BaseModel):
-    """``n_customers`` around ``n_villages`` village centers in ``[0, size]^2``; depot at the center."""
-
-    n_customers: int = Field(ge=1)
-    n_villages: int = Field(default=4, ge=1)
-    size: float = 100.0
-    spread: float = 6.0
-    demand_low: int = 1
-    demand_high: int = 8
-
-
-@fg.register_generator("villages", params=VillagesParams)
-def villages(rng: np.random.Generator, params: VillagesParams) -> Instance:
-    """Village centers uniform in the square, customers normal around them (clipped to it)."""
-    centers = rng.uniform(0.15 * params.size, 0.85 * params.size, size=(params.n_villages, 2))
-    village = rng.integers(0, params.n_villages, size=params.n_customers)
-    offsets = rng.normal(0.0, params.spread, size=(params.n_customers, 2))
-    customers = np.clip(centers[village] + offsets, 0.0, params.size)
-    demands = rng.integers(params.demand_low, params.demand_high + 1, size=params.n_customers)
-    return Instance(
-        name=f"villages-n{params.n_customers}",
-        source="generated:villages",
-        demands=np.concatenate([[0.0], demands]),
-        coords=np.vstack([[params.size / 2, params.size / 2], customers]),
-    )

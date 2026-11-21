@@ -183,7 +183,7 @@ def load_spec(
     Parameters
     ----------
     source
-        An environment ID (``"CVRP-v0"``), a path to a YAML file, a config mapping, or an existing
+        An environment ID (``"CVRP-v1"``), a path to a YAML file, a config mapping, or an existing
         `ProblemSpec` (returned as is unless overrides are given).
     overrides
         Dotted-path overrides applied after ``extends``, for example ``["fleet.types.0.count=8"]``.
