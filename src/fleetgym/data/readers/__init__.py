@@ -7,20 +7,30 @@ from pathlib import Path
 from typing import Literal
 
 from fleetgym.data.instance import Instance
+from fleetgym.data.readers.fleetgym_json import read_fleetgym_json, write_instance
 from fleetgym.data.readers.solomon import read_solomon
 from fleetgym.data.readers.vrplib import read_vrplib
 from fleetgym.errors import InstanceError
 from fleetgym.plugins import Registry
 
-__all__ = ["READERS", "InstanceFormat", "read_instance", "read_solomon", "read_vrplib"]
+__all__ = [
+    "READERS",
+    "InstanceFormat",
+    "read_fleetgym_json",
+    "read_instance",
+    "read_solomon",
+    "read_vrplib",
+    "write_instance",
+]
 
-InstanceFormat = Literal["vrplib", "solomon"]
+InstanceFormat = Literal["fleetgym", "vrplib", "solomon"]
 
 READERS: Registry[Callable[[Path], Instance]] = Registry("instance format")
+READERS.register("fleetgym", read_fleetgym_json)
 READERS.register("vrplib", read_vrplib)
 READERS.register("solomon", read_solomon)
 
-_EXTENSIONS = {".vrp": "vrplib", ".txt": "solomon"}
+_EXTENSIONS = {".json": "fleetgym", ".vrp": "vrplib", ".txt": "solomon"}
 
 
 def read_instance(path: str | Path, *, fmt: str | None = None) -> Instance:
@@ -31,8 +41,9 @@ def read_instance(path: str | Path, *, fmt: str | None = None) -> Instance:
     path
         The instance file.
     fmt
-        Format name (``"vrplib"``, ``"solomon"`` or a registered plugin). Inferred from the
-        extension when omitted: ``.vrp`` is VRPLIB, ``.txt`` is Solomon.
+        Format name (``"fleetgym"``, ``"vrplib"``, ``"solomon"`` or a registered plugin). Inferred
+        from the extension when omitted: ``.json`` is the FleetGym format, ``.vrp`` is VRPLIB,
+        ``.txt`` is Solomon.
 
     Raises
     ------

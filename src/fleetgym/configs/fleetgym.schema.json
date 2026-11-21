@@ -196,6 +196,15 @@
           "additionalProperties": false,
           "description": "Maximum route duration",
           "properties": {
+            "mode": {
+              "default": "hard",
+              "enum": [
+                "hard",
+                "soft"
+              ],
+              "title": "Mode",
+              "type": "string"
+            },
             "max": {
               "anyOf": [
                 {
@@ -220,10 +229,14 @@
           "additionalProperties": false,
           "description": "Hard or soft time windows",
           "properties": {
-            "soft": {
-              "default": false,
-              "title": "Soft",
-              "type": "boolean"
+            "mode": {
+              "default": "hard",
+              "enum": [
+                "hard",
+                "soft"
+              ],
+              "title": "Mode",
+              "type": "string"
             },
             "waiting": {
               "default": "allowed",
@@ -871,7 +884,7 @@
     },
     "FilesSource": {
       "additionalProperties": false,
-      "description": "Load instances from files (relative paths resolve against the config file).",
+      "description": "Load instances from files or instance sets (relative paths resolve against the config file).\n\nA path may be an instance file (FleetGym JSON, VRPLIB or Solomon) or the folder of an instance\nset (`fleetgym.data.read_instance_set`); each episode draws one instance among all of them.",
       "properties": {
         "type": {
           "const": "files",
@@ -891,6 +904,7 @@
           "anyOf": [
             {
               "enum": [
+                "fleetgym",
                 "vrplib",
                 "solomon"
               ],
@@ -909,7 +923,7 @@
     },
     "FleetSpec": {
       "additionalProperties": false,
-      "description": "The fleet: vehicle types, sizing mode and shift.\n\nAttributes\n----------\nsizing\n    ``fixed``: exactly ``count`` vehicles per type are available. ``limited``: at most\n    ``count`` may be used. ``unlimited``: as many as needed.\nshift\n    Start and end of the working day, or ``None`` for no shift limits.",
+      "description": "The fleet: vehicle types, sizing mode and shift.\n\nAttributes\n----------\nsizing\n    ``fixed``: exactly ``count`` vehicles per type are available. ``limited``: at most\n    ``count`` may be used. ``unlimited``: as many as needed.\ntypes\n    ``from_instance`` (the default): the instance's ``vehicle_types`` (capacity, count, fixed\n    cost). Or explicit types, for quick experiments.\nshift\n    Start and end of the working day: two numbers, ``from_instance`` (the instance's\n    ``shift_start``, 0 if absent, and ``shift_end``), or ``None`` for no shift limits.\nmulti_trip\n    A vehicle that returns to the depot during the day reloads and its route goes on (it may\n    leave again); a full vehicle may only go to the depot. Without it, returning to the depot\n    ends the route (recourse trips excepted).\nreload_time\n    Time a reload at the depot takes: a number, or ``from_instance`` (the instance's global\n    ``reload_time``). ``None``: reloading is instantaneous.\nend_route\n    ``anytime``: a vehicle at the depot may end its day whenever it wants.\n    ``when_nothing_reachable``: only when no customer is feasible for it.",
       "properties": {
         "sizing": {
           "default": "unlimited",
@@ -922,10 +936,10 @@
           "type": "string"
         },
         "types": {
+          "default": [],
           "items": {
             "$ref": "#/$defs/VehicleTypeSpec"
           },
-          "minItems": 1,
           "title": "Types",
           "type": "array"
         },
@@ -945,11 +959,45 @@
               "type": "array"
             },
             {
+              "const": "from_instance",
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],
           "default": null,
           "title": "Shift"
+        },
+        "multi_trip": {
+          "default": false,
+          "title": "Multi Trip",
+          "type": "boolean"
+        },
+        "reload_time": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/InstanceRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reload Time"
+        },
+        "end_route": {
+          "default": "anytime",
+          "enum": [
+            "anytime",
+            "when_nothing_reachable"
+          ],
+          "title": "End Route",
+          "type": "string"
         }
       },
       "title": "FleetSpec",
@@ -2154,6 +2202,35 @@
           "required": [
             "dist"
           ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The distribution comes from each instance",
+          "properties": {
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
           "type": "object"
         }
       ]

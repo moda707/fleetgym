@@ -17,8 +17,9 @@ __all__ = ["RouteDuration"]
 class RouteDuration(Constraint):
     """Route duration (return time minus departure time) must not exceed ``max``.
 
-    A customer is masked if, after serving it, the vehicle could not be back at the depot within the
-    limit. Duration includes travel, waiting and service times.
+    Hard limit: a customer is masked if, after serving it, the vehicle could not be back at the
+    depot within the limit. Soft limit: nothing is masked; the simulator charges the excess as
+    ``overtime`` when the route ends. Duration includes travel, waiting, service and reload times.
     """
 
     name = "route_duration"
@@ -31,7 +32,9 @@ class RouteDuration(Constraint):
     def mask(
         self, state: Any, info: InformationState, vehicle: int, candidates: NDArray[np.int64]
     ) -> NDArray[np.bool_]:
-        """Candidates from which the vehicle can still return in time."""
+        """Candidates from which the vehicle can still return in time (a soft limit masks none)."""
+        if self.params.model_dump()["mode"] == "soft":
+            return np.ones(candidates.shape, dtype=bool)
         v = info.vehicle(vehicle)
         start = v.route_start if v.route_start is not None else v.time
         _, _, end = info.projected(vehicle, candidates)

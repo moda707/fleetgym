@@ -98,8 +98,22 @@ class Instance:
         The VRPLIB ``EDGE_WEIGHT_TYPE``, if read from a VRPLIB file.
     n_depots
         Number of depots; they are nodes ``0 .. n_depots - 1``.
+    schema
+        Id of the instance schema (`fleetgym.data.schema`), ``fleetgym/core/1`` by default.
+    vehicle_types
+        One mapping per vehicle type (``capacity``, ``count``, ``fixed_cost``, ``name`` and schema
+        extensions). Given ``capacity``/``n_vehicles`` instead, it is one type built from them.
     extra
-        Other fields from the file, read-only.
+        Fields of the schema that are not attributes: global scalars (for example
+        ``max_route_duration``), node arrays of shape ``(N,)`` (for example ``deadline``) and arc
+        matrices of shape ``(N, N)``, checked against the schema. Names starting with ``_`` are
+        FleetGym internals and are not checked.
+    meta
+        Provenance (file header lines, references): free-form, not checked and not hashed.
+    distributions
+        Distributions of the uncertain values, by source (``{"demand": {"dist": "poisson",
+        "mean": "demand"}}``). Parameters may name fields of the instance. They are checked when
+        a problem spec is bound to the instance (`fleetgym.spec.binding.bind`).
     """
 
     name: str
@@ -114,6 +128,10 @@ class Instance:
     edge_weight_type: str | None = None
     n_depots: int = 1
     extra: Mapping[str, Any] = field(default_factory=dict)
+    schema: str = "fleetgym/core/1"
+    vehicle_types: tuple[Mapping[str, Any], ...] = ()
+    meta: Mapping[str, Any] = field(default_factory=dict)
+    distributions: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         set_ = object.__setattr__
@@ -156,6 +174,125 @@ class Instance:
         ):
             raise InstanceError(f"{self.name}: a time window opens after it closes")
         set_(self, "extra", MappingProxyType({k: _freeze_extra(v) for k, v in self.extra.items()}))
+        set_(self, "meta", MappingProxyType({k: _freeze_extra(v) for k, v in self.meta.items()}))
+        for source, dist in self.distributions.items():
+            if not isinstance(dist, Mapping) or "dist" not in dist:
+                raise InstanceError(
+                    f"{self.name}: distributions.{source} must be a mapping with a `dist` name"
+                )
+        set_(
+            self,
+            "distributions",
+            MappingProxyType({k: _freeze_extra(dict(v)) for k, v in self.distributions.items()}),
+        )
+        self._canonical_extra()
+        self._init_vehicle_types()
+        problems = self.schema_problems()
+        if problems:
+            raise InstanceError(f"{self.name}: " + "; ".join(problems))
+
+    def _canonical_extra(self) -> None:
+        """Store schema fields with their schema type, so equal data hashes equally."""
+        from fleetgym.data.schema import get_schema
+
+        try:
+            schema = get_schema(self.schema)
+        except InstanceError:
+            return  # reported by schema_problems
+        dtypes = {"float": np.float64, "int": np.int64, "bool": np.bool_}
+        out = {}
+        for name, value in self.extra.items():
+            level = None if name.startswith("_") else schema.level_of(name)
+            spec = schema.field(level, name) if level is not None else None
+            if spec is not None and spec.type in dtypes and level != "vehicle_type":
+                try:
+                    array = np.asarray(value, dtype=float)
+                    if spec.type == "int" and np.all(array == np.round(array)):
+                        array = array.astype(np.int64)
+                    elif spec.type == "bool":
+                        array = np.asarray(value, dtype=np.bool_)
+                    value = (
+                        array.item() if array.ndim == 0 else freeze_array(array, dtype=array.dtype)
+                    )
+                except (TypeError, ValueError):
+                    pass  # reported by schema_problems
+            out[name] = value
+        object.__setattr__(self, "extra", MappingProxyType(out))
+
+    def _init_vehicle_types(self) -> None:
+        set_ = object.__setattr__
+        types = [dict(t) for t in self.vehicle_types]
+        if not types and self.capacity is not None:
+            single: dict[str, Any] = {"capacity": self.capacity}
+            if self.n_vehicles is not None:
+                single["count"] = self.n_vehicles
+            types = [single]
+        elif types and self.capacity is None and len(types) == 1:
+            if "capacity" in types[0]:
+                set_(self, "capacity", float(types[0]["capacity"]))
+            if "count" in types[0]:
+                set_(self, "n_vehicles", int(types[0]["count"]))
+        set_(self, "vehicle_types", tuple(MappingProxyType(t) for t in types))
+
+    def schema_problems(self) -> list[str]:
+        """Every way this instance breaks its schema, as messages (empty if it conforms)."""
+        from fleetgym.data.schema import get_schema
+
+        try:
+            schema = get_schema(self.schema)
+        except InstanceError as exc:
+            return [str(exc)]
+        n = self.n_nodes
+        problems: list[str] = []
+        for name, value in self.extra.items():
+            if name.startswith("_"):
+                continue
+            level = schema.level_of(name)
+            spec = schema.field(level, name) if level is not None else None
+            if level is None or level == "vehicle_type" or spec is None:
+                problems.append(f"field {name!r} is not declared by schema {self.schema!r}")
+                continue
+            shape = {"global": (), "node": (n,), "arc": (n, n)}[level]
+            if np.shape(value) != shape:
+                problems.append(
+                    f"{level} field {name!r} has shape {np.shape(value)}, expected {shape}"
+                )
+                continue
+            problems += spec.check(value, f"{level} field {name!r}")
+        for name, value in (("demand", self.demands), ("service_time", self.service_times)):
+            spec = schema.field("node", name)
+            if spec is not None and value is not None:
+                problems += spec.check(value, f"node field {name!r}")
+        for index, vt in enumerate(self.vehicle_types):
+            for name, value in vt.items():
+                spec = schema.field("vehicle_type", name)
+                if spec is None:
+                    problems.append(
+                        f"vehicle type field {name!r} is not declared by {self.schema!r}"
+                    )
+                else:
+                    problems += spec.check(value, f"vehicle type {index} field {name!r}")
+        present = set(self.extra) | {"kind", "demand"}
+        if self.coords is not None:
+            present |= {"x", "y"}
+        if self.service_times is not None:
+            present.add("service_time")
+        if self.time_windows is not None:
+            present |= {"tw_open", "tw_close"}
+        if self.distance_matrix is not None:
+            present.add("distance")
+        for level in ("global", "node", "arc"):
+            for name in schema.names(level):
+                spec = schema.field(level, name)
+                if spec is not None and spec.required and name not in present:
+                    problems.append(f"required {level} field {name!r} is missing")
+        for name in schema.names("vehicle_type"):
+            spec = schema.field("vehicle_type", name)
+            if spec is not None and spec.required:
+                missing = [i for i, vt in enumerate(self.vehicle_types) if name not in vt]
+                if missing or not self.vehicle_types:
+                    problems.append(f"required vehicle type field {name!r} is missing")
+        return problems
 
     # ------------------------------------------------------------------- derived values
 
@@ -211,7 +348,7 @@ class Instance:
         return value
 
     def content_hash(self) -> str:
-        """Versioned SHA-256 of every field except ``name`` and ``source``."""
+        """Versioned SHA-256 of every field except ``name``, ``source`` and ``meta``."""
         data = {
             "demands": self.demands,
             "coords": self.coords,
@@ -223,6 +360,9 @@ class Instance:
             "edge_weight_type": self.edge_weight_type,
             "n_depots": self.n_depots,
             "extra": self.extra,
+            "schema": self.schema,
+            "vehicle_types": [dict(t) for t in self.vehicle_types],
+            "distributions": self.distributions,
         }
         return content_hash(_hashable(data))
 

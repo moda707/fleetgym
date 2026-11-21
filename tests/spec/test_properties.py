@@ -24,7 +24,10 @@ constraints = st.fixed_dictionaries(
         "capacity": st.just({}),
         "time_windows": st.fixed_dictionaries(
             {},
-            optional={"soft": st.booleans(), "waiting": st.sampled_from(["allowed", "forbidden"])},
+            optional={
+                "mode": st.sampled_from(["hard", "soft"]),
+                "waiting": st.sampled_from(["allowed", "forbidden"]),
+            },
         ),
         "route_duration": st.builds(
             lambda m: {"max": m}, st.one_of(finite, st.just("depot_due_time"))

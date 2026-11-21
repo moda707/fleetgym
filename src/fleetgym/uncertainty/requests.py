@@ -66,7 +66,7 @@ def arrival_window(problem: BoundProblem) -> tuple[float, float]:
     spec = problem.spec
     assert spec.dynamics is not None
     dyn = spec.dynamics
-    start = float(spec.fleet.shift[0]) if spec.fleet.shift is not None else 0.0
+    start = problem.shift[0] if problem.shift is not None else 0.0
     ends: list[float] = []
     if dyn.cutoff is not None:
         ends.append(float(dyn.cutoff))
@@ -76,8 +76,8 @@ def arrival_window(problem: BoundProblem) -> tuple[float, float]:
     # No request arrives after the depot closes or the shift ends.
     if instance.time_windows is not None:
         ends.append(float(instance.time_windows[0, 1]))
-    if spec.fleet.shift is not None:
-        ends.append(float(spec.fleet.shift[1]))
+    if problem.shift is not None:
+        ends.append(problem.shift[1])
     if not ends:
         raise _error(
             spec, "dynamics.cutoff", "arrivals need an end: give `cutoff` (or a depot time window)"

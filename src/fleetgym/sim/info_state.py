@@ -159,9 +159,12 @@ class InformationState:
     def projected(
         self, vehicle: int, nodes: NDArray[np.int64]
     ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
-        """Arrival, service start and service end if ``vehicle`` goes to each node now."""
+        """Arrival, service start and service end if ``vehicle`` goes to each node now.
+
+        A reload owed at the depot (``fleet.reload_time``) delays the departure.
+        """
         v = self._state.vehicles[vehicle]
-        arrival = v.time + self.travel_times[v.node, nodes]
+        arrival = v.time + v.reload_due + self.travel_times[v.node, nodes]
         start = self.service_start(nodes, arrival)
         end = start + self.service_times[nodes]
         return arrival, start, end

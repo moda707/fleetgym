@@ -846,7 +846,9 @@ ADR 0023, design in `docs/proposals/0001-spec-instance-separation.md`. Steps: (a
 manifest), CVRPLIB and Solomon readers converting to it; (b) model primitives (`fleet.multi_trip`,
 `fleet.reload`, `fleet.end_route`, constraint modes, recourse `{serve, remainder}`), every number
 from the instance; (c) paper presets with grids; (d) migrate configs (families at `-v1`, `-v0`
-removed), examples, validator and docs. No instance generators remain.
+removed), examples, validator and docs. No instance generators remain. Each example notebook
+includes its own function that generates instances in the format its problem config expects
+(the user's request, 2026-11-20); generation stays example code, not library code.
 
 ### M14 EV shortest path with charging-station occupancy (added at the user's request, 2026-11-20)
 The EVSPP-OI of Dastpak, Errico, Jabali and Malucelli (arXiv 2305.11773): one EV from an origin to a

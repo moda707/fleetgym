@@ -90,9 +90,6 @@ class RecourseRule(ABC):
     """
 
     name: ClassVar[str]
-    #: Every trip to the depot during the day restocks the vehicle and its route goes on (the
-    #: policy may send a vehicle to the depot at any time); otherwise a trip to the depot ends it.
-    restock_trips: ClassVar[bool] = False
     #: Resolutions never make the vehicle travel: safe with route-duration and shift limits.
     no_forced_travel: ClassVar[bool] = False
 
@@ -120,14 +117,6 @@ class RecourseRule(ABC):
     def after_service(self, vehicle: int, info: InformationState) -> bool:
         """Restock at the depot now, after completing a customer (default: never)."""
         return False
-
-    def must_restock(self, vehicle: int, info: InformationState) -> bool:
-        """The vehicle may only go to the depot now (default: never)."""
-        return False
-
-    def may_end(self, vehicle: int, info: InformationState, customers_reachable: bool) -> bool:
-        """Whether a vehicle at the depot may end its day now (default: always)."""
-        return True
 
     def outsourcing_cost(self, node: int, quantity: float) -> float:
         """Cost of outsourcing ``quantity`` at ``node``: ``per_customer + per_unit * quantity``.
@@ -205,13 +194,11 @@ class AgentDecides(RecourseRule):
 class Split(RecourseRule):
     """Serve what fits; the rest stays open for any vehicle (Dastpak, Errico and Jabali).
 
-    An empty vehicle (no free capacity) must go to the depot; every trip to the depot during the day
-    restocks the vehicle and its route goes on. With ``end_early: false`` a vehicle at the depot may
-    end its day only when no customer is reachable.
+    The customer is pending again with the demand left. Use it with ``fleet.multi_trip`` so the
+    vehicle can reload at the depot and continue.
     """
 
     name = "split"
-    restock_trips = True
     no_forced_travel = True
 
     def serve_first(self, failure: CapacityFailure, info: InformationState) -> bool:
@@ -221,15 +208,6 @@ class Split(RecourseRule):
     def on_failure(self, failure: CapacityFailure, info: InformationState) -> RecourseAction:
         """Always ``split``: the customer is pending again with the demand left."""
         return "split"
-
-    def must_restock(self, vehicle: int, info: InformationState) -> bool:
-        """When the vehicle has no free capacity."""
-        v = info.vehicle(vehicle)
-        return v.load >= v.capacity
-
-    def may_end(self, vehicle: int, info: InformationState, customers_reachable: bool) -> bool:
-        """``end_early``, or when no customer is reachable."""
-        return bool(getattr(self.params, "end_early", False)) or not customers_reachable
 
 
 def register_recourse(

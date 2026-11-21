@@ -21,6 +21,21 @@ bundled under paper-shaped names (`split`), and each paper needed its own instan
   constraint `mode: hard|soft`, recourse `{serve, remainder}`) replace bundled rules.
 - **IDs**: the `-v0` configs are removed; the new families start at `-v1`.
 
+## Further decisions (user, 2026-11-20)
+- **Whole distributions in the instance**: the model says what is uncertain and when it is
+  revealed (`uncertainty.demand: {revealed: on_arrival}`); the instance's `distributions` block
+  gives the family and parameters, which may name the instance's fields. A spec may still give a
+  distribution for quick experiments.
+- **Presets and data**: a paper's example notebook includes a function that generates instances in
+  the format the problem config expects; it writes the paper's instance set once (seed recorded in
+  the manifest). The preset states the schema and fields it needs and takes the instance folder.
+  Benchmarks (Solomon, CVRPLIB) are downloaded with checksums. FleetGym ships no generated data.
+- **Dynamic requests**: the arrival process and rates, the request attribute distributions and the
+  cutoff move to the instance too (step d).
+- **Reload time** (`fleet.reload_time`) is paid before the vehicle leaves the depot again; a vehicle
+  that ends its route after returning pays nothing (found by property tests: paying on arrival
+  made routes end past a hard duration limit).
+
 ## Alternatives
 A composable generator in the spec (rejected by the user: generation is the user's task); a Parquet
 format for instance sets (not needed while sets are user-provided; can be added later).

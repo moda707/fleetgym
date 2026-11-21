@@ -139,8 +139,7 @@ def test_fleet_sizing_rules():
         make(fleet={"types": [{"name": "t"}, {"name": "t"}]})
     with pytest.raises(ValidationError, match="start < end"):
         make(fleet={"types": [{"name": "t"}], "shift": [480, 0]})
-    with pytest.raises(ValidationError, match="at least 1"):
-        make(fleet={"types": []})
+    assert make(fleet={"types": []}).fleet.from_instance  # empty: the instance's types
     fixed = make(fleet={"sizing": "limited", "types": [{"name": "t", "count": "from_instance"}]})
     assert fixed.fleet.types[0].count == InstanceRef()
 
@@ -212,10 +211,17 @@ def test_uncertain_spec_flat_form():
     raw = {"dist": "poisson", "mean": "from_instance", "revealed": "on_arrival"}
     unc = UncertainSpec.model_validate(raw)
     assert unc.revealed == "on_arrival"
-    assert unc.dist.name == "poisson"
+    assert unc.dist is not None and unc.dist.name == "poisson"
     dumped = unc.model_dump()
     assert dumped == {**raw, "correlated_with": [], "forecast": "mean"}
     assert UncertainSpec.model_validate(dumped) == unc
+    from_instance = UncertainSpec.model_validate({"revealed": "on_arrival"})
+    assert from_instance.dist is None
+    assert from_instance.model_dump() == {
+        "revealed": "on_arrival",
+        "correlated_with": [],
+        "forecast": "mean",
+    }
     with pytest.raises(ValidationError, match="revealed"):
         UncertainSpec.model_validate({"dist": "poisson", "mean": 1})
     with pytest.raises(ValidationError):
@@ -254,8 +260,18 @@ def test_constraints_are_keyed_plugins():
     )
     assert spec.constraints.names() == ("capacity", "time_windows", "route_duration", "outsourcing")
     assert "capacity" in spec.constraints
-    assert spec.constraints["time_windows"].model_dump() == {"soft": True, "waiting": "allowed"}
-    assert spec.to_dict()["constraints"]["route_duration"] == {"max": "depot_due_time"}
+    assert spec.constraints["time_windows"].model_dump() == {"mode": "soft", "waiting": "allowed"}
+    assert spec.to_dict()["constraints"]["route_duration"] == {
+        "mode": "hard",
+        "max": "depot_due_time",
+    }
+    default = make(constraints={"route_duration": {"mode": "soft"}})
+    assert default.to_dict()["constraints"]["route_duration"] == {
+        "mode": "soft",
+        "max": "from_instance",
+    }
+    with pytest.raises(ValidationError, match="not both"):
+        make(constraints={"time_windows": {"soft": True, "mode": "soft"}})
 
 
 def test_constraint_null_params_mean_defaults():
@@ -376,7 +392,7 @@ def test_recourse_shorthand_and_full_form():
         }
     }
     rule = RecourseRuleSpec.model_validate("split")
-    assert rule.model_dump() == {"rule": "split", "end_early": False}  # defaults are explicit
+    assert rule.model_dump() == "split"  # no parameters: the short form
 
 
 def test_recourse_rule_parameters():
@@ -402,7 +418,9 @@ def test_recourse_rule_parameters():
     with pytest.raises(ValidationError, match="on_exact_depletion"):
         RecourseRuleSpec.model_validate({"rule": "return_to_depot", "on_exact_depletion": "maybe"})
     with pytest.raises(ValidationError, match=r"capacity_failure\.end_early"):
-        make(recourse={"capacity_failure": {"rule": "split", "end_early": "sometimes"}})
+        make(
+            recourse={"capacity_failure": {"rule": "split", "end_early": False}}
+        )  # now fleet.end_route
 
 
 def test_recourse_errors():
@@ -524,3 +542,49 @@ def test_hash_is_insensitive_to_input_types_and_order():
         }
     )
     assert a.content_hash() == b.content_hash()
+
+
+@pytest.mark.parametrize(
+    ("grammar", "rule"),
+    [
+        ({"remainder": "come_back"}, "return_to_depot"),
+        (
+            {"serve": "none", "remainder": "come_back"},
+            {"rule": "return_to_depot", "partial_service": False},
+        ),
+        (
+            {"remainder": "come_back", "on_exact_depletion": "restock"},
+            {"rule": "return_to_depot", "on_exact_depletion": "restock"},
+        ),
+        ({"remainder": "open"}, "split"),
+        ({"remainder": "outsource", "per_unit": 2}, {"rule": "outsource", "per_unit": 2}),
+        (
+            {"serve": "none", "remainder": "outsource", "per_unit": 1},
+            {"rule": "outsource", "per_unit": 1, "partial_service": False},
+        ),
+        (
+            {"remainder": "ask", "options": ["return_to_depot"]},
+            {"rule": "agent_decides", "options": ["return_to_depot"]},
+        ),
+    ],
+)
+def test_recourse_grammar_is_the_same_rule(grammar, rule):
+    """`{serve, remainder}` is the documented form; it stores (and hashes) as the rule itself."""
+    a = make(recourse={"capacity_failure": grammar})
+    b = make(recourse={"capacity_failure": rule})
+    assert a.content_hash() == b.content_hash()
+    assert a.to_dict()["recourse"] == b.to_dict()["recourse"]
+
+
+@pytest.mark.parametrize(
+    ("grammar", "match"),
+    [
+        ({"serve": "half", "remainder": "come_back"}, "what_fits or none"),
+        ({"serve": "none", "remainder": "open"}, "needs `serve: what_fits`"),
+        ({"rule": "split", "remainder": "open"}, "not both"),
+        ({"remainder": "teleport"}, "teleport"),
+    ],
+)
+def test_recourse_grammar_errors(grammar, match):
+    with pytest.raises(ValidationError, match=match):
+        make(recourse={"capacity_failure": grammar})

@@ -18,6 +18,6 @@ instance_source:
     time_windows: {horizon: 480, width_low: 60, width_high: 180, service_time: 10}
 network: {type: euclidean, rounding: none}
 constraints:
-  time_windows: {soft: false, waiting: allowed}
+  time_windows: {mode: hard, waiting: allowed}
   route_duration: {max: depot_due_time}
 objective: {lexicographic: [vehicles, distance]}

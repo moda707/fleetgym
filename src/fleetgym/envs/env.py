@@ -7,6 +7,7 @@ import importlib
 import importlib.util
 from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal, SupportsFloat
 
 import gymnasium as gym
@@ -16,6 +17,8 @@ from numpy.typing import NDArray
 
 from fleetgym._version import __version__
 from fleetgym.data.instance import Instance
+from fleetgym.data.instance_set import read_instance_set
+from fleetgym.data.readers import read_instance
 from fleetgym.errors import ConfigError, InfeasibleActionError, NotInScopeError
 from fleetgym.eventlog import EventLog
 from fleetgym.interfaces.base import INTERFACE_CLASSES, ActionInterface
@@ -27,7 +30,13 @@ from fleetgym.sim.engine import Epoch, Simulator, Transition
 from fleetgym.sim.invariants import InvariantMonitor
 from fleetgym.sim.planned import PlannedRoutingSimulator
 from fleetgym.sim.state import RequestStatus, SimState
-from fleetgym.spec.binding import BoundProblem, bind, collection_instance, instance_from_source
+from fleetgym.spec.binding import (
+    BoundProblem,
+    bind,
+    collection_instance,
+    instance_from_source,
+    source_files,
+)
 from fleetgym.spec.models import CollectionSource, FilesSource, GeneratorSource, ProblemSpec
 from fleetgym.spec.models.sections import INTERFACES_NEEDING_ROUTING
 from fleetgym.uncertainty.requests import resample_future_requests, sample_requests
@@ -99,13 +108,15 @@ def _instance_nodes(spec: ProblemSpec, instance: Instance | None) -> int:
         if isinstance(n_customers, int):
             return n_customers + 1
     elif isinstance(source, FilesSource):
-        rng = np.random.default_rng(0)
         sizes = []
-        for path in source.paths:
-            single = spec.model_copy(
-                update={"instance_source": FilesSource(paths=(path,), format=source.format)}
-            )
-            sizes.append(instance_from_source(single.with_source(spec.source), rng).n_nodes)
+        for entry in source.paths:
+            path = Path(entry)
+            if not path.is_absolute() and spec.source and not spec.source.startswith("<"):
+                path = Path(spec.source).parent / path
+            if path.is_dir():
+                sizes.append(read_instance_set(path).max_nodes)
+            else:
+                sizes.append(read_instance(path, fmt=source.format).n_nodes)
         return max(sizes)
     elif isinstance(source, CollectionSource):
         return collection_instance(source).n_nodes
@@ -125,13 +136,48 @@ def _merge_costs(*parts: dict[str, float]) -> dict[str, float]:
 
 
 def _known_fleet_size(spec: ProblemSpec, instance: Instance | None) -> int:
-    """Number of vehicles of a fixed or limited fleet when known before reset (else 0)."""
+    """Largest number of vehicles of a fixed or limited fleet over the possible instances.
+
+    0 for an unlimited fleet, or when it cannot be known before reset.
+    """
     if spec.fleet.sizing == "unlimited":
         return 0
     if instance is not None:
         return sum(vt.count or 0 for vt in bind(spec, instance).vehicle_types)
-    counts = [vt.count for vt in spec.fleet.types]
-    return sum(c for c in counts if isinstance(c, int))
+    if not spec.fleet.from_instance:
+        counts = [vt.count for vt in spec.fleet.types]
+        if all(isinstance(c, int) for c in counts):
+            return sum(int(c) for c in counts)  # pyright: ignore[reportArgumentType]
+    source = spec.instance_source
+    if isinstance(source, FilesSource):
+        sizes = []
+        for entry in source.paths:
+            path = Path(entry)
+            if not path.is_absolute() and spec.source and not spec.source.startswith("<"):
+                path = Path(spec.source).parent / path
+            if path.is_dir():
+                sizes.append(read_instance_set(path).max_vehicles)
+            else:
+                sizes.append(_fleet_count(read_instance(path, fmt=source.format)))
+        return max(sizes, default=0)
+    return max((_fleet_count(i) for i in _source_instances(spec)), default=0)
+
+
+def _fleet_count(instance: Instance) -> int:
+    return sum(int(vt.get("count", 0)) for vt in instance.vehicle_types)
+
+
+def _source_instances(spec: ProblemSpec) -> list[Instance]:
+    """Every instance a files or collection source can draw (for sizing before reset)."""
+    source = spec.instance_source
+    if isinstance(source, CollectionSource):
+        return [collection_instance(source)]
+    if not isinstance(source, FilesSource):
+        return []
+    out: list[Instance] = []
+    for path in source_files(spec):
+        out.append(read_instance(path, fmt=source.format))
+    return out
 
 
 def _thaw(value: Any) -> Any:

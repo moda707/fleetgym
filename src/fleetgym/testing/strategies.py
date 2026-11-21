@@ -185,22 +185,31 @@ def stochastic_spec_dicts(draw: st.DrawFn) -> dict[str, Any]:
                 {"rule": "outsource", "per_unit": 1.0, "partial_service": False},
                 {"rule": "agent_decides", "per_unit": 3.0},
                 {"rule": "agent_decides", "options": ["return_to_depot"]},
-                {"rule": "split", "end_early": False},
-                {"rule": "split", "end_early": True},
+                "split",
             ]
         )
     )
     constraints: dict[str, Any] = {"capacity": {}}
     objective: dict[str, float] = {"distance": 1.0, "outsourcing": 1.0, "unserved": 100.0}
-    split = isinstance(rule, dict) and rule["rule"] == "split"
+    split = rule == "split"
+    fleet: dict[str, Any] = {"sizing": sizing, "types": [vehicle]}
     if split:
+        fleet["multi_trip"] = True
+        fleet["end_route"] = draw(st.sampled_from(["anytime", "when_nothing_reachable"]))
+        if draw(st.booleans()):
+            fleet["reload_time"] = float(draw(st.integers(0, 5)))
         if draw(st.booleans()):
             uncertainty.pop("service_time", None)  # stochastic service times need time recourse
-            constraints["route_duration"] = {"max": float(draw(st.integers(20, 120)))}
+            constraints["route_duration"] = {
+                "mode": draw(st.sampled_from(["hard", "soft"])),
+                "max": float(draw(st.integers(20, 120))),
+            }
         if draw(st.booleans()):
             objective = {"served_demand": -1.0, "distance": draw(st.sampled_from([0.0, 0.1]))}
+        if constraints.get("route_duration", {}).get("mode") == "soft":
+            objective = {**objective, "overtime": 1.0}
     return {
-        "fleet": {"sizing": sizing, "types": [vehicle]},
+        "fleet": fleet,
         "network": {
             "type": "euclidean",
             "rounding": draw(st.sampled_from(["none", "nearest_int"])),

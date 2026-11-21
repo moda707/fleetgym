@@ -17,7 +17,7 @@ from __future__ import annotations
 import dataclasses
 import fnmatch
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
@@ -27,9 +27,16 @@ import numpy as np
 from fleetgym.data.download import fetch, load_collection
 from fleetgym.data.generators import generate
 from fleetgym.data.instance import Instance
+from fleetgym.data.instance_set import read_instance_set
 from fleetgym.data.readers import read_instance
 from fleetgym.errors import ConfigError, InstanceError, NotInScopeError
-from fleetgym.spec.models import CollectionSource, FilesSource, GeneratorSource, ProblemSpec
+from fleetgym.spec.models import (
+    CollectionSource,
+    DistSpec,
+    FilesSource,
+    GeneratorSource,
+    ProblemSpec,
+)
 from fleetgym.spec.models.base import FROM_INSTANCE
 
 __all__ = [
@@ -39,6 +46,7 @@ __all__ = [
     "bind",
     "collection_instance",
     "instance_from_source",
+    "source_files",
 ]
 
 #: Default instance key for a bare ``from_instance`` at a YAML path (``*`` matches one segment).
@@ -48,6 +56,7 @@ DEFAULT_INSTANCE_KEYS: tuple[tuple[str, str], ...] = (
     ("uncertainty.demand.*", "demands"),
     ("uncertainty.service_time.*", "service_times"),
     ("constraints.route_duration.max", "max_route_duration"),
+    ("fleet.reload_time", "reload_time"),
     ("constraints.outsourcing.value", "outsourcing_costs"),
     ("dynamics.request_class.location.data", "customer_coords"),
 )
@@ -58,6 +67,8 @@ SYMBOLIC_VALUES: tuple[tuple[str, str, str], ...] = (
 )
 
 _SKIPPED_SECTIONS = ("meta", "ev")
+#: Paths whose ``from_instance`` is bound by dedicated code (vehicle types from the instance).
+_BOUND_ELSEWHERE = frozenset({"fleet.types", "fleet.shift"})
 
 
 @dataclass(frozen=True)
@@ -90,6 +101,10 @@ class BoundProblem:
     instance: Instance
     refs: Mapping[str, Any]
     vehicle_types: tuple[BoundVehicleType, ...]
+    distributions: Mapping[str, DistSpec] = field(default_factory=dict)
+    """The distribution of each uncertainty source: the spec's, or else the instance's."""
+    shift: tuple[float, float] | None = None
+    """The working day (start, end): the spec's, or the instance's with ``from_instance``."""
 
     @property
     def spec_hash(self) -> str:
@@ -171,6 +186,8 @@ def bind(spec: ProblemSpec, instance: Instance) -> BoundProblem:
         if section in _SKIPPED_SECTIONS:
             continue
         for path, value in _walk(data[section], (section,)):
+            if path in _BOUND_ELSEWHERE:
+                continue
             key: str | None
             if isinstance(value, Mapping):
                 key = str(value[FROM_INSTANCE])
@@ -190,14 +207,88 @@ def bind(spec: ProblemSpec, instance: Instance) -> BoundProblem:
                 refs[path] = instance.get(key)
             except InstanceError as exc:
                 raise _config_error(spec, path, str(exc)) from None
-    vehicle_types = tuple(_bind_vehicle_type(spec, i, refs) for i in range(len(spec.fleet.types)))
+    vehicle_types = (
+        _instance_vehicle_types(spec, instance)
+        if spec.fleet.from_instance
+        else tuple(_bind_vehicle_type(spec, i, refs) for i in range(len(spec.fleet.types)))
+    )
     _check_compatibility(spec, instance, vehicle_types)
+    dists = {
+        name: _bind_distribution(spec, instance, name, uncertain.dist, refs)
+        for name, uncertain in spec.uncertainty.items()
+    }
     return BoundProblem(
         spec=spec,
         instance=instance,
         refs=MappingProxyType(refs),
         vehicle_types=vehicle_types,
+        distributions=MappingProxyType(dists),
+        shift=_bind_shift(spec, instance),
     )
+
+
+def _bind_shift(spec: ProblemSpec, instance: Instance) -> tuple[float, float] | None:
+    shift = spec.fleet.shift
+    if shift is None:
+        return None
+    if shift != "from_instance":
+        return (float(shift[0]), float(shift[1]))
+    if "shift_end" not in instance.extra:
+        raise _config_error(
+            spec, "fleet.shift", f"instance {instance.name!r} has no global field shift_end"
+        )
+    start, end = float(instance.extra.get("shift_start", 0.0)), float(instance.extra["shift_end"])
+    if not start < end:
+        raise _config_error(
+            spec, "fleet.shift", f"instance {instance.name!r}: shift_start must be before shift_end"
+        )
+    return (start, end)
+
+
+def _bind_distribution(
+    spec: ProblemSpec,
+    instance: Instance,
+    name: str,
+    dist: DistSpec | None,
+    refs: dict[str, Any],
+) -> DistSpec:
+    """The spec's distribution of ``name``, or the instance's, with field references resolved."""
+    path = f"uncertainty.{name}"
+    if dist is not None:
+        return dist
+    raw = instance.distributions.get(name)
+    if raw is None:
+        raise _config_error(
+            spec,
+            path,
+            f"the spec gives no distribution for {name!r} and instance {instance.name!r} has no "
+            f"distributions.{name}",
+        )
+    fields = set(instance.keys()) | set(instance.extra)
+    data: dict[str, Any] = {}
+    for key, value in raw.items():
+        if (
+            key != "dist"
+            and isinstance(value, str)
+            and (value in _FIELD_ALIASES or value in fields)
+        ):
+            field_name = _FIELD_ALIASES.get(value, value)
+            refs[f"{path}.{key}"] = instance.get(field_name)
+            data[key] = {FROM_INSTANCE: field_name}
+        else:
+            data[key] = list(value) if isinstance(value, tuple) else value
+    try:
+        return DistSpec.model_validate(data)
+    except ValueError as exc:
+        raise _config_error(
+            spec, path, f"instance {instance.name!r} distributions.{name} is invalid: {exc}"
+        ) from None
+
+
+#: Schema field names that the instance stores under another key.
+_FIELD_ALIASES: Mapping[str, str] = MappingProxyType(
+    {"demand": "demands", "service_time": "service_times"}
+)
 
 
 def _scalar(spec: ProblemSpec, path: str, value: Any, *, integer: bool) -> float | int:
@@ -213,8 +304,43 @@ def _scalar(spec: ProblemSpec, path: str, value: Any, *, integer: bool) -> float
     return float(array)
 
 
+def _instance_vehicle_types(spec: ProblemSpec, instance: Instance) -> tuple[BoundVehicleType, ...]:
+    """The instance's vehicle types, checked against the spec's sizing."""
+    if not instance.vehicle_types:
+        raise _config_error(
+            spec, "fleet.types", f"instance {instance.name!r} has no vehicle types (vehicle_types)"
+        )
+    if spec.fleet.sizing == "unlimited" and len(instance.vehicle_types) != 1:
+        raise _config_error(
+            spec,
+            "fleet.sizing",
+            f"instance {instance.name!r} has {len(instance.vehicle_types)} vehicle types; an "
+            "unlimited fleet needs exactly one",
+        )
+    out = []
+    for i, vt in enumerate(instance.vehicle_types):
+        count = vt.get("count")
+        if spec.fleet.sizing != "unlimited" and count is None:
+            raise _config_error(
+                spec,
+                "fleet.sizing",
+                f"instance {instance.name!r}: vehicle type {i} has no count, which a "
+                f"{spec.fleet.sizing} fleet needs",
+            )
+        capacity = vt.get("capacity")
+        out.append(
+            BoundVehicleType(
+                name=str(vt.get("name", f"type{i}")),
+                capacity=None if capacity is None else float(capacity),
+                count=None if spec.fleet.sizing == "unlimited" or count is None else int(count),
+                fixed_cost=float(vt.get("fixed_cost", 0.0)),
+            )
+        )
+    return tuple(out)
+
+
 def _bind_vehicle_type(spec: ProblemSpec, index: int, refs: Mapping[str, Any]) -> BoundVehicleType:
-    vt = spec.fleet.types[index]
+    vt = spec.fleet.explicit_types()[index]
     base = f"fleet.types.{index}"
     capacity: float | None = None
     if f"{base}.capacity" in refs:
@@ -274,13 +400,31 @@ def instance_from_source(spec: ProblemSpec, rng: np.random.Generator) -> Instanc
         if isinstance(source, CollectionSource):
             return collection_instance(source)
         assert isinstance(source, FilesSource)
-        chosen = source.paths[int(rng.integers(len(source.paths)))]
-        path = Path(chosen)
-        if not path.is_absolute() and spec.source is not None and not spec.source.startswith("<"):
-            path = Path(spec.source).parent / path
-        return read_instance(path, fmt=source.format)
+        files = source_files(spec)
+        return read_instance(files[int(rng.integers(len(files)))], fmt=source.format)
     except InstanceError as exc:
         raise ConfigError(str(exc), source=spec.source, key_path="instance_source") from None
+
+
+def source_files(spec: ProblemSpec) -> list[Path]:
+    """The instance files of a files source: listed files, and every file of listed sets.
+
+    Relative paths resolve against the config file's folder.
+
+    Raises
+    ------
+    InstanceError
+        If an instance set's manifest is invalid.
+    """
+    source = spec.instance_source
+    assert isinstance(source, FilesSource)
+    files: list[Path] = []
+    for entry in source.paths:
+        path = Path(entry)
+        if not path.is_absolute() and spec.source is not None and not spec.source.startswith("<"):
+            path = Path(spec.source).parent / path
+        files += list(read_instance_set(path).paths) if path.is_dir() else [path]
+    return files
 
 
 def collection_instance(source: CollectionSource) -> Instance:

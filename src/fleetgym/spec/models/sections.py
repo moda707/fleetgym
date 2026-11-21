@@ -14,6 +14,8 @@ from pydantic import (
     Field,
     GetJsonSchemaHandler,
     ValidationError,
+    field_serializer,
+    field_validator,
     model_serializer,
     model_validator,
 )
@@ -142,11 +144,15 @@ class GeneratorSource(FrozenModel):
 
 
 class FilesSource(FrozenModel):
-    """Load instances from files (relative paths resolve against the config file)."""
+    """Load instances from files or instance sets (relative paths resolve against the config file).
+
+    A path may be an instance file (FleetGym JSON, VRPLIB or Solomon) or the folder of an instance
+    set (`fleetgym.data.read_instance_set`); each episode draws one instance among all of them.
+    """
 
     type: Literal["files"] = "files"
     paths: tuple[str, ...] = Field(min_length=1)
-    format: Literal["vrplib", "solomon"] | None = None
+    format: Literal["fleetgym", "vrplib", "solomon"] | None = None
 
 
 class CollectionSource(FrozenModel):
@@ -260,16 +266,45 @@ class FleetSpec(FrozenModel):
     sizing
         ``fixed``: exactly ``count`` vehicles per type are available. ``limited``: at most
         ``count`` may be used. ``unlimited``: as many as needed.
+    types
+        ``from_instance`` (the default): the instance's ``vehicle_types`` (capacity, count, fixed
+        cost). Or explicit types, for quick experiments.
     shift
-        Start and end of the working day, or ``None`` for no shift limits.
+        Start and end of the working day: two numbers, ``from_instance`` (the instance's
+        ``shift_start``, 0 if absent, and ``shift_end``), or ``None`` for no shift limits.
+    multi_trip
+        A vehicle that returns to the depot during the day reloads and its route goes on (it may
+        leave again); a full vehicle may only go to the depot. Without it, returning to the depot
+        ends the route (recourse trips excepted).
+    reload_time
+        Time a reload at the depot takes: a number, or ``from_instance`` (the instance's global
+        ``reload_time``). ``None``: reloading is instantaneous.
+    end_route
+        ``anytime``: a vehicle at the depot may end its day whenever it wants.
+        ``when_nothing_reachable``: only when no customer is feasible for it.
     """
 
     sizing: Literal["fixed", "limited", "unlimited"] = "unlimited"
-    types: tuple[VehicleTypeSpec, ...] = Field(min_length=1)
-    shift: tuple[float, float] | None = None
+    types: tuple[VehicleTypeSpec, ...] = ()
+    """Empty (or ``from_instance``) means the instance's types; dumped as ``from_instance``."""
+    shift: tuple[float, float] | Literal["from_instance"] | None = None
+    multi_trip: bool = False
+    reload_time: NonNegativeOrRef | None = None
+    end_route: Literal["anytime", "when_nothing_reachable"] = "anytime"
+
+    @field_validator("types", mode="before")
+    @classmethod
+    def _from_instance(cls, value: Any) -> Any:
+        return () if value == "from_instance" else value
+
+    @field_serializer("types")
+    def _types_out(self, value: tuple[VehicleTypeSpec, ...]) -> Any:
+        return "from_instance" if not value else [t.model_dump(mode="json") for t in value]
 
     @model_validator(mode="after")
     def _consistent(self) -> FleetSpec:
+        if isinstance(self.shift, tuple) and not self.shift[0] < self.shift[1]:
+            raise ValueError(f"`shift` must be (start, end) with start < end, got {self.shift}")
         names = [t.name for t in self.types]
         if len(set(names)) != len(names):
             raise ValueError(f"vehicle type names must be unique, got {names}")
@@ -282,9 +317,16 @@ class FleetSpec(FrozenModel):
                 raise ValueError(
                     f"vehicle type {t.name!r}: `count` is required with {self.sizing} sizing"
                 )
-        if self.shift is not None and not self.shift[0] < self.shift[1]:
-            raise ValueError(f"`shift` must be (start, end) with start < end, got {self.shift}")
         return self
+
+    @property
+    def from_instance(self) -> bool:
+        """True when the vehicle types come from the instance."""
+        return not self.types
+
+    def explicit_types(self) -> tuple[VehicleTypeSpec, ...]:
+        """The spec's own vehicle types (empty when they come from the instance)."""
+        return self.types
 
 
 # --------------------------------------------------------------------------- constraints
@@ -295,29 +337,47 @@ class CapacityParams(FrozenModel):
 
 
 class TimeWindowsParams(FrozenModel):
-    """Customer time windows.
+    """Customer time windows (values from the instance's ``tw_open`` and ``tw_close``).
 
     Attributes
     ----------
-    soft
-        Hard windows are masked; soft windows allow lateness, which is reported as the
-        ``lateness`` cost component and priced by ``objective.lateness``.
+    mode
+        ``hard``: windows are masked. ``soft``: lateness is allowed and reported as the
+        ``lateness`` cost component (priced by ``objective.lateness``). ``soft: true`` is accepted
+        for ``mode: soft``.
     waiting
         Whether a vehicle arriving early may wait for the window to open.
     """
 
-    soft: bool = False
+    mode: Literal["hard", "soft"] = "hard"
     waiting: Literal["allowed", "forbidden"] = "allowed"
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_soft(cls, data: Any) -> Any:
+        if isinstance(data, Mapping) and "soft" in data:
+            if "mode" in data:
+                raise ValueError("give `mode`, not both `mode` and `soft`")
+            rest = {k: v for k, v in data.items() if k != "soft"}
+            return {**rest, "mode": "soft" if data["soft"] else "hard"}
+        return data
 
 
 class RouteDurationParams(FrozenModel):
     """Maximum route duration.
 
-    ``max`` is a number, ``from_instance``, or ``depot_due_time`` (the closing time of the depot's
-    time window in the instance).
+    Attributes
+    ----------
+    mode
+        ``hard``: customers that would make the route too long are masked. ``soft``: the excess is
+        reported as the ``overtime`` cost component when the route ends.
+    max
+        The limit: ``from_instance`` (the default, the instance's ``max_route_duration``), a number,
+        or ``depot_due_time`` (the closing time of the depot's time window).
     """
 
-    max: PositiveOrRef | Literal["depot_due_time"]
+    mode: Literal["hard", "soft"] = "hard"
+    max: PositiveOrRef | Literal["depot_due_time"] = Field(default_factory=InstanceRef)
 
 
 class OutsourcingParams(FrozenModel):
@@ -646,20 +706,12 @@ class AgentDecidesParams(_OutsourceCosts):
 
 
 class SplitParams(FrozenModel):
-    """Split delivery with restocking whenever the vehicle chooses (Dastpak, Errico and Jabali).
+    """Split delivery (Dastpak, Errico and Jabali): serve what fits, the rest stays open.
 
-    At a capacity failure the vehicle serves what fits and the rest of the demand stays open: the
-    customer is pending again, for any vehicle. A vehicle with no free capacity can only go to the
-    depot. Every trip to the depot during the day restocks it and the route goes on.
-
-    Attributes
-    ----------
-    end_early
-        ``False``: a vehicle at the depot may end its day only when no customer is reachable (the
-        paper's rule). ``True``: it may end its day at the depot at any time.
+    The customer is pending again with the demand left, for any vehicle. Combine with
+    ``fleet.multi_trip`` (reload at the depot and continue) and, for the paper's rule that a vehicle
+    ends its day only when nothing is reachable, ``fleet.end_route: when_nothing_reachable``.
     """
-
-    end_early: bool = False
 
 
 for _name, _model, _description in (
@@ -671,15 +723,56 @@ for _name, _model, _description in (
     RECOURSE_RULES.register(_name, PluginEntry(_model, description=_description))
 
 
+#: ``remainder`` values of the recourse grammar and the rules they stand for.
+_REMAINDERS = {
+    "come_back": "return_to_depot",
+    "open": "split",
+    "outsource": "outsource",
+    "ask": "agent_decides",
+}
+
+
+def _translate_recourse(data: Mapping[str, Any]) -> dict[str, Any]:
+    """``{serve, remainder, ...}`` to ``{rule, ...}`` (the stored, hashed form)."""
+    out = {k: v for k, v in data.items() if k not in ("serve", "remainder")}
+    remainder = data["remainder"]
+    serve = data.get("serve", "what_fits")
+    if serve not in ("what_fits", "none"):
+        raise ValueError(f"`serve` must be what_fits or none, got {serve!r}")
+    rule = _REMAINDERS.get(remainder, remainder)
+    out["rule"] = rule
+    if rule == "split":
+        if serve != "what_fits":
+            raise ValueError("`remainder: open` needs `serve: what_fits`")
+    elif "serve" in data:
+        out["partial_service"] = serve == "what_fits"
+    return out
+
+
 class RecourseRuleSpec(FlatPluginModel):
-    """A recourse rule: a name, or ``{rule: <name>, <params>}``."""
+    """A recourse rule, in one of three forms.
+
+    * ``{serve: what_fits | none, remainder: come_back | open | outsource | ask | <custom rule>,
+      <params>}``: the documented form. ``serve`` is what the vehicle delivers before the rest is
+      resolved; ``remainder`` is what happens to the rest: the vehicle restocks at the depot and
+      comes back (``come_back``), the rest stays open for any vehicle (``open``), a third party
+      takes it (``outsource``), or the policy chooses at a recourse epoch (``ask``).
+    * ``{rule: <name>, <params>}`` or just ``<name>``: the registered rule directly (the stored
+      form; the two forms of the same rule have the same hash).
+    """
 
     discriminator: ClassVar[str] = "rule"
     registry = RECOURSE_RULES
 
     @classmethod
     def _preprocess(cls, data: Any) -> Any:
-        return {"rule": data} if isinstance(data, str) else data
+        if isinstance(data, str):
+            return {"rule": data}
+        if isinstance(data, Mapping) and "remainder" in data:
+            if "rule" in data:
+                raise ValueError("give either `rule` or `remainder`, not both")
+            return _translate_recourse(data)
+        return data
 
     @model_serializer(mode="wrap")
     def _flatten_out(self, handler: Callable[[Any], Any]) -> Any:
@@ -734,6 +827,7 @@ for _name, _description in (
     ("lateness", "Total lateness under soft time windows"),
     ("waiting", "Total waiting time"),
     ("unserved", "Requests left unserved"),
+    ("overtime", "Route time beyond a soft duration limit"),
     ("rejected", "Requests rejected"),
     ("outsourcing", "Outsourcing cost"),
     ("served_demand", "Demand delivered (a revenue: give it a negative weight)"),
@@ -746,7 +840,6 @@ for _name, _description in (
     ("energy", "Energy cost (EV module)"),
     ("charging_time", "Time spent charging (EV module)"),
     ("emissions", "Emissions"),
-    ("overtime", "Work beyond the shift"),
     ("imbalance", "Workload imbalance"),
 ):
     COST_COMPONENTS.register(_name, PluginEntry(_NoParams, reserved=True, description=_description))

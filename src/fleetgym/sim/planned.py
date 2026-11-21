@@ -74,17 +74,17 @@ class PlannedRoutingSimulator(Simulator):
         instance = problem.instance
         n = instance.n_nodes
         extra = instance.extra
-        self.release = np.asarray(extra.get("release", np.full(n, self.shift_start)), dtype=float)
-        if "release" not in extra:
+        self.release = np.asarray(extra.get("_release", np.full(n, self.shift_start)), dtype=float)
+        if "_release" not in extra:
             self.release[: instance.n_depots] = self.shift_start
-        self.cancel = np.asarray(extra.get("cancel", np.full(n, np.inf)), dtype=float)
+        self.cancel = np.asarray(extra.get("_cancel", np.full(n, np.inf)), dtype=float)
         self.overflow = (
             np.asarray(scenario["request.overflow"], dtype=float)
             if scenario is not None and "request.overflow" in scenario.values
             else np.zeros(0)
         )
         if scenario is not None and "request.release" in scenario.values:
-            base_hash = extra.get("base_instance_hash")
+            base_hash = extra.get("_base_instance_hash")
             if scenario.instance_hash != base_hash or scenario.spec_hash != problem.spec_hash:
                 from fleetgym.errors import ScenarioMismatchError
 
@@ -102,7 +102,7 @@ class PlannedRoutingSimulator(Simulator):
             demands=self._truth["demand"],
             service_times=self._truth["service_time"],
             time_windows=instance.time_windows if tw is not None else None,
-            hard_windows=tw is not None and not tw.model_dump()["soft"],
+            hard_windows=tw is not None and tw.model_dump()["mode"] != "soft",
             capacity_on=self.capacity_on,
             max_duration=duration,
             shift_end=self.shift_end,
@@ -119,6 +119,18 @@ class PlannedRoutingSimulator(Simulator):
 
     def _check_scope(self) -> None:
         spec = self.problem.spec
+        fleet = spec.fleet
+        duration = spec.constraints.items.get("route_duration")
+        if duration is not None and duration.model_dump()["mode"] == "soft":
+            raise NotInScopeError(
+                "a soft route-duration limit is not supported with accept_reject/assign in this "
+                "version"
+            )
+        if fleet.multi_trip or fleet.reload_time is not None or fleet.end_route != "anytime":
+            raise NotInScopeError(
+                "fleet.multi_trip, fleet.reload_time and fleet.end_route are not supported with "
+                "accept_reject/assign (planned routing) in this version"
+            )
         if spec.uncertainty:
             raise NotInScopeError(
                 "uncertain parameters with accept_reject/assign are after v0.1 (ADR 0014)"

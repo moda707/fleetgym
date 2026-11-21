@@ -186,11 +186,19 @@ def episode_instance(base: Instance, scenario: Scenario) -> Instance:
 
     Without ``request.*`` sources the base instance is returned unchanged. Otherwise node ``i`` of
     the result has the scenario's location, demand, time window and service time of slot ``i``;
-    depots keep the base instance's values. ``extra`` records ``release`` and ``cancel`` times
-    per node, ``n_static`` (nodes known at the start), ``n_slots`` and ``base_instance_hash``.
+    depots keep the base instance's values. ``extra`` records ``_release`` and ``_cancel`` times
+    per node, ``_n_static`` (nodes known at the start), ``_n_slots`` and ``_base_instance_hash``.
     """
     if "request.release" not in scenario.values:
         return base
+    per_node = sorted(k for k, v in base.extra.items() if not k.startswith("_") and np.ndim(v) > 0)
+    if per_node:
+        from fleetgym.errors import NotInScopeError
+
+        raise NotInScopeError(
+            f"instance {base.name!r} has node or arc fields {per_node}; requests arriving during "
+            "the day have no values for them (not supported in this version)"
+        )
     release = scenario["request.release"]
     n = release.size
     depots = base.n_depots
@@ -218,12 +226,15 @@ def episode_instance(base: Instance, scenario: Scenario) -> Instance:
         time_windows=windows,
         service_times=service,
         n_depots=depots,
+        schema=base.schema,
+        distributions=base.distributions,
+        vehicle_types=base.vehicle_types,
         extra={
-            **dict(base.extra),
-            "release": release,
-            "cancel": scenario["request.cancel"],
-            "n_static": static,
-            "n_slots": n,
-            "base_instance_hash": base.content_hash(),
+            **{k: v for k, v in base.extra.items() if np.ndim(v) == 0},
+            "_release": release,
+            "_cancel": scenario["request.cancel"],
+            "_n_static": static,
+            "_n_slots": n,
+            "_base_instance_hash": base.content_hash(),
         },
     )

@@ -84,18 +84,13 @@ class _MultiBase:
                 key_path="fleet.sizing",
             )
         self.env = FleetGymEnv(spec, **dict(env_kwargs))
-        counts = [vt.count for vt in spec.fleet.types]
-        instance = env_kwargs.get("instance")
-        if instance is not None:
-            from fleetgym.spec.binding import bind
+        from fleetgym.envs.env import _known_fleet_size  # pyright: ignore[reportPrivateUsage]
 
-            n = sum(vt.count or 0 for vt in bind(spec, instance).vehicle_types)
-        elif all(isinstance(c, int) for c in counts):
-            n = sum(int(c) for c in counts if isinstance(c, int))
-        else:
+        n = _known_fleet_size(spec, env_kwargs.get("instance"))
+        if n == 0:
             raise ConfigError(
-                "the number of agents must be known: give `fleet.types[].count` as a number, or "
-                "pass an `instance=`",
+                "the number of agents must be known: give the instances vehicle counts, "
+                "`fleet.types[].count` as numbers, or pass an `instance=`",
                 source=spec.source,
                 key_path="fleet.types",
             )

@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from fleetgym.data import Instance
+from fleetgym.data.schema import register_schema
 from fleetgym.envs.env import FleetGymEnv
 from fleetgym.errors import ConfigError, InfeasibleActionError
 from fleetgym.sim.decisions import Dispatch, RecourseChoice
@@ -135,6 +136,9 @@ def test_outsourcing_cost_can_come_from_the_instance():
         coords=LINE.coords,
         capacity=4.0,
         extra={"costs": np.array([0.0, 10.0, 20.0, 30.0])},
+        schema=register_schema(
+            {"schema": "tests/line-costs/1", "extends": "fleetgym/core/1", "node": {"costs": {}}}
+        ).id,
     )
     rule = {"rule": "outsource", "per_customer": {"from_instance": "costs"}}
     s = spec(rule)

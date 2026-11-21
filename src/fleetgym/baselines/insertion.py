@@ -35,11 +35,12 @@ def route_rules(sim: Simulator) -> RouteRules:
         demands=info.demands,
         service_times=info.service_times,
         time_windows=sim.problem.instance.time_windows if tw is not None else None,
-        hard_windows=tw is not None and not tw.model_dump()["soft"],
+        hard_windows=tw is not None and tw.model_dump()["mode"] != "soft",
         capacity_on=sim.capacity_on,
         max_duration=(
             float(sim.problem.value("constraints.route_duration.max"))
             if "route_duration" in spec.constraints
+            and spec.constraints["route_duration"].model_dump()["mode"] == "hard"
             else None
         ),
         shift_end=sim.shift_end,

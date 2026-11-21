@@ -16,7 +16,7 @@
 # | 3 vehicles, capacities 20, 30, 35 | three vehicle types with `count: 1` |
 # | depot and customers uniform in the unit square | generator `uniform`, `size: 1`, `depot: random` |
 # | demands: integers 1-9 (Algorithm 1) | `demand: {low: 1, high: 9}` |
-# | refill at the depot and continue | the `split` rule's restock trips (demands are known, so deliveries never split) |
+# | refill at the depot and continue | `fleet.multi_trip: true` |
 # | total length, all customers served | `objective: {distance: 1, unserved: 100}` |
 # | one vehicle acts at a time | PettingZoo AEC |
 #
@@ -50,8 +50,9 @@ VRP20 = {
             {"name": "medium", "capacity": 30, "count": 1},
             {"name": "large", "capacity": 35, "count": 1},
         ],
+        "multi_trip": True,
+        "end_route": "when_nothing_reachable",
     },
-    "recourse": {"capacity_failure": {"rule": "split", "end_early": False}},
     "objective": {"distance": 1.0, "unserved": 100.0},
     "agents": {"mode": "multi", "api": "aec", "reward": "global"},
 }

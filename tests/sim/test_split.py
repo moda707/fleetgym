@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 import pytest
 
+import fleetgym as fg
 from fleetgym.data import Instance
 from fleetgym.envs.env import FleetGymEnv
 from fleetgym.errors import NotInScopeError
@@ -37,13 +38,15 @@ def spec(*, vehicles: int = 2, duration: float | None = None, end_early: bool = 
         "fleet": {
             "sizing": "fixed",
             "types": [{"name": "v", "capacity": "from_instance", "count": vehicles}],
+            "multi_trip": True,
+            "end_route": "anytime" if end_early else "when_nothing_reachable",
         },
         "network": {"type": "euclidean", "rounding": "none"},
         "constraints": constraints,
         "uncertainty": {
             "demand": {"dist": "poisson", "mean": "from_instance", "revealed": "on_arrival"}
         },
-        "recourse": {"capacity_failure": {"rule": "split", "end_early": end_early}},
+        "recourse": {"capacity_failure": "split"},
         "decisions": {"interface": "next_node", "epochs": "on_event"},
         "objective": {"served_demand": -1.0},
     }
@@ -227,3 +230,65 @@ def test_validator_catches_split_violations():
         first(rows, "failure").update(load=1.0)
 
     assert "load" in codes_after(split_with_room)
+
+
+# ------------------------------------------------------------------ reload time (fleet)
+
+
+def test_reload_time_comes_from_the_instance_and_delays_departure():
+    timed = Instance(
+        name="line-reload",
+        source="test",
+        demands=LINE.demands,
+        coords=LINE.coords,
+        capacity=4.0,
+        extra={"reload_time": 2.5},
+    )
+    raw = spec(vehicles=1).to_dict()
+    raw["fleet"]["reload_time"] = "from_instance"
+    s = load_spec(raw)
+    env = FleetGymEnv(s, instance=timed, debug=True)
+    scenario = Scenario(
+        s.content_hash(), timed.content_hash(), {"demand": np.array([0, 1, 1, 1.0])}
+    )
+    env.reset(seed=0, options={"scenario": scenario})
+    env.step(1)
+    env.step(0)  # back at t = 2; the 2.5 reload is paid only if it leaves again
+    (restock,) = env.event_log.of_kind("restock")
+    assert (restock["time"], restock["value"]) == (2.0, 2.5)
+    assert env.simulator.state.time == pytest.approx(2.0)
+    env.step(2)
+    departures = [r["time"] for r in env.event_log.of_kind("depart")]
+    assert departures[-1] == pytest.approx(4.5)
+    while not env.simulator.state.terminated:
+        env.step(int(np.flatnonzero(env.action_masks())[0]))
+    report = validate(env.event_log, s, timed, scenario=scenario)
+    assert report.ok, report.violations
+    rows = [dict(r) for r in env.event_log.rows]
+    next(r for r in rows if r["kind"] == "restock")["value"] = 0.0
+    log = EventLog(dict(env.event_log.metadata))
+    log.rows = rows
+    assert "restock" in {v.code for v in validate(log, s, timed, scenario=scenario).violations}
+
+
+def test_planned_routing_rejects_fleet_behaviors():
+    raw = fg.load_spec("DVRP-StochReq-v0").to_dict()
+    raw["fleet"]["multi_trip"] = True
+    with pytest.raises(NotInScopeError, match=r"fleet\.multi_trip"):
+        fg.make(load_spec(raw)).reset(seed=0)
+
+
+def test_soft_duration_limit_charges_overtime_instead_of_masking():
+    raw = spec(vehicles=1).to_dict()
+    raw["constraints"]["route_duration"] = {"mode": "soft", "max": 3.0}
+    raw["objective"] = {"served_demand": -1.0, "overtime": 2.0}
+    s = load_spec(raw)
+    env, *_ = start(s, [0, 1, 1, 1])
+    assert np.flatnonzero(env.action_masks()).tolist() == [1, 2, 3]  # nothing masked
+    for node in (3, 2, 1, 0):
+        env.step(node)
+    valid(env)
+    costs = env.simulator.state.total_costs
+    assert costs["overtime"] == pytest.approx(6.0 - 3.0)  # route 0-3-2-1-0 lasts 6
+    rewards = sum(r["reward"] for r in env.event_log.of_kind("epoch"))
+    assert rewards == pytest.approx(3.0 - 2.0 * 3.0)

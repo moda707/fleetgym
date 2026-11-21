@@ -44,7 +44,7 @@ class Rules:
         return cls(
             capacity=capacity if "capacity" in spec.constraints else None,
             time_windows=tw is not None,
-            soft=bool(tw_params.get("soft", False)),
+            soft=tw_params.get("mode", "hard") == "soft",
             waiting_allowed=tw_params.get("waiting", "allowed") == "allowed",
             max_duration=duration,
             shift_start=float(spec.fleet.shift[0]) if spec.fleet.shift else 0.0,

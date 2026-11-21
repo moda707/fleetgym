@@ -127,7 +127,7 @@ class PyVRPReoptimization(NearestNeighbor):
         demands = info.demands
         load_scale = 1.0 if np.allclose(demands, np.round(demands)) else 1000.0
         tw_spec = spec.constraints.items.get("time_windows")
-        hard_tw = tw_spec is not None and not tw_spec.model_dump()["soft"]
+        hard_tw = tw_spec is not None and tw_spec.model_dump()["mode"] != "soft"
         windows = instance.time_windows if hard_tw else None
         late = _BIG
         if windows is not None:
@@ -137,6 +137,7 @@ class PyVRPReoptimization(NearestNeighbor):
         max_duration = (
             float(problem.value("constraints.route_duration.max"))
             if "route_duration" in spec.constraints
+            and spec.constraints["route_duration"].model_dump()["mode"] == "hard"
             else None
         )
 

@@ -29,6 +29,8 @@ instance_source:
 network: {type: euclidean, rounding: none}
 fleet:
   sizing: fixed
+  multi_trip: true
+  end_route: when_nothing_reachable
   types: [{name: vehicle, capacity: 50, count: 11}]
 constraints:
   capacity: {}
@@ -41,6 +43,6 @@ uncertainty:
     probs: [0.05, 0.15, 0.6, 0.15, 0.05]
     revealed: on_arrival
 recourse:
-  capacity_failure: {rule: split, end_early: false}
+  capacity_failure: split
 decisions: {interface: next_node, epochs: on_event}
 objective: {served_demand: -1.0}

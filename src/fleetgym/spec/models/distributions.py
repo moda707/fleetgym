@@ -295,14 +295,16 @@ _UNCERTAIN_KEYS = ("revealed", "correlated_with", "forecast")
 class UncertainSpec(FrozenModel):
     """An uncertain parameter: a distribution plus when its realization is revealed.
 
-    YAML form (flat)::
+    YAML forms (flat)::
 
+        demand: {revealed: on_arrival}           # the instance gives the distribution
         demand: {dist: poisson, mean: from_instance, revealed: on_arrival}
 
     Attributes
     ----------
     dist
-        The distribution of the parameter.
+        The distribution of the parameter, or ``None``: each instance gives it in its
+        ``distributions`` block (ADR 0023).
     revealed
         When the realization becomes known.
     correlated_with
@@ -311,7 +313,7 @@ class UncertainSpec(FrozenModel):
         What the agent sees before the realization: nothing, or the distribution's mean.
     """
 
-    dist: DistSpec
+    dist: DistSpec | None = None
     revealed: Revelation
     correlated_with: tuple[str, ...] = ()
     forecast: Literal["none", "mean"] = "mean"
@@ -331,7 +333,7 @@ class UncertainSpec(FrozenModel):
 
     @model_serializer(mode="wrap")
     def _flatten_out(self, handler: Callable[[Any], Any]) -> dict[str, Any]:
-        out = dict(self.dist.model_dump(mode="json"))
+        out = dict(self.dist.model_dump(mode="json")) if self.dist is not None else {}
         out["revealed"] = str(self.revealed)
         out["correlated_with"] = list(self.correlated_with)
         out["forecast"] = self.forecast
@@ -349,4 +351,13 @@ class UncertainSpec(FrozenModel):
         schema = plugin_variants_schema(DISTRIBUTIONS, "dist", handler, extra_properties=extra)
         for variant in schema["oneOf"]:
             variant["required"] = [*variant["required"], "revealed"]
+        schema["oneOf"].append(
+            {
+                "type": "object",
+                "description": "The distribution comes from each instance",
+                "properties": extra,
+                "required": ["revealed"],
+                "additionalProperties": False,
+            }
+        )
         return schema

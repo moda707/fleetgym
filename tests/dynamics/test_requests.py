@@ -145,8 +145,8 @@ def test_episode_instance_and_parquet_round_trip(tmp_path: Path):
     np.testing.assert_array_equal(again["request.overflow"], values["request.overflow"])
     episode = episode_instance(problem.instance, scenario)
     assert episode.n_nodes == problem.instance.n_nodes + 2
-    assert episode.extra["base_instance_hash"] == problem.instance_hash
-    assert episode.extra["n_static"] == problem.instance.n_nodes
+    assert episode.extra["_base_instance_hash"] == problem.instance_hash
+    assert episode.extra["_n_static"] == problem.instance.n_nodes
     assert episode.coords is not None
     np.testing.assert_array_equal(
         episode.coords[: problem.instance.n_nodes], problem.instance.coords

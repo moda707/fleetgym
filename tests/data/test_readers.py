@@ -21,8 +21,8 @@ def test_read_vrplib_coordinates():
     np.testing.assert_array_equal(inst.coords[4], [2.5, 0])
     assert inst.edge_weight_type == "EUC_2D"
     assert inst.distance_matrix is None
-    assert inst.extra["type"] == "CVRP"
-    assert inst.extra["dimension"] == 5
+    assert inst.meta["type"] == "CVRP"
+    assert inst.meta["dimension"] == 5
 
 
 def test_read_vrplib_explicit_matrix_and_scalar_service_time():

@@ -30,10 +30,17 @@ Split recourse (ADR 0021)
 -------------------------
 * At a capacity failure the vehicle serves what fits; the customer is pending again with the demand
   left (``failure`` row with component ``split``), for any vehicle.
-* A vehicle with no free capacity may only go to the depot. Every trip to the depot during the day
-  restocks the vehicle and its route goes on; at the depot it chooses its next customer, or ends its
-  day (with ``end_early: false`` only when no customer is reachable).
 * The rule never forces travel, so it may be combined with route-duration and shift limits.
+
+Fleet behaviors (ADR 0023)
+--------------------------
+* ``fleet.multi_trip``: a trip to the depot during the day reloads the vehicle and its route goes
+  on; a full vehicle may only go to the depot.
+* ``fleet.reload_time``: a reload takes this long. It is paid before the vehicle leaves the
+  depot again (its next departure is delayed; masks include it); a vehicle that ends its route
+  after returning pays nothing.
+* ``fleet.end_route: when_nothing_reachable``: a vehicle at the depot may end its day only when no
+  customer is feasible for it.
 
 Dynamic requests with ``next_node`` (ADR 0015)
 -----------------------------------------------
@@ -78,6 +85,12 @@ from fleetgym.uncertainty.scenario import Scenario
 __all__ = ["Epoch", "RecourseLoopError", "Simulator", "Transition"]
 
 _TOL = 1e-9
+
+
+def _hard_duration(spec: Any) -> bool:
+    """True if the spec has a hard route-duration limit."""
+    duration = spec.constraints.items.get("route_duration")
+    return duration is not None and duration.model_dump()["mode"] == "hard"
 
 
 class RecourseLoopError(FleetGymError):
@@ -178,8 +191,8 @@ class Simulator:
                 raise NotInScopeError(f"constraint {name!r} is not implemented in this version")
             self.constraints.append(CONSTRAINT_CLASSES.get(name)(problem, spec.constraints[name]))
         self.capacity_on = "capacity" in spec.constraints
-        self.shift_start = float(spec.fleet.shift[0]) if spec.fleet.shift is not None else 0.0
-        self.shift_end = float(spec.fleet.shift[1]) if spec.fleet.shift is not None else None
+        self.shift_start = problem.shift[0] if problem.shift is not None else 0.0
+        self.shift_end = problem.shift[1] if problem.shift is not None else None
         self.recourse: RecourseRule | None = None
         if "capacity_failure" in spec.recourse.rules:
             rule = spec.recourse.rules["capacity_failure"]
@@ -195,9 +208,13 @@ class Simulator:
         self.dynamic = spec.dynamics is not None
         # A trip to the depot during the day restocks and the route goes on (dynamic requests, and
         # recourse rules such as split); otherwise a trip to the depot ends the route.
-        self._restock_trips = self.dynamic or (
-            self.recourse is not None and self.recourse.restock_trips
+        fleet = spec.fleet
+        self.multi_trip = fleet.multi_trip
+        self.reload_time = (
+            float(problem.value("fleet.reload_time")) if fleet.reload_time is not None else 0.0
         )
+        self.end_when_nothing_reachable = fleet.end_route == "when_nothing_reachable"
+        self._restock_trips = self.dynamic or self.multi_trip
         self._init_requests(scenario)
 
     # ------------------------------------------------------------------ setup
@@ -222,9 +239,9 @@ class Simulator:
         check_revelations(spec)
         tw = spec.constraints.items.get("time_windows")
         hard_time = (
-            (tw is not None and not tw.model_dump()["soft"])
-            or "route_duration" in spec.constraints
-            or spec.fleet.shift is not None
+            (tw is not None and tw.model_dump()["mode"] != "soft")
+            or _hard_duration(spec)
+            or self.problem.shift is not None
         )
         late_demand = (
             "demand" in spec.uncertainty and spec.uncertainty["demand"].revealed not in AT_START
@@ -255,7 +272,7 @@ class Simulator:
                 "need time-window recourse (docs/recourse.md backlog)"
             )
         if spec.fleet.sizing == "unlimited":
-            if len(spec.fleet.types) != 1:
+            if len(self.problem.vehicle_types) != 1:
                 raise ConfigError(
                     "an unlimited fleet must have exactly one vehicle type",
                     source=spec.source,
@@ -358,8 +375,8 @@ class Simulator:
         instance = self.problem.instance
         n = instance.n_nodes
         extra = instance.extra
-        self.release = np.asarray(extra.get("release", np.full(n, self.shift_start)), dtype=float)
-        self.cancel = np.asarray(extra.get("cancel", np.full(n, np.inf)), dtype=float)
+        self.release = np.asarray(extra.get("_release", np.full(n, self.shift_start)), dtype=float)
+        self.cancel = np.asarray(extra.get("_cancel", np.full(n, np.inf)), dtype=float)
         self.overflow = (
             np.asarray(scenario["request.overflow"], dtype=float)
             if scenario is not None and "request.overflow" in scenario.values
@@ -369,7 +386,7 @@ class Simulator:
             arrival_window(self.problem)[1] if self.problem.spec.dynamics is not None else -np.inf
         )
         if scenario is not None and "request.release" in scenario.values:
-            base_hash = extra.get("base_instance_hash")
+            base_hash = extra.get("_base_instance_hash")
             if scenario.instance_hash != base_hash or scenario.spec_hash != self.problem.spec_hash:
                 from fleetgym.errors import ScenarioMismatchError
 
@@ -426,11 +443,11 @@ class Simulator:
         limits = [np.inf]
         tw = self.problem.instance.time_windows
         tw_spec = self.problem.spec.constraints.items.get("time_windows")
-        if tw is not None and tw_spec is not None and not tw_spec.model_dump()["soft"]:
+        if tw is not None and tw_spec is not None and tw_spec.model_dump()["mode"] != "soft":
             limits.append(float(tw[DEPOT, 1]) - travel)
         if self.shift_end is not None:
             limits.append(self.shift_end - travel)
-        if "route_duration" in self.problem.spec.constraints and v.route_start is not None:
+        if _hard_duration(self.problem.spec) and v.route_start is not None:
             limits.append(
                 v.route_start + float(self.problem.value("constraints.route_duration.max")) - travel
             )
@@ -507,9 +524,8 @@ class Simulator:
             mask[v.awaiting_recourse] = "outsource" in options
             return mask
         candidates = np.flatnonzero(self.state.pending_mask()).astype(np.int64)
-        rule = self.recourse
-        if v.node != DEPOT and rule is not None and rule.must_restock(vehicle, self._info):
-            candidates = candidates[:0]
+        if self.multi_trip and v.node != DEPOT and self.capacity_on and v.load >= v.capacity:
+            candidates = candidates[:0]  # full: only the depot
         if candidates.size:
             ok = self._customer_feasibility(vehicle, candidates)
             mask[candidates[ok]] = True
@@ -521,8 +537,8 @@ class Simulator:
             mask[DEPOT] = True
         else:
             mask[DEPOT] = (not self.unlimited) or not mask.any()
-        if v.node == DEPOT and mask[DEPOT] and self.recourse is not None:
-            mask[DEPOT] = self.recourse.may_end(vehicle, self._info, bool(mask[1:].any()))
+        if v.node == DEPOT and mask[DEPOT] and self.end_when_nothing_reachable:
+            mask[DEPOT] = not mask[1:].any()
         return mask
 
     def recourse_options(self, vehicle: int) -> tuple[RecourseAction, ...]:
@@ -753,6 +769,9 @@ class Simulator:
         self._travel(v, node)
 
     def _travel(self, v: VehicleState, node: int) -> None:
+        if v.reload_due:
+            v.time += v.reload_due  # the reload happens before leaving the depot
+            v.reload_due = 0.0
         distance = float(self._info.distances[v.node, node])
         travel = float(self._info.travel_times[v.node, node])
         self.log.append(
@@ -792,6 +811,10 @@ class Simulator:
         self.log.append(
             "route_end", time=time, vehicle=v.index, node=DEPOT, value=time - v.route_start
         )
+        duration = self.problem.spec.constraints.items.get("route_duration")
+        if duration is not None and duration.model_dump()["mode"] == "soft":
+            limit = float(self.problem.value("constraints.route_duration.max"))
+            self._charge(time, "overtime", max(0.0, time - v.route_start - limit), v.index)
         v.status = VehicleStatus.DONE
         v.time = time
 
@@ -978,7 +1001,8 @@ class Simulator:
     def _restock(self, v: VehicleState) -> None:
         v.restocking = False
         v.load = 0.0
-        self.log.append("restock", time=v.time, vehicle=v.index, node=DEPOT)
+        self.log.append("restock", time=v.time, vehicle=v.index, node=DEPOT, value=self.reload_time)
+        v.reload_due = self.reload_time  # paid only if the vehicle leaves the depot again
         target = v.recourse_target
         v.recourse_target = None
         if target is not None:

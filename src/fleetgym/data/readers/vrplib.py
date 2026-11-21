@@ -93,5 +93,5 @@ def read_vrplib(path: str | Path) -> Instance:
         distance_matrix=None if matrix is None else np.asarray(matrix, dtype=float),
         edge_weight_type=None if edge_weight_type is None else str(edge_weight_type),
         n_depots=n_depots,
-        extra={k: v for k, v in raw.items() if k not in _MAPPED},
+        meta={k: v for k, v in raw.items() if k not in _MAPPED},
     )

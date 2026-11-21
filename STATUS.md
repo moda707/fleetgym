@@ -26,7 +26,7 @@ user on 2026-11-20).
 | M11 Gate 2 | Awaiting approval | Review of v0.1; VRP-SDO deferred by the user |
 | M12 VRP-VCSD | Done | `split` recourse, duration limits with recourse, `served_demand`; `VRP-VCSD-v0`, `VRPSD-Goodson-v0` (ADR 0021) |
 | M13 Paper-based examples | Done | 6 paper examples and the build-your-own guide (ADR 0022); DVRP and MA-DVRP wait for PDFs |
-| M13b Spec/instance separation | Next | Models declare structure, instances carry numbers, presets (proposal 0001, ADR 0023) |
+| M13b Spec/instance separation | In progress | Steps a-b done (schemas, JSON format, sets, model primitives); c presets, d migration next (ADR 0023) |
 | M14 EVSPP-OI | Planned | EV shortest path with charging-station occupancy (arXiv 2305.11773); design first |
 
 ## Tests (M6)

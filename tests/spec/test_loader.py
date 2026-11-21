@@ -116,7 +116,7 @@ def test_overrides_apply_after_extends_and_are_named_in_errors(registry: ConfigR
     spec = load_spec(
         "Child-v0", overrides=["constraints.time_windows.soft=false"], registry=registry
     )
-    assert spec.constraints["time_windows"].model_dump()["soft"] is False
+    assert spec.constraints["time_windows"].model_dump()["mode"] == "hard"
     with pytest.raises(ConfigError) as exc:
         load_spec("Child-v0", overrides=["fleet.types.0.capacity=-5"], registry=registry)
     assert exc.value.source == "<override fleet.types.0.capacity=-5>"

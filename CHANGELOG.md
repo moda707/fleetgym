@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M13b steps a-b (ADR 0023): instance schemas (`fleetgym/core/1`, user schemas in YAML via
+  `load_schema`/`register_schema`); the FleetGym JSON instance format (`write_instance`,
+  `read_instance`) with CVRPLIB and Solomon conversion; instance sets (folder plus checksummed
+  manifest; `files` sources accept them); distributions given by instances; vehicle types, the
+  working day and the reload time from instances; `fleet.multi_trip`, `fleet.reload_time`,
+  `fleet.end_route`; recourse grammar `{serve, remainder}`; constraint modes
+  (`route_duration`/`time_windows` `mode: hard|soft`, `overtime` cost component).
 - M12 (ADR 0021): `VRP-VCSD-v0` and `VRPSD-Goodson-v0`, the problem settings of Dastpak, Errico and
   Jabali (arXiv 2109.10200); recourse rule `split` (serve what fits, the rest stays open for any
   vehicle, restock whenever the vehicle chooses), which works with route-duration and shift limits;
@@ -19,6 +26,10 @@ All notable changes to this project are documented here. The format follows
   `fleetgym.register_generator` (to be removed with the spec/instance separation).
 
 ### Changed
+- `split` recourse only leaves the remainder open; reloading trips and the end rule moved to
+  `fleet.multi_trip` and `fleet.end_route`. `time_windows.soft` became `mode` (old form accepted).
+  Instance fields must be declared by the instance's schema; file headers moved to `meta`. All spec
+  hashes changed (new fleet defaults); the families move to `-v1` with the migration (step d).
 - Examples: one folder per example, each with its script and a notebook generated from it
   (`scripts/build_example_notebooks.py`); the tests run both and check their cells are in sync
   (outputs of a local run are ignored).

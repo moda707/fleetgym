@@ -78,6 +78,9 @@ class VehicleState:
         Accepted customers still to visit after the current destination (planned routing).
     waiting
         Waiting for the next event (``next_node`` with dynamic requests).
+    reload_due
+        Reload time owed before the next departure from the depot (``fleet.reload_time``): a
+        reload happens only if the vehicle leaves again.
     """
 
     index: int
@@ -95,6 +98,7 @@ class VehicleState:
     awaiting_recourse: int | None = None
     plan: list[int] = field(default_factory=list)
     waiting: bool = False
+    reload_due: float = 0.0
 
     @property
     def used(self) -> bool:

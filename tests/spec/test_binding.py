@@ -1,9 +1,11 @@
+import dataclasses
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 from fleetgym.data import Instance, read_instance
+from fleetgym.data.schema import register_schema
 from fleetgym.errors import ConfigError, NotInScopeError
 from fleetgym.network import EuclideanNetwork, MatrixNetwork, build_network
 from fleetgym.spec import load_spec
@@ -11,6 +13,9 @@ from fleetgym.spec.binding import bind, instance_from_source
 from tests.spec.helpers import spec_dict, write_yaml
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "instances"
+LIMITS = register_schema(
+    {"schema": "tests/binding/1", "extends": "fleetgym/core/1", "global": {"limit": {}, "k": {}}}
+)
 
 
 def tiny() -> Instance:
@@ -53,10 +58,10 @@ def test_explicit_key_and_literal_values():
     spec = load_spec(
         spec_dict(
             fleet={"types": [{"name": "t", "capacity": 7}]},
-            constraints={"capacity": {}, "route_duration": {"max": {"from_instance": "dimension"}}},
+            constraints={"capacity": {}, "route_duration": {"max": {"from_instance": "limit"}}},
         )
     )
-    problem = bind(spec, tiny())
+    problem = bind(spec, dataclasses.replace(tiny(), extra={"limit": 5}, schema=LIMITS.id))
     assert problem.vehicle_types[0].capacity == 7.0
     assert problem.refs["constraints.route_duration.max"] == 5
 
@@ -116,6 +121,7 @@ def test_non_integer_count_is_rejected():
         demands=np.array([0.0, 1.0]),
         coords=np.array([[0.0, 0.0], [1.0, 1.0]]),
         extra={"k": 2.5},
+        schema=LIMITS.id,
     )
     spec = load_spec(
         spec_dict(

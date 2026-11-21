@@ -133,7 +133,9 @@ class _Vehicle:
     last_completed_full: bool = False
     """The last customer it completed left it exactly full (preventive restock allowed)."""
     restock_trip: bool = False
-    """On a trip to the depot that restocks (split recourse): a ``restock`` must follow."""
+    """On a trip to the depot that reloads (``fleet.multi_trip``): a ``restock`` must follow."""
+    reload_due: float = 0.0
+    """Reload time owed before the next departure from the depot."""
 
 
 def _distances(spec: ProblemSpec, instance: Instance) -> NDArray[np.float64]:
@@ -202,11 +204,11 @@ def validate(
 
     # With dynamic requests the episode instance adds the scenario's request slots; accept either
     # the base instance or the episode instance.
-    base_hash = str(instance.extra.get("base_instance_hash", "")) or instance.content_hash()
+    base_hash = str(instance.extra.get("_base_instance_hash", "")) or instance.content_hash()
     if (
         scenario is not None
         and "request.release" in scenario.values
-        and "base_instance_hash" not in instance.extra
+        and "_base_instance_hash" not in instance.extra
     ):
         instance = episode_instance(instance, scenario)
     if log.metadata.get("spec_hash") != spec.content_hash():
@@ -222,10 +224,10 @@ def validate(
     dynamic = spec.dynamics is not None
     waits = planned or dynamic  # vehicles may stay idle before departing or ending
     release_times = np.asarray(
-        instance.extra.get("release", np.zeros(instance.n_nodes)), dtype=float
+        instance.extra.get("_release", np.zeros(instance.n_nodes)), dtype=float
     )
     cancel_times = np.asarray(
-        instance.extra.get("cancel", np.full(instance.n_nodes, np.inf)), dtype=float
+        instance.extra.get("_cancel", np.full(instance.n_nodes, np.inf)), dtype=float
     )
     overflow_times = (
         [float(t) for t in scenario["request.overflow"]]
@@ -261,7 +263,7 @@ def validate(
     )
     tw_params = spec.constraints.items.get("time_windows")
     tw_on = tw_params is not None and tw is not None
-    tw_soft = bool(tw_params.model_dump()["soft"]) if tw_params is not None else False
+    tw_soft = tw_params is not None and tw_params.model_dump()["mode"] == "soft"
     waiting_allowed = (
         tw_params.model_dump()["waiting"] == "allowed" if tw_params is not None else True
     )
@@ -271,8 +273,12 @@ def validate(
         if "route_duration" in spec.constraints
         else None
     )
-    shift_start = float(spec.fleet.shift[0]) if spec.fleet.shift is not None else 0.0
-    shift_end = float(spec.fleet.shift[1]) if spec.fleet.shift is not None else None
+    duration_soft = (
+        "route_duration" in spec.constraints
+        and spec.constraints["route_duration"].model_dump()["mode"] == "soft"
+    )
+    shift_start = problem.shift[0] if problem.shift is not None else 0.0
+    shift_end = problem.shift[1] if problem.shift is not None else None
     type_of_vehicle: list[int] = []
     for t, vt in enumerate(problem.vehicle_types):
         type_of_vehicle += [t] * (vt.count or 0)
@@ -295,7 +301,11 @@ def validate(
         if rule is not None
         else set()
     )
-    split = rule == "split"  # trips to the depot during the day restock (ADR 0021)
+    split = rule == "split"
+    multi_trip = spec.fleet.multi_trip  # depot trips during the day reload (ADR 0023)
+    reload_time = (
+        float(problem.value("fleet.reload_time")) if spec.fleet.reload_time is not None else 0.0
+    )
     reward_service = "served_demand" in spec.objective.components()
     partial_service = bool(rule_params.get("partial_service", True))
     preventive_ok = (
@@ -390,6 +400,9 @@ def validate(
                     row,
                     vehicle=index,
                 )
+            if v.reload_due:
+                v.free_at += v.reload_due
+                v.reload_due = 0.0
             if waits and time < v.free_at - tol * max(1.0, abs(time)):
                 fail(
                     "depart",
@@ -450,14 +463,14 @@ def validate(
                 )
             if origin == DEPOT and target == DEPOT:
                 fail("depart", "depot to depot trip", row, vehicle=index)
-            if split and target != DEPOT and capacity_on and v.load >= v.capacity * (1 - tol):
+            if multi_trip and target != DEPOT and capacity_on and v.load >= v.capacity * (1 - tol):
                 fail(
                     "recourse",
                     f"vehicle {index} has no free capacity and must go to the depot, not {target}",
                     row,
                     vehicle=index,
                 )
-            if split and target == DEPOT and origin != DEPOT:
+            if multi_trip and target == DEPOT and origin != DEPOT:
                 v.restock_trip = True
             if target != DEPOT and (target in completed or target in unserved):
                 fail(
@@ -649,12 +662,15 @@ def validate(
                 continue
             if v.node != DEPOT or not v.at_depot_open or not _close(row["time"], v.free_at, tol):
                 fail("restock", f"vehicle {row['vehicle']} restocks away from the depot", row)
-            if split and not v.restock_trip:
+            if multi_trip and not v.restock_trip and v.come_back_to is None and not dynamic:
                 fail("restock", f"vehicle {row['vehicle']} restocks on a trip that ended", row)
             v.restock_trip = False
+            if not _close(row.get("value", 0.0) or 0.0, reload_time, tol):
+                fail("restock", f"reload took {row.get('value')}, expected {reload_time}", row)
             v.at_depot_open = False
             v.load = 0.0
             v.free_at = row["time"]
+            v.reload_due = reload_time  # paid before the next departure, if any
             v.last_completed_full = False
             if v.come_back_to is not None:
                 v.must_go, v.come_back_to = v.come_back_to, None
@@ -767,14 +783,16 @@ def validate(
                 fail("route_end", f"vehicle {index} ends its route away from the depot", row)
             if v.come_back_to is not None or v.must_go is not None:
                 fail("recourse", f"vehicle {index} ends its route during a recourse trip", row)
-            if split and v.restock_trip:
+            if multi_trip and v.restock_trip:
                 fail("restock", f"vehicle {index} ends its route without restocking", row)
             v.at_depot_open = False
             assert v.route_start is not None or found
             duration = time - (v.route_start or 0.0)
             if not _close(row.get("value", math.nan), duration, tol):
                 fail("duration", f"logged duration {row.get('value')}, recomputed {duration}", row)
-            if duration_max is not None and duration > duration_max * (1 + tol):
+            if duration_max is not None and duration_soft:
+                charge("overtime", max(0.0, duration - duration_max))
+            elif duration_max is not None and duration > duration_max * (1 + tol):
                 fail(
                     "route_duration",
                     f"route of vehicle {index} lasts {duration} > {duration_max}",

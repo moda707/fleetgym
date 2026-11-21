@@ -30,7 +30,7 @@ class TimeWindows(Constraint):
     @property
     def soft(self) -> bool:
         """Whether lateness is allowed (and charged)."""
-        return bool(self.params.model_dump()["soft"])
+        return self.params.model_dump()["mode"] == "soft"
 
     def mask(
         self, state: Any, info: InformationState, vehicle: int, candidates: NDArray[np.int64]

@@ -31,12 +31,13 @@ __all__ = [
 
 
 def distribution_at(problem: BoundProblem, path: str, dist: DistSpec) -> Distribution:
-    """The sampler of the distribution at spec path ``path``, with instance references resolved."""
+    """The sampler of the distribution at spec path ``path``, with instance references resolved.
+
+    Parameters that refer to the instance are resolved by binding (``problem.refs``); the others
+    are the distribution's own values, from the spec or from the instance's ``distributions``.
+    """
     fields = dist.params.model_dump()
-    params = {
-        key: problem.value(f"{path}.{key}") if value is not None else None
-        for key, value in fields.items()
-    }
+    params = {key: problem.refs.get(f"{path}.{key}", value) for key, value in fields.items()}
     params = {k: (np.asarray(v, dtype=float) if _numeric(v) else v) for k, v in params.items()}
     return build_distribution(dist.name, params)
 
@@ -44,8 +45,8 @@ def distribution_at(problem: BoundProblem, path: str, dist: DistSpec) -> Distrib
 def distributions(problem: BoundProblem) -> dict[str, Distribution]:
     """The sampler of every uncertainty source, with instance references resolved."""
     return {
-        name: distribution_at(problem, f"uncertainty.{name}", uncertain.dist)
-        for name, uncertain in problem.spec.uncertainty.items()
+        name: distribution_at(problem, f"uncertainty.{name}", problem.distributions[name])
+        for name in problem.spec.uncertainty
     }
 
 

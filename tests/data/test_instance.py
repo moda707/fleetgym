@@ -2,7 +2,18 @@ import numpy as np
 import pytest
 
 from fleetgym.data import Instance
+from fleetgym.data.schema import register_schema
 from fleetgym.errors import InstanceError
+
+# Extension fields need a schema that declares them.
+TEST_SCHEMA = register_schema(
+    {
+        "schema": "tests/instance/1",
+        "extends": "fleetgym/core/1",
+        "node": {"arr": {"type": "int"}, "k": {}},
+        "global": {"budget": {"min": 0}},
+    }
+)
 
 
 def make(**changes) -> Instance:
@@ -19,7 +30,12 @@ def make(**changes) -> Instance:
 
 def test_arrays_are_read_only_copies():
     coords = np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]])
-    inst = make(coords=coords, extra={"arr": np.arange(3), "nested": {"l": [1, 2]}})
+    inst = make(
+        coords=coords,
+        extra={"arr": np.arange(3)},
+        meta={"nested": {"l": [1, 2]}},
+        schema="tests/instance/1",
+    )
     coords[0, 0] = 99
     assert inst.coords is not None and inst.coords[0, 0] == 0
     for array in (inst.demands, inst.coords, inst.extra["arr"]):
@@ -27,7 +43,7 @@ def test_arrays_are_read_only_copies():
             array[0] = 1
     with pytest.raises(TypeError):
         inst.extra["x"] = 1  # pyright: ignore[reportIndexIssue]
-    assert inst.extra["nested"]["l"] == (1, 2)
+    assert inst.meta["nested"]["l"] == (1, 2)
     assert inst.demands.dtype == np.float64
 
 
@@ -47,7 +63,7 @@ def test_derived_values_and_get():
         inst.get("service_times")
     with pytest.raises(InstanceError, match="no value for 'name'"):
         inst.get("name")
-    assert make(extra={"distance": 7}).get("distance") == 7
+    assert make(extra={"budget": 7}, schema="tests/instance/1").get("budget") == 7
 
 
 @pytest.mark.parametrize(
@@ -66,6 +82,13 @@ def test_derived_values_and_get():
         ({"n_depots": 3}, "depots"),
         ({"n_depots": 0}, "depots"),
         ({"distance_matrix": np.zeros((2, 2))}, "shape"),
+        ({"extra": {"k": [1, 2, 3]}}, "not declared by schema 'fleetgym/core/1'"),
+        ({"extra": {"k": [1, 2]}, "schema": "tests/instance/1"}, "has shape"),
+        ({"extra": {"arr": [0.5, 1, 2]}, "schema": "tests/instance/1"}, "integers"),
+        ({"extra": {"budget": -1}, "schema": "tests/instance/1"}, "at least 0"),
+        ({"extra": {"max_route_duration": -5}}, "at least 0"),
+        ({"vehicle_types": [{"capacity": 5, "colour": "red"}]}, "vehicle type field 'colour'"),
+        ({"schema": "nobody/nothing/1"}, "unknown instance schema"),
     ],
 )
 def test_validation(changes, match):
@@ -78,11 +101,11 @@ def test_content_hash_covers_data_not_name():
     assert a.content_hash() == make(name="other", source="x").content_hash()
     assert a.content_hash() != make(capacity=6).content_hash()
     assert a.content_hash() != make(demands=[0, 1, 3]).content_hash()
-    assert a.content_hash() != make(extra={"k": np.arange(2)}).content_hash()
-    assert (
-        make(extra={"k": np.arange(2)}).content_hash()
-        == make(extra={"k": np.arange(2)}).content_hash()
-    )
+    k = {"extra": {"k": np.arange(3)}, "schema": "tests/instance/1"}
+    assert a.content_hash() != make(**k).content_hash()
+    assert make(**k).content_hash() == make(**k).content_hash()
+    assert a.content_hash() == make(meta={"comment": "not hashed"}).content_hash()
+    assert a.content_hash() != make(schema="tests/instance/1").content_hash()
     assert a.content_hash().startswith("fg1:")
 
 
