@@ -44,7 +44,13 @@ REQUEST_SOURCES = (
     "request.service_time",
     "request.cancel",
 )
-_VARIABLE_LENGTH = ("request.overflow",)
+_VARIABLE_LENGTH = (
+    "request.overflow",
+    "ev.initial_service",
+    "ev.arrival",
+    "ev.arrival_node",
+    "ev.arrival_service",
+)
 #: Per-arc sources: n x n values, row-major.
 MATRIX_SOURCES = ("travel_time",)
 

@@ -26,7 +26,7 @@ from tests.families import SETS, make_env  # noqa: E402
 from tests.registered import registered  # noqa: E402
 
 pytestmark = pytest.mark.extras_viz
-SINGLE = registered("single")
+SINGLE = [p for p in registered("single") if p.values[0] != "EVSPP-v1"]  # no routes to draw
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "instances"
 
 

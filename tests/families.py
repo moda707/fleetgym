@@ -8,14 +8,21 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import fleetgym as fg
+from fleetgym.envs.ev_env import EVShortestPathEnv
 from fleetgym.spec import ProblemSpec, load_spec
 
 SETS = Path(__file__).resolve().parent / "fixtures" / "sets"
 #: The set each family runs on by default.
-FAMILY_SETS = {"CVRP-v1": "cvrp", "VRPTW-v1": "vrptw", "SVRP-v1": "svrp", "DVRP-v1": "dvrp"}
+FAMILY_SETS = {
+    "CVRP-v1": "cvrp",
+    "VRPTW-v1": "vrptw",
+    "SVRP-v1": "svrp",
+    "DVRP-v1": "dvrp",
+    "EVSPP-v1": "evspp",
+}
 
 
 def instance_source(name: str) -> dict[str, Any]:
@@ -40,8 +47,18 @@ def spec_for(
 
 
 def make_env(env_id: str, *, instances: str | None = None, **kwargs: Any) -> fg.FleetGymEnv:
-    """`fleetgym.make` of ``env_id`` on a test instance set."""
-    return fg.make(spec_for(env_id, instances=instances), **kwargs)
+    """`fleetgym.make_any` of ``env_id`` on a test instance set.
+
+    Typed as `FleetGymEnv`: for ``EVSPP-v1`` it is an `EVShortestPathEnv`, which has the surface the
+    generic tests over registered configs use (narrow with `ev` for the rest).
+    """
+    return cast("fg.FleetGymEnv", fg.make_any(spec_for(env_id, instances=instances), **kwargs))
+
+
+def ev(env: object) -> EVShortestPathEnv:
+    """``env`` as an `EVShortestPathEnv`."""
+    assert isinstance(env, EVShortestPathEnv)
+    return env
 
 
 #: Multi-agent CVRP on the fixed-fleet test set (formerly the MA-CVRP-v0 config).

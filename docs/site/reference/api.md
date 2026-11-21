@@ -53,8 +53,19 @@
 .. autoclass:: fleetgym.baselines.CheapestInsertion
 .. autoclass:: fleetgym.baselines.Rollout
 .. autoclass:: fleetgym.baselines.PerfectInformation
+.. automodule:: fleetgym.baselines.ev
+   :members: EVGreedy, EVSteadyState
 .. automodule:: fleetgym.eval
    :members: evaluate, scenario_seeds, compare, report_card, mean_ci, cvar
+```
+
+## EV shortest path
+
+```{eval-rst}
+.. autoclass:: fleetgym.envs.ev_env.EVShortestPathEnv
+   :members: reset, step, action_masks, fork, clone, get_state, set_state
+.. automodule:: fleetgym.uncertainty.queues
+   :members: sample_stations, stationary_distribution, steady_state_wait
 ```
 
 ## Testing tools

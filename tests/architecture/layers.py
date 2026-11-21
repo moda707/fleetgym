@@ -71,7 +71,7 @@ SAME_LAYER_ALLOWED: frozenset[tuple[str, str]] = frozenset(
 #: Layer L0 modules may import each other freely.
 L0_FREE = True
 
-VALIDATOR_MODULE = "testing.validator"
+VALIDATOR_MODULES = ("testing.validator", "testing.ev_validator")
 VALIDATOR_MAX_LAYER = 2
 VALIDATOR_EXTRA_ALLOWED = ("uncertainty.scenario",)
 
@@ -190,12 +190,16 @@ def find_violations(src_root: Path) -> list[Violation]:
             tgt_layer = _layer(target)
             tgt_top = _top(target)
 
-            if internal_module == VALIDATOR_MODULE or internal_module.startswith(
-                VALIDATOR_MODULE + "."
+            if any(
+                internal_module == v or internal_module.startswith(v + ".")
+                for v in VALIDATOR_MODULES
             ):
                 allowed = tgt_layer <= VALIDATOR_MAX_LAYER or any(
                     target == extra or target.startswith(extra + ".")
-                    for extra in VALIDATOR_EXTRA_ALLOWED
+                    for extra in (
+                        *VALIDATOR_EXTRA_ALLOWED,
+                        *VALIDATOR_MODULES,
+                    )
                 )
                 if not allowed:
                     violations.append(

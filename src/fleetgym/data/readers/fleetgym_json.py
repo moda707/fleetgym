@@ -124,16 +124,23 @@ def write_instance(instance: Instance, path: str | Path) -> Path:
     return path
 
 
-def _column(nodes: Mapping[str, Any], name: str, n: int, where: str) -> np.ndarray:
+def _column(
+    nodes: Mapping[str, Any], name: str, n: int, where: str, *, text: bool = False
+) -> np.ndarray:
     values = nodes[name]
     if not isinstance(values, list) or len(values) != n:
         raise InstanceError(f"{where}: nodes.{name} must be a list of {n} values (one per node)")
-    if name == "kind":
+    if name == "kind" or text:
         return np.asarray(values, dtype=object)
     try:
         return np.asarray(values, dtype=float)
     except (TypeError, ValueError):
         raise InstanceError(f"{where}: nodes.{name} must hold numbers") from None
+
+
+def _is_text(schema: Any, name: str) -> bool:
+    spec = schema.field("node", name)
+    return spec is not None and spec.type == "str"
 
 
 def read_fleetgym_json(path: str | Path) -> Instance:
@@ -176,7 +183,11 @@ def read_fleetgym_json(path: str | Path) -> Instance:
     for pair in (("x", "y"), ("tw_open", "tw_close")):
         if (pair[0] in nodes) != (pair[1] in nodes):
             raise InstanceError(f"{where}: nodes.{pair[0]} and nodes.{pair[1]} go together")
-    columns = {name: _column(nodes, name, n, where) for name in nodes if name != "kind"}
+    columns = {
+        name: _column(nodes, name, n, where, text=_is_text(schema, name))
+        for name in nodes
+        if name != "kind"
+    }
     extra: dict[str, Any] = {}
     for name, values in columns.items():
         if name not in _NODE_ATTRIBUTES:

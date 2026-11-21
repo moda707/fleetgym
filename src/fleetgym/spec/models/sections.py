@@ -586,6 +586,7 @@ for _name, _description, _reserved in (
     ("operator", "Local-search operator selection", True),
     ("wait_reposition", "Wait or reposition idle vehicles", True),
     ("charge", "Charging decisions (EV module)", True),
+    ("ev_route", "Next node and target battery level of an EV (ev.shortest_path)", False),
 ):
     INTERFACES.register(
         _name, PluginEntry(InterfaceParams, reserved=_reserved, description=_description)
@@ -867,6 +868,9 @@ for _name, _description in (
     ("rejected", "Requests rejected"),
     ("outsourcing", "Outsourcing cost"),
     ("served_demand", "Demand delivered (a revenue: give it a negative weight)"),
+    ("drive", "EV driving time (ev.shortest_path)"),
+    ("wait", "EV waiting time at charging stations (ev.shortest_path)"),
+    ("charge", "EV charging time (ev.shortest_path)"),
 ):
     COST_COMPONENTS.register(_name, PluginEntry(_NoParams, description=_description))
 

@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- M14 (ADR 0026, proposal 0003): the EV shortest path with charging-station occupancy of Dastpak,
+  Errico, Jabali and Malucelli: family `EVSPP-v1` (`ev.shortest_path`), `EVShortestPathEnv`
+  (`fleetgym.make_ev`; `fleetgym.make_any` picks either environment), its simulator with M/M/1/kappa station queues replayed from
+  scenarios, real-time occupancy indicators and diversion while driving, interface `ev_route`,
+  cost components `drive`, `wait`, `charge`, instance schema `fleetgym/evspp/1`, an independent
+  validator, baselines `EVGreedy` and `EVSteadyState`, preset `dastpak2023-evsppoi` (486 points)
+  and example `18_evspp_dastpak`. The JSON instance reader keeps string node fields of a schema.
 - M15 (ADR 0025, proposal 0002): stochastic travel times (`uncertainty.travel_time`, distribution
   `gamma_per_distance`, revealed on arrival, one draw per arc and episode); soft windows with
   service on arrival (`time_windows.early: serve`, cost component `earliness`); hard customer

@@ -61,6 +61,46 @@ def uniform(
     )
 
 
+def ev_corridor(rng: np.random.Generator, n_stations: int, name: str) -> Instance:
+    """EV shortest path: origin (0, 0), destination (0, 400) km, stations in a 80 km corridor.
+
+    A 16 kWh battery at 0.125 kWh/km (128 km of range), so a trip needs several charges; Normal
+    chargers (breakpoints of the Peugeot I-on, Dastpak et al. Table 2), mu = 0.56, lambda = 0.36,
+    kappa = 2.
+    """
+    n = n_stations + 2
+    coords = np.vstack(
+        [
+            [0.0, 0.0],
+            [0.0, 400.0],
+            np.column_stack([rng.uniform(-40, 40, n_stations), np.linspace(60, 340, n_stations)]),
+        ]
+    )
+    station = np.arange(n) >= 2
+    role = ["origin", "destination"] + ["station"] * n_stations
+    extra = {
+        "battery_capacity": 16.0,
+        "consumption": 0.125,
+        "role": role,
+        "technology": ["", ""] + ["normal"] * n_stations,
+        "arrival_rate": np.where(station, 0.36, 0.0),
+        "service_rate": np.where(station, 0.56, 0.0),
+        "queue_capacity": np.where(station, 2, 1),
+    }
+    for k, (level, time) in enumerate([(13.6, 0.62), (15.2, 0.77), (16.0, 1.01)], start=1):
+        extra[f"charge_level_{k}"] = np.where(station, level, 0.0)
+        extra[f"charge_time_{k}"] = np.where(station, time, 0.0)
+    return Instance(
+        name=name,
+        source="tests/fixtures/sets/build.py",
+        demands=np.zeros(n),
+        coords=coords,
+        vehicle_types=({"count": 1},),
+        schema="fleetgym/evspp/1",
+        extra=extra,
+    )
+
+
 def build() -> None:
     sets: dict[str, list[Instance]] = {}
     rng = np.random.default_rng(2026)
@@ -113,6 +153,8 @@ def build() -> None:
         uniform(rng, 4, capacity=10, demand=(1, 3), name=f"tiny-{i}", size=20.0)
         for i in range(N_INSTANCES)
     ]
+    rng = np.random.default_rng(2032)
+    sets["evspp"] = [ev_corridor(rng, 8, f"evspp-{i}") for i in range(N_INSTANCES)]
     for name, instances in sets.items():
         folder = HERE / name
         if folder.exists():

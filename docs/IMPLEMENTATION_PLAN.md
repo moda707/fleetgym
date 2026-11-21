@@ -855,7 +855,7 @@ The EVSPP-OI of Dastpak, Errico, Jabali and Malucelli (arXiv 2305.11773): one EV
 destination over charging stations, each an M/M/1/kappa queue of exogenous EVs with a binary occupancy
 indicator revealed in real time; decisions are the next station and the target battery level; the
 objective is the trip duration. The user brought this part of the EV module into scope. The design is
-written and agreed before implementation.
+written and agreed before implementation. Done: proposal 0003, ADR 0026.
 
 ### M15 Stochastic travel and service times (added at the user's request, 2026-11-21)
 Two paper settings, each with a preset and an example that writes its instances. Taş, Dellaert,

@@ -1297,11 +1297,19 @@
     "ObjectiveSpec": {
       "additionalProperties": false,
       "properties": {
+        "charge": {
+          "minimum": 0,
+          "type": "number"
+        },
         "charging_time": {
           "minimum": 0,
           "type": "number"
         },
         "distance": {
+          "minimum": 0,
+          "type": "number"
+        },
+        "drive": {
           "minimum": 0,
           "type": "number"
         },
@@ -1352,6 +1360,10 @@
           "minimum": 0,
           "type": "number"
         },
+        "wait": {
+          "minimum": 0,
+          "type": "number"
+        },
         "waiting": {
           "minimum": 0,
           "type": "number"
@@ -1359,8 +1371,10 @@
         "lexicographic": {
           "items": {
             "enum": [
+              "charge",
               "charging_time",
               "distance",
+              "drive",
               "earliness",
               "emissions",
               "energy",
@@ -1373,6 +1387,7 @@
               "time",
               "unserved",
               "vehicles",
+              "wait",
               "waiting"
             ]
           },

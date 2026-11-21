@@ -1,0 +1,17 @@
+{
+ "format": "fleetgym-instance-set/1",
+ "name": "tests/evspp",
+ "schema": "fleetgym/evspp/1",
+ "reference": "FleetGym test suite",
+ "produced_by": "tests/fixtures/sets/build.py",
+ "max_nodes": 10,
+ "max_vehicles": 1,
+ "files": {
+  "0001.json": "fa83a1e108b1f728d8c876ebcf6b31e36f6c0a9f3c1ab59ba977d71dbf4a5976",
+  "0002.json": "8abcec297fd3e627a80d9e55bcdb8070af11d26e8622e5d4abd1dd0b0032149c",
+  "0003.json": "6cc69f3b31dd11c45269444b571a99b4a8cc5e7ad977776e9f6b8cc13e085e40",
+  "0004.json": "cd8127eb1f757a494324e7bc8ab75e534a1a5fb9620e9896bf548fb05aad7d32",
+  "0005.json": "9c74484287473bd9a91b47c5022af9ebaa0f814a539c7c66c7fa39353b3f7a82",
+  "0006.json": "2f7fc2ce867c46dd8e35b29d097eb73cadcea19d8dbd880910dc8a77fea72041"
+ }
+}

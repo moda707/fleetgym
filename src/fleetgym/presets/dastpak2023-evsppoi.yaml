@@ -1,0 +1,30 @@
+# Dastpak, Errico, Jabali and Malucelli, the EV shortest path with charging-station occupancy
+# information (EVSPP-OI; Sections 3 and 5.1). One EV from (0, 0) to (350, 700) km over charging
+# stations, each one charger with an M/M/1/kappa queue of exogenous EVs whose binary occupancy
+# indicators the EV sees in real time. The grid is the paper's 486 instances (kappa x EV x density x
+# technology mix x utilization); the example 18_evspp_dastpak writes them (by default the 18 of
+# Table 6), with the nested location and technology samples of Section 5.3.
+preset: dastpak2023-evsppoi
+name: EV shortest path with charging-station occupancy
+reference:
+  key: dastpak2023evspp
+  title: Dynamic Routing for the Electric Vehicle Shortest Path Problem with Charging Station Occupancy Information
+  authors: Mohsen Dastpak, Fausto Errico, Ola Jabali and Federico Malucelli
+  arxiv: "2305.11773"
+  sections: ["3", "5.1", "5.3"]
+spec:
+  extends: EVSPP-v1
+  network: {type: euclidean, rounding: none, speed: 100.0}  # km/h
+grid:
+  ev: [peugeot, bmw, renault]
+  density: [low, moderate, high]
+  mix: [PU1, PU2, PU3, PM1, PM2, PM3]
+  utilization: [low, medium, high]
+  kappa: [1, 2, 3]
+default: {ev: bmw, density: moderate, mix: PU2, utilization: medium, kappa: 1}
+instances: {folder: "{ev}-{density}-{mix}-{utilization}-k{kappa}"}
+notes:
+  - The EV leaves the origin fully charged, and every queue starts in its steady state (the user's choices; the paper does not state them).
+  - The EV cannot join a full station (kappa EVs present); if no other node is reachable it joins anyway.
+  - Target battery levels are a grid of B / 20 plus each station's breakpoints (the paper's target level is continuous).
+  - "Table 3 of the paper lists PM1 as 55% Slow while the text says PM2; Section 5.3 (PM2 = 45, 45, 10) settles it: PM1 = 55, 42, 3."

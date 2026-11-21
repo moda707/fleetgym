@@ -9,7 +9,8 @@ from typing import Any
 
 from fleetgym.baselines.protocol import Episode, Policy, run_episode
 from fleetgym.envs.env import FleetGymEnv
-from fleetgym.envs.factory import make
+from fleetgym.envs.ev_env import EVShortestPathEnv
+from fleetgym.envs.factory import make_any
 from fleetgym.errors import ValidationFailure
 from fleetgym.eval.metrics import Summary, summarize
 from fleetgym.spec import ProblemSpec
@@ -41,7 +42,7 @@ class Evaluation:
 
 
 def evaluate(
-    env: str | Path | ProblemSpec | Mapping[str, Any] | FleetGymEnv,
+    env: str | Path | ProblemSpec | Mapping[str, Any] | FleetGymEnv | EVShortestPathEnv,
     policy: Policy | Callable[[], Policy],
     seeds: Sequence[int],
     *,
@@ -59,7 +60,9 @@ def evaluate(
     validate_episodes
         Re-check each episode with the independent validator (raises `ValidationFailure`).
     """
-    environment = env if isinstance(env, FleetGymEnv) else make(env, **env_kwargs)
+    environment = (
+        env if isinstance(env, FleetGymEnv | EVShortestPathEnv) else make_any(env, **env_kwargs)
+    )
     if isinstance(policy, type) or not hasattr(policy, "act"):
         chosen: Policy = policy()  # pyright: ignore[reportCallIssue]
     else:

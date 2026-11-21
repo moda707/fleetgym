@@ -196,6 +196,10 @@ def validate(
     """
     if not isinstance(log, EventLog):
         log = EventLog.read(log)
+    if spec.is_ev_shortest_path:
+        from fleetgym.testing.ev_validator import validate_ev
+
+        return validate_ev(log, spec, instance, scenario=scenario)
     if (spec.uncertainty or spec.dynamics is not None) and scenario is None:
         raise ValueError("this spec has uncertain parameters: pass the episode's scenario")
     report = ValidationReport()

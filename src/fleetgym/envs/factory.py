@@ -7,11 +7,12 @@ from pathlib import Path
 from typing import Any, Literal, overload
 
 from fleetgym.envs.env import FleetGymEnv
+from fleetgym.envs.ev_env import EVShortestPathEnv
 from fleetgym.envs.multi import FleetGymAECEnv, FleetGymParallelEnv
 from fleetgym.errors import ConfigError
 from fleetgym.spec import ProblemSpec, load_spec
 
-__all__ = ["make", "make_multi", "make_preset"]
+__all__ = ["make", "make_any", "make_ev", "make_multi", "make_preset"]
 
 
 def make(
@@ -20,7 +21,10 @@ def make(
     overrides: Sequence[str] = (),
     **env_kwargs: Any,
 ) -> FleetGymEnv:
-    """Create an environment from an ID, a YAML file or a spec.
+    """Create a routing environment from an ID, a YAML file or a spec.
+
+    For the EV shortest path (``ev.shortest_path``, ``EVSPP-v1``) use `make_ev`; `make_any`
+    accepts every single-agent spec.
 
     Parameters
     ----------
@@ -45,7 +49,45 @@ def make(
             source=spec.source,
             key_path="agents.mode",
         )
+    if spec.is_ev_shortest_path:
+        raise ConfigError(
+            f"{spec.id or 'this spec'} is the EV shortest path: use fleetgym.make_ev (or make_any)",
+            source=spec.source,
+            key_path="ev",
+        )
     return FleetGymEnv(spec, **env_kwargs)
+
+
+def make_ev(
+    env: str | Path | ProblemSpec | Mapping[str, Any],
+    *,
+    overrides: Sequence[str] = (),
+    **env_kwargs: Any,
+) -> EVShortestPathEnv:
+    """Create the EV shortest-path environment (``ev.shortest_path``, for example ``EVSPP-v1``).
+
+    ``env_kwargs`` go to `EVShortestPathEnv` (``instance``, ``max_nodes``, ``invalid_action``).
+
+    Raises
+    ------
+    fleetgym.errors.ConfigError
+        If the spec has no ``ev.shortest_path`` section.
+    """
+    spec = load_spec(env, overrides=overrides)
+    return EVShortestPathEnv(spec, **env_kwargs)
+
+
+def make_any(
+    env: str | Path | ProblemSpec | Mapping[str, Any],
+    *,
+    overrides: Sequence[str] = (),
+    **env_kwargs: Any,
+) -> FleetGymEnv | EVShortestPathEnv:
+    """`make` or `make_ev`, whichever the spec needs (single-agent specs)."""
+    spec = load_spec(env, overrides=overrides)
+    if spec.is_ev_shortest_path:
+        return EVShortestPathEnv(spec, **env_kwargs)
+    return make(spec, **env_kwargs)
 
 
 @overload
@@ -105,7 +147,7 @@ def make_preset(
     instances: str | Path | None = None,
     env_kwargs: Mapping[str, Any] | None = None,
     **choice: Any,
-) -> FleetGymEnv | FleetGymAECEnv | FleetGymParallelEnv:
+) -> FleetGymEnv | EVShortestPathEnv | FleetGymAECEnv | FleetGymParallelEnv:
     """Make the environment of a paper preset at one point of its grid.
 
     Parameters
@@ -132,4 +174,4 @@ def make_preset(
         if spec.agents.api == "parallel":
             return make_multi(spec, api="parallel", **kwargs)
         return make_multi(spec, api="aec", **kwargs)
-    return make(spec, **kwargs)
+    return make_any(spec, **kwargs)

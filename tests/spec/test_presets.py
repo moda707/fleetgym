@@ -13,6 +13,7 @@ from fleetgym.testing.validator import validate
 GRID_SIZES = {
     "dastpak2022-goodson": 27,
     "dastpak2022-vcsd": 15,
+    "dastpak2023-evsppoi": 486,
     "florio2023-vrpsd": 4,
     "kool2019-cvrp": 3,
     "errico2018-vrptwst": 340,

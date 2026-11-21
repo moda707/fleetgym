@@ -57,6 +57,23 @@ Event kinds and the columns they use
     ``time``, ``node`` (the first mandatory initial request that did not fit): the requests known
     at the start are served beyond the time limits and no other request is accepted
     (``dynamics.initial_infeasible: serve_all``).
+EV shortest path (``ev.shortest_path``; ``node`` is a station unless stated):
+
+``depart``, ``divert``
+    ``time``, ``node`` (where the EV drives to), ``value`` (distance), ``load`` (battery),
+    ``quantity`` and ``amount`` (x and y of the start: a station, or the point of a diversion).
+``arrive``
+    ``time``, ``node``, ``load`` (battery).
+``queue_seen``, ``queue_join``
+    ``time``, ``node``, ``value`` (EVs at the station).
+``queue_head``, ``station_leave``
+    ``time``, ``node``.
+``charge_start``
+    ``time``, ``node``, ``load`` (battery), ``value`` (target level).
+``charge_end``
+    ``time``, ``node``, ``load`` (battery).
+``indicator``
+    ``time``, ``node``, ``value`` (the new occupancy indicator).
 ``episode_end``
     ``time``.
 """
@@ -92,6 +109,14 @@ EVENT_KINDS = (
     "cost",
     "epoch",
     "initial_overtime",
+    "divert",
+    "queue_seen",
+    "queue_join",
+    "queue_head",
+    "station_leave",
+    "charge_start",
+    "charge_end",
+    "indicator",
     "episode_end",
 )
 

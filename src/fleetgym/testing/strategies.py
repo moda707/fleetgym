@@ -20,6 +20,7 @@ import numpy as np
 
 from fleetgym.data.instance import Instance
 from fleetgym.envs.env import FleetGymEnv
+from fleetgym.envs.ev_env import EVShortestPathEnv
 from fleetgym.spec import ProblemSpec, load_spec
 
 try:
@@ -282,7 +283,11 @@ def dynamic_problems(draw: st.DrawFn) -> tuple[ProblemSpec, Instance]:
 
 
 def random_masked_rollout(
-    env: FleetGymEnv, rng: np.random.Generator, *, seed: int = 0, max_steps: int = 10_000
+    env: FleetGymEnv | EVShortestPathEnv,
+    rng: np.random.Generator,
+    *,
+    seed: int = 0,
+    max_steps: int = 10_000,
 ) -> float:
     """Play uniformly random valid actions until the episode ends; return the episode return.
 

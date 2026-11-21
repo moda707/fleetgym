@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=../fleetgym.schema.json
+# EV shortest path with charging-station occupancy (Dastpak, Errico, Jabali and Malucelli, arXiv
+# 2305.11773; proposal 0003). One EV drives from node 0 (origin) to node 1 (destination) over
+# charging stations, each one charger with an M/M/1/kappa queue of exogenous EVs whose binary
+# occupancy indicators the EV sees in real time; it decides where to go and how much to charge, and
+# may change its destination while driving. The instances (schema fleetgym/evspp/1) give the
+# battery, consumption, station positions, charging functions and queue rates; the EV leaves the
+# origin fully charged and the queues start in their steady state.
+id: EVSPP-v1
+meta:
+  name: EV shortest path with charging-station occupancy
+  status: experimental
+  references: [dastpak2023evspp]
+network: {type: euclidean, rounding: none, speed: 100.0}  # km and hours, as in the paper
+fleet: {sizing: fixed}
+ev:
+  shortest_path:
+    target_levels: 20
+    horizon: 72.0
+    queues: {model: mm1k, initial: steady_state, full: leave}
+decisions: {interface: ev_route, epochs: on_event, commitment: diversion}
+objective: {drive: 1.0, wait: 1.0, charge: 1.0}

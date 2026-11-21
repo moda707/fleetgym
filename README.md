@@ -18,7 +18,8 @@ with a focus on stochastic and dynamic variants where information arrives during
   other; every spec and instance has a stable content hash saved with logs and results.
 - **Paper presets.** Published settings with their grids: Solomon, CVRPLIB (Florio et al.), Kool et
   al., Dastpak et al. (VRP-VCSD, Goodson's VRPSD), Vera and Abad, Ulmer et al. (dynamic requests),
-  Taş et al. (stochastic travel times), Errico et al. (stochastic service times, hard windows). FleetGym ships no instances:
+  Taş et al. (stochastic travel times), Errico et al. (stochastic service times, hard windows),
+  Dastpak et al. (an EV's shortest path over busy charging stations, `EVSPP-v1`). FleetGym ships no instances:
   benchmarks are downloaded with checksums, and each example writes the instances its preset needs.
 - **A discrete-event simulator** with exact `get_state` / `set_state` / `clone` (including RNG state)
   and an event log of everything that happened.
@@ -40,6 +41,7 @@ with a focus on stochastic and dynamic variants where information arrives during
 | `VRPTW-v1` | stable |
 | `SVRP-v1` | experimental (stochastic demands, detour-to-depot recourse) |
 | `DVRP-v1` | experimental (requests arriving during the day, accept/reject) |
+| `EVSPP-v1` | experimental (one EV, charging stations with queues and occupancy indicators) |
 | `VRPSD-Outsource-v1` | planned (stochastic demands with outsourcing) |
 
 Any family becomes multi-agent (PettingZoo, one agent per vehicle) with `agents: {mode: multi}`.

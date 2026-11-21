@@ -117,5 +117,5 @@ def test_bad_entry_points(monkeypatch: pytest.MonkeyPatch, target):
 
 
 def test_package_registry_contains_the_shipped_configs():
-    assert set(REGISTRY.ids()) == {"CVRP-v1", "VRPTW-v1", "SVRP-v1", "DVRP-v1"}
+    assert set(REGISTRY.ids()) == {"CVRP-v1", "VRPTW-v1", "SVRP-v1", "DVRP-v1", "EVSPP-v1"}
     assert set(REGISTRY.ids(include_planned=True)) >= {"VRPSD-Outsource-v1", "EVRP-NL-v1"}

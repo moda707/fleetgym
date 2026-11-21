@@ -12,7 +12,8 @@ Changing a variant means editing YAML and data, not writing a new simulator.
   the day, multi-agent fleets, and your own variants, from YAML models that extend each other and
   instances that follow extensible schemas.
 - **Published settings as presets**: Solomon, CVRPLIB, Kool et al., Florio et al., Dastpak et al.,
-  Vera and Abad, Ulmer et al., Taş et al., Errico et al., each with the paper's grid.
+  Vera and Abad, Ulmer et al., Taş et al., Errico et al., Dastpak et al. (EV shortest path), each
+  with the paper's grid.
 - **One simulator for everything**: a discrete-event engine with exact snapshots, an event log of
   everything that happened, and action masks that only use what is known.
 - **Trustworthy results**: an independent validator re-checks every episode; benchmark solutions
@@ -43,6 +44,7 @@ concepts/uncertainty
 concepts/recourse
 concepts/dynamic-requests
 concepts/multi-agent
+concepts/ev-shortest-path
 concepts/validation
 environments
 ```

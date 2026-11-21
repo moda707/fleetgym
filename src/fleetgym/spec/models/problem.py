@@ -96,6 +96,28 @@ class ProblemSpec(FrozenModel):
             )
         return value
 
+    @property
+    def is_ev_shortest_path(self) -> bool:
+        """True for the EV shortest path with occupancy indicators (``ev.shortest_path``)."""
+        from collections.abc import Mapping
+
+        return isinstance(self.ev, Mapping) and set(self.ev) == {"shortest_path"}
+
+    @model_validator(mode="after")
+    def _ev_section(self) -> ProblemSpec:
+        if self.is_ev_shortest_path:
+            from fleetgym.spec.models.ev import ev_shortest_path
+
+            try:
+                ev_shortest_path(self.ev)
+            except ValueError as error:
+                raise ValueError(f"ev.shortest_path: {error}") from None
+            if self.decisions.interface != "ev_route":
+                raise ValueError("`ev.shortest_path` needs `decisions.interface: ev_route`")
+        elif self.decisions.interface == "ev_route":
+            raise ValueError("`decisions.interface: ev_route` needs the `ev.shortest_path` section")
+        return self
+
     @model_validator(mode="after")
     def _cross_section_rules(self) -> ProblemSpec:
         if self.decisions.epochs == "sequential" and self.dynamics is not None:
@@ -113,7 +135,7 @@ class ProblemSpec(FrozenModel):
     def reserved_features(self) -> tuple[str, ...]:
         """Dotted paths of every reserved (not yet implemented) feature this spec uses."""
         found: list[str] = []
-        if self.ev is not None:
+        if self.ev is not None and not self.is_ev_shortest_path:
             found.append("ev")
         if self.network.reserved:
             found.append("network")
@@ -139,7 +161,7 @@ class ProblemSpec(FrozenModel):
             found.append("decisions.interface")
         if self.decisions.epochs == "hybrid":
             found.append("decisions.epochs")
-        if self.decisions.commitment == "diversion":
+        if self.decisions.commitment == "diversion" and not self.is_ev_shortest_path:
             found.append("decisions.commitment")
         found += [
             f"objective.{c}" for c in self.objective.components() if COST_COMPONENTS.get(c).reserved

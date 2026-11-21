@@ -24,6 +24,8 @@ def register_envs(registry: ConfigRegistry | None = None) -> list[str]:
         gym_id = f"{NAMESPACE}/{env_id}"
         if gym_id in gym.registry:
             continue
-        gym.register(id=gym_id, entry_point="fleetgym.envs.factory:make", kwargs={"env": env_id})
+        gym.register(
+            id=gym_id, entry_point="fleetgym.envs.factory:make_any", kwargs={"env": env_id}
+        )
         added.append(gym_id)
     return added

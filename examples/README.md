@@ -29,6 +29,7 @@ mapping the paper's definitions to the model and the instances).
 | `15_dvrp_ulmer/` | preset `ulmer2016-vrpssr`: one vehicle, stochastic service requests decided at the vehicle's arrivals (Ulmer et al. 2016), 18 settings | |
 | `16_vrptw_tas/` | preset `tas2012-vrpsttw`: stochastic travel times with soft windows, earliness, delay and overtime costs (Taş et al. 2012) | download |
 | `17_vrptw_errico/` | preset `errico2018-vrptwst`: hard windows with stochastic service times; success rates of a priori plans (Errico et al. 2018) | download |
+| `18_evspp_dastpak/` | preset `dastpak2023-evsppoi`: an EV's shortest path over charging stations with queues and occupancy indicators (Dastpak et al. 2023) | |
 
 Run a script with `python examples/01_first_environment/first_environment.py`, or open
 `first_environment.ipynb` with the notebook's folder as the working directory (Jupyter's default).

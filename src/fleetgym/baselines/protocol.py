@@ -16,6 +16,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from fleetgym.envs.env import FleetGymEnv
+from fleetgym.envs.ev_env import EVShortestPathEnv
 
 __all__ = ["Episode", "Policy", "PolicyBase", "run_episode", "valid_actions"]
 
@@ -27,8 +28,12 @@ class Policy(Protocol):
     name: str
     anticipative: bool
 
-    def reset(self, env: FleetGymEnv) -> None:
-        """Bind to ``env`` (at the start of an episode or at any later state)."""
+    def reset(self, env: Any) -> None:
+        """Bind to ``env`` (at the start of an episode or at any later state).
+
+        ``env`` is a `FleetGymEnv`, or an `EVShortestPathEnv` for the EV policies of
+        `fleetgym.baselines.ev`.
+        """
 
     def act(self, obs: dict[str, NDArray[Any]], info: dict[str, Any]) -> int:
         """The action for the current epoch."""
@@ -85,7 +90,7 @@ class Episode:
 
 
 def run_episode(
-    env: FleetGymEnv,
+    env: FleetGymEnv | EVShortestPathEnv,
     policy: Policy,
     *,
     seed: int,

@@ -348,3 +348,52 @@ CORE_SCHEMA = register_schema(
     }
 )
 """The core schema ``fleetgym/core/1``: the fields FleetGym's built-in features read."""
+
+
+EV_SHORTEST_PATH_SCHEMA = register_schema(
+    {
+        "schema": "fleetgym/evspp/1",
+        "extends": "fleetgym/core/1",
+        "description": "EV shortest path with charging-station occupancy (Dastpak et al. 2023)",
+        "global": {
+            "battery_capacity": {
+                "required": True,
+                "min": 0,
+                "description": "Battery capacity B (kWh)",
+            },
+            "consumption": {
+                "required": True,
+                "min": 0,
+                "description": "Energy per distance unit (kWh/km)",
+            },
+        },
+        "node": {
+            "role": {
+                "type": "str",
+                "required": True,
+                "choices": ["origin", "destination", "station"],
+                "description": "Node 0 is the origin, node 1 the destination, the others stations",
+            },
+            "technology": {
+                "type": "str",
+                "description": "Charging technology (slow, normal, fast)",
+            },
+            "arrival_rate": {"min": 0, "description": "Exogenous EVs per time unit (lambda)"},
+            "service_rate": {"min": 0, "description": "Exogenous EVs charged per time unit (mu)"},
+            "queue_capacity": {"type": "int", "min": 1, "unit": "count", "description": "kappa"},
+            **{
+                f"charge_level_{k}": {"min": 0, "description": f"Charging breakpoint {k}: level"}
+                for k in (1, 2, 3)
+            },
+            **{
+                f"charge_time_{k}": {
+                    "min": 0,
+                    "unit": "time",
+                    "description": f"Charging breakpoint {k}: time to charge from 0 to its level",
+                }
+                for k in (1, 2, 3)
+            },
+        },
+    }
+)
+"""``fleetgym/evspp/1``: origin, destination and charging stations (proposal 0003)."""

@@ -16,7 +16,9 @@ from typing import Any
 from fleetgym.baselines import run_episode
 from fleetgym.cli.common import add_instances_argument, load_with_instances
 from fleetgym.cli.eval import BASELINES
+from fleetgym.envs.env import FleetGymEnv
 from fleetgym.envs.factory import make
+from fleetgym.errors import NotInScopeError
 
 __all__ = ["add_parser"]
 
@@ -43,6 +45,10 @@ def _run(args: argparse.Namespace) -> int:
     from fleetgym.viz import episode_figure
 
     env = make(load_with_instances(args.env, args.instances))
+    if not isinstance(env, FleetGymEnv):
+        raise NotInScopeError(
+            "`fleetgym render` draws vehicle routes; the EV shortest path has none"
+        )
     episode = run_episode(env, BASELINES[args.policy](), seed=args.seed)
     figure = episode_figure(env)
     args.out.parent.mkdir(parents=True, exist_ok=True)

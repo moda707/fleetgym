@@ -18,7 +18,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.utils.env_checker import check_env as gymnasium_check_env
 
-from fleetgym.envs.factory import make
+from fleetgym.envs.factory import make_any as make
 from fleetgym.envs.gym_registration import NAMESPACE
 from fleetgym.errors import ValidationFailure
 from fleetgym.spec import ProblemSpec, load_spec
@@ -56,7 +56,7 @@ def check_env(env: str | Path | ProblemSpec, *, n_rollouts: int = 20, seed: int 
         report = validate(
             instance_env.event_log,
             spec,
-            instance_env.problem.instance,
+            instance_env.base_instance,
             scenario=instance_env.scenario,
         )
         if not report.ok:

@@ -9,6 +9,7 @@ YAML. A family says what exists; the instances give the numbers ({doc}`concepts/
 | `VRPTW-v1` | VRP with hard time windows; reproduces Solomon best-known solutions | stable |
 | `SVRP-v1` | Stochastic demands revealed on arrival, detour-to-depot recourse | experimental |
 | `DVRP-v1` | Requests arriving during the day, accept/reject with cheapest insertion | experimental |
+| `EVSPP-v1` | One EV, charging stations with queues and real-time occupancy indicators ({doc}`concepts/ev-shortest-path`) | experimental |
 | `VRPSD-Outsource-v1` | Stochastic demands with outsourcing (VRP-SDO) | planned |
 | `EVRP-NL-v1` | Electric VRP with nonlinear charging | planned |
 
@@ -31,6 +32,7 @@ replicated against a benchmark. `planned`: the config validates but cannot be ru
 | `ulmer2016-vrpssr` | Ulmer, Goodson, Mattfeld and Hennig (2016), Section 6.1 | 2 areas x 3 request rates x 3 location distributions | example `15_dvrp_ulmer` |
 | `tas2012-vrpsttw` | Taş, Dellaert, van Woensel and de Kok (2012), Section 5 | 56 Solomon instances x CV 0.25, 1, 4 of travel times | example `16_vrptw_tas` |
 | `errico2018-vrptwst` | Errico, Desaulniers, Gendreau, Rei and Rousseau (2018), Section 5.1 | 4 service-time families x 85 instances | example `17_vrptw_errico` |
+| `dastpak2023-evsppoi` | Dastpak, Errico, Jabali and Malucelli (2023), Section 5.1 | kappa x EV x density x mix x utilization (486) | example `18_evspp_dastpak` |
 
 Any model can be modified with overrides or extended by a new YAML file:
 {doc}`guides/build-your-own-variant`.

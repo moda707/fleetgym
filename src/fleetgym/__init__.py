@@ -19,10 +19,13 @@ benchmark files) carry the numbers. Paper presets reproduce published settings:
 from fleetgym._version import __version__
 from fleetgym.constraints.base import Constraint, register_constraint
 from fleetgym.envs import (
+    EVShortestPathEnv,
     FleetGymAECEnv,
     FleetGymEnv,
     FleetGymParallelEnv,
     make,
+    make_any,
+    make_ev,
     make_multi,
     make_preset,
     make_vec,
@@ -37,6 +40,7 @@ __all__ = [
     "REGISTRY",
     "Constraint",
     "Distribution",
+    "EVShortestPathEnv",
     "FleetGymAECEnv",
     "FleetGymEnv",
     "FleetGymParallelEnv",
@@ -48,6 +52,8 @@ __all__ = [
     "load_preset",
     "load_spec",
     "make",
+    "make_any",
+    "make_ev",
     "make_multi",
     "make_preset",
     "make_vec",
