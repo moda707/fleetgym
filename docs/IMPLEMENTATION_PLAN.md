@@ -857,6 +857,18 @@ indicator revealed in real time; decisions are the next station and the target b
 objective is the trip duration. The user brought this part of the EV module into scope. The design is
 written and agreed before implementation.
 
+### M15 Stochastic travel and service times (added at the user's request, 2026-11-21)
+Two paper settings, each with a preset and an example that writes its instances. Taş, Dellaert,
+van Woensel and de Kok (2012): Solomon instances, travel time per unit distance Gamma(alpha,
+lambda) (CV 0.25, 1, 4), soft time windows without waiting (earliness and delay costs), overtime
+beyond a shift of 480, fixed vehicle cost. Errico, Desaulniers, Gendreau, Rei and Rousseau: hard
+time windows with stochastic (discrete triangular) service times on Solomon R100/RC100 with 25
+and 50 customers; distributions from the full paper (the user will send it). Needed: the
+`travel_time` uncertainty source, early service at a penalty under soft windows (`earliness`),
+and a `window_failure` outcome when a hard window becomes unreachable (the user's choice: count
+the failure, skip the customer, continue). Design note first, agreed before implementation.
+The multi-agent DVRP example of M13 is deferred by the user (2026-11-20).
+
 ---
 
 ## 6. Test and quality infrastructure

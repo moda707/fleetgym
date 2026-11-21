@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import numpy as np
 import pytest
@@ -132,3 +133,63 @@ def test_kool_and_vera_instances_follow_their_papers():
     instance = vera.vera_instance(np.random.default_rng(0), "vrp20", "t")
     assert [vt["capacity"] for vt in instance.vehicle_types] == [20.0, 30.0, 35.0]
     assert instance.n_customers == 20
+
+
+ULMER = example_module("15_dvrp_ulmer")
+
+
+def test_ulmer_instances_follow_section_6_1():
+    rng = np.random.default_rng(3)
+    early = [
+        ULMER.ulmer_instance(rng, "small", "moderate", "uniform", "t").n_customers
+        for _ in range(400)
+    ]
+    assert np.mean(early) == pytest.approx(50, rel=0.03)  # Poisson(100 - lambda)
+    day = ULMER.ulmer_instance(rng, "large", "high", "three_clusters", "t")
+    assert day.coords is not None
+    np.testing.assert_array_equal(day.coords[0], [10.0, 10.0])  # central depot
+    np.testing.assert_array_equal(day.time_windows[0], [0.0, 360.0])
+    profile = day.distributions["arrivals"]["profile"]
+    assert tuple(profile["breaks"]) == (0.0, 1.0, 360.0)
+    assert profile["rates"][1] == pytest.approx(75 / 359)
+    where = day.distributions["request.location"]
+    assert [list(c) for c in where["centers"]] == [[5, 5], [5, 15], [15, 10]]
+    assert tuple(where["weights"]) == (1.0, 2.0, 1.0) and where["std"] == 1.0
+    small = ULMER.location_distribution("small", "two_clusters")
+    assert small["centers"] == [[3.75, 3.75], [3.75, 11.25]] and small["std"] == 0.75
+    assert ULMER.location_distribution("small", "uniform") == {
+        "dist": "uniform",
+        "low": 0.0,
+        "high": 15.0,
+    }
+
+
+def test_ulmer_preset_runs_on_the_examples_instances(tmp_path):
+    ULMER.write_ulmer(tmp_path, n_instances=1, seed=0)
+    points: list[dict[str, Any]] = [{"area": "small", "lam": "low", "locations": "uniform"}, {}]
+    for point in points:
+        env = fg.make_preset("ulmer2016-vrpssr", instances=tmp_path, **point)
+        assert isinstance(env, fg.FleetGymEnv)
+        run_episode(env, NearestNeighbor(), seed=2)
+        assert validate(
+            env.event_log, env.problem_spec, env.base_instance, scenario=env.scenario
+        ).ok
+        early = set(range(1, env.base_instance.n_customers + 1))
+        assert early <= {row["node"] for row in env.event_log.of_kind("accept")}
+        times = env.simulator.network.time_matrix()
+        assert np.array_equal(times, np.round(times))  # whole minutes
+    # large area, low lambda, uniform: about 75 early customers rarely fit by T (2017 rule)
+    days = [
+        ULMER.ulmer_instance(np.random.default_rng(k), "large", "low", "uniform", "t")
+        for k in range(5)
+    ]
+    spec = fg.load_preset("ulmer2016-vrpssr").spec(
+        tmp_path, area="large", lam="low", locations="uniform"
+    )
+    overtime = 0
+    for k, day in enumerate(days):
+        env = fg.make(spec, instance=day)
+        run_episode(env, NearestNeighbor(), seed=k)
+        assert validate(env.event_log, env.problem_spec, day, scenario=env.scenario).ok
+        overtime += bool(env.event_log.of_kind("initial_overtime"))
+    assert overtime >= 3

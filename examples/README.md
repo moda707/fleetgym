@@ -26,6 +26,7 @@ mapping the paper's definitions to the model and the instances).
 | `12_vrptw_solomon/` | preset `solomon1987-vrptw`: replaying R101's best-known solution reproduces its cost | download |
 | `13_vrpsd_florio/` | preset `florio2023-vrpsd`: Poisson demands on CVRPLIB X instances (Florio et al. 2023) | download |
 | `14_ma_cvrp_vera/` | preset `vera2019-hetfleet`: multi-agent CVRP with a heterogeneous fleet (Vera and Abad 2019) | |
+| `15_dvrp_ulmer/` | preset `ulmer2016-vrpssr`: one vehicle, stochastic service requests decided at the vehicle's arrivals (Ulmer et al. 2016), 18 settings | |
 
 Run a script with `python examples/01_first_environment/first_environment.py`, or open
 `first_environment.ipynb` with the notebook's folder as the working directory (Jupyter's default).

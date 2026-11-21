@@ -7,6 +7,8 @@ Rounding modes
 ``nearest_int``
     TSPLIB ``EUC_2D`` convention: ``floor(d + 0.5)`` per arc. Ties round up, unlike Python's
     `round`, which rounds half to even.
+
+Travel times are ``distance / speed``; ``time_rounding: ceil`` rounds them up to whole units.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from fleetgym.errors import InstanceError
 from fleetgym.network.base import NETWORK_BUILDERS, Network
 from fleetgym.spec.binding import BoundProblem
 
-__all__ = ["EuclideanNetwork", "Rounding", "euclidean_distances"]
+__all__ = ["EuclideanNetwork", "Rounding", "euclidean_distances", "travel_times"]
 
 Rounding = Literal["none", "nearest_int"]
 
@@ -36,6 +38,22 @@ def euclidean_distances(coords: NDArray[np.float64], rounding: Rounding) -> NDAr
     return distances
 
 
+def travel_times(
+    distances: NDArray[np.float64], speed: float, time_rounding: str = "none"
+) -> NDArray[np.float64]:
+    """``distances / speed``, rounded up to whole units with ``time_rounding: ceil``.
+
+    Rounding up forgives a floating-point excess of 1e-9 relative, so that an exact whole
+    number of units (12 minutes) is not pushed to the next one.
+    """
+    times = distances / speed
+    if time_rounding == "ceil":
+        return np.ceil(times - 1e-9 * np.maximum(1.0, times))
+    if time_rounding != "none":
+        raise ValueError(f"unknown time rounding {time_rounding!r}")
+    return times
+
+
 class EuclideanNetwork(Network):
     """Euclidean distances between coordinates; travel time is distance divided by ``speed``.
 
@@ -47,10 +65,17 @@ class EuclideanNetwork(Network):
         Rounding convention applied to every arc (see the module docstring).
     speed
         Positive travel speed.
+    time_rounding
+        ``ceil`` rounds every travel time up to a whole unit (distances are unchanged).
     """
 
     def __init__(
-        self, coords: NDArray[np.float64], *, rounding: Rounding = "none", speed: float = 1.0
+        self,
+        coords: NDArray[np.float64],
+        *,
+        rounding: Rounding = "none",
+        speed: float = 1.0,
+        time_rounding: Literal["none", "ceil"] = "none",
     ) -> None:
         coords = np.asarray(coords, dtype=np.float64)
         if coords.ndim != 2 or coords.shape[1] != 2:
@@ -60,7 +85,7 @@ class EuclideanNetwork(Network):
         self.rounding: Rounding = rounding
         self.speed = float(speed)
         self._distances = euclidean_distances(coords, rounding)
-        self._times = self._distances / self.speed
+        self._times = travel_times(self._distances, self.speed, time_rounding)
         self._distances.setflags(write=False)
         self._times.setflags(write=False)
 
@@ -89,6 +114,7 @@ def _build(problem: BoundProblem) -> Network:
         coords,
         rounding=resolve_rounding(params.rounding, problem.instance.edge_weight_type),  # pyright: ignore[reportAttributeAccessIssue]
         speed=params.speed,  # pyright: ignore[reportAttributeAccessIssue]
+        time_rounding=params.time_rounding,  # pyright: ignore[reportAttributeAccessIssue]
     )
 
 

@@ -28,6 +28,7 @@ replicated against a benchmark. `planned`: the config validates but cannot be ru
 | `dastpak2022-vcsd` | Dastpak, Errico and Jabali, Appendix B.1.1 | 5 densities x 3 capacities | example `09_vrp_vcsd` |
 | `dastpak2022-goodson` | Goodson et al. (2016) via Dastpak et al., Appendix B.1.2 | 3 limits x 3 capacities x 3 variabilities | example `10_vrpsd_goodson` |
 | `vera2019-hetfleet` | Vera and Abad (2019), Table 1 | VRP10, 20, 50, 80 | example `14_ma_cvrp_vera` |
+| `ulmer2016-vrpssr` | Ulmer, Goodson, Mattfeld and Hennig (2016), Section 6.1 | 2 areas x 3 request rates x 3 location distributions | example `15_dvrp_ulmer` |
 
 Any model can be modified with overrides or extended by a new YAML file:
 {doc}`guides/build-your-own-variant`.

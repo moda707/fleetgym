@@ -32,6 +32,7 @@ def test_minimal_spec_has_documented_defaults():
     assert spec.network.params.model_dump() == {
         "rounding": "none",
         "speed": 1.0,
+        "time_rounding": "none",
         "time_model": None,
     }
     assert spec.decisions.interface == "next_node"

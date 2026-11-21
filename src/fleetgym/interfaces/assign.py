@@ -44,7 +44,7 @@ class AssignVehicle(ActionInterface):
         planned_sim, node = planned(sim, epoch)
         mask = np.zeros(self.n_actions, dtype=bool)
         for v in planned_sim.state.vehicles[: self.max_vehicles]:
-            if v.status != VehicleStatus.DONE:
+            if v.status != VehicleStatus.DONE and not planned_sim.initial_overtime:
                 mask[v.index] = planned_sim.insertion(node, v.index) is not None
         mask[self.max_vehicles] = True
         return mask

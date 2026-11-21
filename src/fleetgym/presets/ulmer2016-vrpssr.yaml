@@ -1,0 +1,39 @@
+# Ulmer, Goodson, Mattfeld and Hennig, the uncapacitated single-vehicle routing problem with
+# stochastic service requests (VRPSSR; Sections 2 and 6.1, Appendix). Early-request customers are
+# known at the start and must be served; late requests arrive during the day and are accepted or
+# rejected at the vehicle's next arrival; accepted requests are inserted by cheapest insertion;
+# the vehicle returns to the depot by T = 360 minutes; the objective is the expected number of
+# late requests served. Instances: the example 15_dvrp_ulmer writes them (one set per service
+# area, request rate and location distribution; each file is one realization of the early
+# customers and carries the late-request distributions).
+preset: ulmer2016-vrpssr
+name: Single-vehicle routing with stochastic service requests
+reference:
+  key: ulmer2016offlineonline
+  title: Offline-Online Approximate Dynamic Programming for Dynamic Vehicle Routing with Stochastic Requests
+  authors: Marlin W. Ulmer, Justin C. Goodson, Dirk C. Mattfeld and Marco Hennig
+  version: working paper of August 25, 2016
+  sections: ["2", "6.1", "Appendix"]
+spec:
+  extends: DVRP-v1
+  # Kilometers; travel time = Euclidean distance at 25 km/h (25/60 km per minute), rounded up
+  # to whole minutes.
+  network: {type: euclidean, rounding: none, speed: 0.4166666666666667, time_rounding: ceil}
+  fleet: {sizing: fixed}
+  constraints: {capacity: null}  # uncapacitated; the depot's window [0, T] from the instance
+  # Early customers that do not fit by T are all served anyway, and no late request is confirmed
+  # (Ulmer, Mattfeld and Koester 2017, Section 3.1).
+  dynamics: {max_requests: 150, initial_requests: mandatory, initial_infeasible: serve_all}
+  decisions: {request_epochs: on_vehicle_arrival}
+  objective: {distance: null, rejected: 1.0}  # maximize served late requests
+grid:
+  area: [small, large]
+  lam: [low, moderate, high]
+  locations: [uniform, two_clusters, three_clusters]
+default: {area: large, lam: high, locations: two_clusters}
+instances: {folder: "{area}-{lam}-{locations}"}
+notes:
+  - Late requests are decided one by one in release order at the vehicle's next arrival; the paper decides on the whole set jointly (with cheapest insertion, as here).
+  - A vehicle with nothing planned waits where it is and decides on requests as they arrive; in the paper waiting is a decision of one minute, and the paper's heuristics do not wait.
+  - This paper assumes the early-request customers fit in one route by T. When they do not, the rule of the same problem in Ulmer, Mattfeld and Koester (Transportation Science, 2017, doi 10.1287/trsc.2016.0719, Section 3.1) applies, adopted by the user - all early customers are served, late, and no late request is confirmed. With a large area, low lambda and uniform locations, most days are like this.
+  - Two clusters follow this paper's text, centers (5, 5) and (5, 15); the 2017 paper describes its two clusters as symmetric to the central depot (Section 6.1 and Figure 6).

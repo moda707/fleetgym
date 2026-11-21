@@ -16,6 +16,7 @@ GRID_SIZES = {
     "florio2023-vrpsd": 4,
     "kool2019-cvrp": 3,
     "solomon1987-vrptw": 56,
+    "ulmer2016-vrpssr": 18,
     "vera2019-hetfleet": 4,
 }
 

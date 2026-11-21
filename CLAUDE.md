@@ -19,8 +19,9 @@ files, or ask the user.
 v0.1 (M0 to M11) plus the paper-based extensions added by the user on 2026-11-20 (M12 to M14 in
 the plan): VRP-VCSD and VRPSD with duration limits (M12), paper-based example notebooks (M13), and the
 EV shortest-path problem with charging-station occupancy, EVSPP-OI (M14; the user brought this part of
-the EV module into scope). Not in scope: the rest of the EV module (EV routing with several customers,
-`EVRP-NL-v0`), VRP-SDO (deferred by the user on 2026-11-20: its decision is selection on top of
+the EV module into scope), and stochastic travel and service times (M15, added by the user on
+2026-11-21: Taş et al. 2012 and Errico et al.). Not in scope: the rest of the EV module (EV routing
+with several customers, `EVRP-NL-v1`), VRP-SDO (deferred by the user on 2026-11-20: its decision is selection on top of
 routing), time-dependent travel, GPU backend, C++ core, OSM networks, web replay viewer, leaderboard.
 For those, leave only a registry entry type, an abstract base class, or a reserved spec field that
 raises `NotInScopeError`. No stub implementations.

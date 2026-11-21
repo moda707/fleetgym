@@ -11,7 +11,9 @@ Each attribute draws from its own named stream (``dynamics.arrivals``, ``dynamic
 Request attributes
 ------------------
 * location: a point from ``kde`` (Gaussian KDE of two-dimensional ``data``, by default the
-  instance's customer coordinates) or ``uniform`` (on the square ``[low, high)^2``);
+  instance's customer coordinates), ``uniform`` (on the square ``[low, high)^2``) or
+  ``normal_mixture`` (normal clusters around two-dimensional ``centers``; points outside any
+  service area are kept);
 * demand and service time: scalar distributions (0 when not given);
 * time window (when the spec has the ``time_windows`` constraint): opens at the release time and
   closes ``time_window_width`` later, capped at the depot's closing time; without a width it closes
@@ -33,6 +35,7 @@ from fleetgym.errors import ConfigError, FleetGymError
 from fleetgym.spec.binding import BoundProblem
 from fleetgym.spec.models import DistSpec, ProblemSpec
 from fleetgym.uncertainty.arrivals import poisson_arrivals, thinned_arrivals
+from fleetgym.uncertainty.distributions import normal_mixture_points
 from fleetgym.uncertainty.sampling import distribution_at
 from fleetgym.uncertainty.streams import StreamFactory
 
@@ -92,8 +95,15 @@ def _points(
     spec = problem.spec
     path = "dynamics.request_class.location"
     params = dist.params.model_dump()
+
+    def param(name: str) -> object:
+        # A field reference is resolved by binding; a literal is the distribution's own value
+        # (the distribution may come from the instance, where the spec has no such path).
+        key = f"{path}.{name}"
+        return problem.refs[key] if key in problem.refs else params[name]
+
     if dist.name == "kde":
-        data = np.asarray(problem.value(f"{path}.data"), dtype=float)
+        data = np.asarray(param("data"), dtype=float)
         if data.ndim != 2 or data.shape[1] != 2:
             raise _error(spec, f"{path}.data", "location data must be (x, y) points")
         if size == 0:
@@ -101,10 +111,18 @@ def _points(
         kde = stats.gaussian_kde(data.T, bw_method=params.get("bandwidth", "scott"))
         return np.asarray(kde.resample(size, seed=rng).T, dtype=float)
     if dist.name == "uniform":
-        low = float(problem.value(f"{path}.low"))
-        high = float(problem.value(f"{path}.high"))
+        low = float(param("low"))  # pyright: ignore[reportArgumentType]
+        high = float(param("high"))  # pyright: ignore[reportArgumentType]
         return rng.uniform(low, high, size=(size, 2))
-    raise _error(spec, path, f"locations need a `kde` or `uniform` distribution, not {dist.name!r}")
+    if dist.name == "normal_mixture":
+        if len(params["centers"][0]) != 2:
+            raise _error(spec, f"{path}.centers", "location centers must be (x, y) points")
+        return normal_mixture_points(params, rng, size)
+    raise _error(
+        spec,
+        path,
+        f"locations need a `kde`, `uniform` or `normal_mixture` distribution, not {dist.name!r}",
+    )
 
 
 def _scalar(
@@ -153,7 +171,7 @@ def sample_requests(problem: BoundProblem, seed: int) -> dict[str, NDArray[np.fl
         )
     k = times.size
     depots = instance.n_depots
-    static = instance.n_nodes if dyn.initial_requests == "instance" else depots
+    static = instance.n_nodes if dyn.initial_requests != "none" else depots
     n = static + dyn.max_requests
 
     release = np.full(n, np.inf)

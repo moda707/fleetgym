@@ -12,6 +12,14 @@ plan by ``decisions.routing`` (`fleetgym.sim.routing_rules`), and vehicles follo
   break the depot's closing time, the shift end or the route duration; its route then ends;
 * vehicles driving home are not offered new requests;
 * requests known at the start are decided at the start, in node order, before any vehicle moves;
+  with ``dynamics.initial_requests: mandatory`` they are accepted by the routing rule instead
+  (`InstanceError` if they do not fit; with ``initial_infeasible: serve_all`` they are planned
+  without the closing times, an ``initial_overtime`` row is logged, and no other request can be
+  accepted that day);
+* with ``decisions.request_epochs: on_vehicle_arrival`` a released request is held until a vehicle
+  arrives at a node (or at once while a vehicle waits with nothing planned); the held requests are
+  then decided one by one in release order. Requests still held when nothing else can happen are
+  decided before the episode ends;
 * a cancelled request is dropped from its vehicle's plan; a vehicle already driving to it arrives,
   serves nothing and continues;
 * requests beyond ``max_requests`` with ``overflow: reject`` are rejected automatically when they
@@ -20,12 +28,13 @@ plan by ``decisions.routing`` (`fleetgym.sim.routing_rules`), and vehicles follo
 
 from __future__ import annotations
 
+import dataclasses
 from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 
-from fleetgym.errors import ConfigError, InfeasibleActionError, NotInScopeError
+from fleetgym.errors import ConfigError, InfeasibleActionError, InstanceError, NotInScopeError
 from fleetgym.eventlog import EventLog
 from fleetgym.network.base import Network
 from fleetgym.sim.decisions import Accept, Assign, Decision, OutsourceRequest, Reject
@@ -113,7 +122,16 @@ class PlannedRoutingSimulator(Simulator):
         self.state.request_status[late] = RequestStatus.NOT_RELEASED
         self.state.request_status[: instance.n_depots] = RequestStatus.NOT_A_REQUEST
         self._decision_queue: list[int] = []
+        self._held: list[int] = []  # released, waiting for a vehicle arrival (request_epochs)
         self._timers: dict[int, float] = {}
+        self.hold_requests = spec.decisions.request_epochs == "on_vehicle_arrival"
+        self.mandatory_initial = (
+            spec.dynamics is not None and spec.dynamics.initial_requests == "mandatory"
+        )
+        self.serve_all_initial = (
+            spec.dynamics is not None and spec.dynamics.initial_infeasible == "serve_all"
+        )
+        self.initial_overtime = False  # mandatory requests exceed the time limits: no accepts
 
     # ------------------------------------------------------------------ scope
 
@@ -182,21 +200,55 @@ class PlannedRoutingSimulator(Simulator):
             if np.isfinite(t) and t > self.shift_start + _TOL:
                 queue.push(t, EventKind.REQUEST_ARRIVAL, -1, node)
             elif np.isfinite(t):
-                self._release(node, t)
+                self._release(node, t, initial=True)
             if np.isfinite(self.cancel[node]):
                 queue.push(float(self.cancel[node]), EventKind.CANCELLATION, -1, node)
         for k, t in enumerate(self.overflow):
             queue.push(float(t), EventKind.OVERFLOW_ARRIVAL, -1, k)
+        if self.mandatory_initial:
+            initial, self._decision_queue = self._decision_queue, []
+            unfit = self._first_unfit(initial, self.rules)
+            if unfit is not None and not self.serve_all_initial:
+                raise InstanceError(
+                    f"instance {self.problem.instance.name!r}: request {unfit} is known at "
+                    "the start and must be served (`initial_requests: mandatory`), but the "
+                    "routing rule finds no feasible insertion for it"
+                )
+            rules = self.rules
+            if unfit is not None:  # serve them all anyway, late; accept nothing else today
+                rules = self._relaxed_rules()
+                still = self._first_unfit(initial, rules)
+                if still is not None:
+                    raise InstanceError(
+                        f"instance {self.problem.instance.name!r}: request {still} is known at "
+                        "the start and must be served, but it does not fit even without time "
+                        "limits (`initial_infeasible: serve_all` relaxes only time limits)"
+                    )
+                self.initial_overtime = True
+                self.log.append("initial_overtime", time=self.state.time, node=unfit)
+            for node in initial:
+                accepted = self._accept(node, None, rules=rules)
+                assert accepted, "the dry run found an insertion"
         return self._advance()
 
     def accept_options(self, node: int) -> tuple[bool, bool]:
         """Whether request ``node`` can be accepted (a feasible insertion exists) and outsourced."""
+        if self.initial_overtime:
+            return False, self.outsourcing is not None
         return self.insertion(node) is not None, self.outsourcing is not None
 
-    def insertion(self, node: int, vehicle: int | None = None) -> Insertion | None:
+    def insertion(
+        self,
+        node: int,
+        vehicle: int | None = None,
+        *,
+        rules: RouteRules | None = None,
+        plans: list[list[int]] | None = None,
+    ) -> Insertion | None:
         """The routing rule's insertion of ``node`` (into ``vehicle`` only, if given)."""
         anchors = [self._anchor(v) for v in self.state.vehicles]
-        plans = [v.plan for v in self.state.vehicles]
+        if plans is None:
+            plans = [v.plan for v in self.state.vehicles]
         active = [
             v.index
             for v in self.state.vehicles
@@ -204,7 +256,28 @@ class PlannedRoutingSimulator(Simulator):
             and not (v.status == VehicleStatus.TRAVELING and v.node == DEPOT)
         ]
         vehicles = active if vehicle is None else [vehicle] if vehicle in active else []
-        return best_insertion(self.rules, anchors, plans, node, vehicles)
+        return best_insertion(rules or self.rules, anchors, plans, node, vehicles)
+
+    def _first_unfit(self, nodes: list[int], rules: RouteRules) -> int | None:
+        """Dry run: insert ``nodes`` in order into copies of the plans; the first that fails."""
+        plans = [list(v.plan) for v in self.state.vehicles]
+        for node in nodes:
+            insertion = self.insertion(node, rules=rules, plans=plans)
+            if insertion is None:
+                return node
+            plans[insertion.vehicle].insert(insertion.position, node)
+        return None
+
+    def _relaxed_rules(self) -> RouteRules:
+        """The routing rules without closing times, shift end or duration limit."""
+        tw = self.rules.time_windows
+        opens = None
+        if tw is not None:
+            opens = tw.copy()
+            opens[:, 1] = np.inf
+        return dataclasses.replace(
+            self.rules, time_windows=opens, max_duration=None, shift_end=None
+        )
 
     def mask(self, vehicle: int) -> NDArray[np.bool_]:
         """Not used with planned routing (decisions are about requests)."""
@@ -254,21 +327,9 @@ class PlannedRoutingSimulator(Simulator):
             vehicle = decision.vehicle if isinstance(decision, Assign) else None
             if vehicle is not None and not 0 <= vehicle < len(state.vehicles):
                 raise InfeasibleActionError(f"vehicle {vehicle} does not exist")
-            insertion = self.insertion(node, vehicle)
-            if insertion is None:
+            if not self._accept(node, vehicle):
                 where = "" if vehicle is None else f" into vehicle {vehicle}"
                 raise InfeasibleActionError(f"request {node} has no feasible insertion{where}")
-            v = state.vehicles[insertion.vehicle]
-            v.plan.insert(insertion.position, node)
-            state.request_status[node] = RequestStatus.ASSIGNED
-            self.log.append(
-                "accept",
-                time=now,
-                node=node,
-                vehicle=insertion.vehicle,
-                value=insertion.cost,
-                action=insertion.position,
-            )
         state.active_vehicle = None
         epoch = self._advance()
         return Transition(
@@ -278,6 +339,26 @@ class PlannedRoutingSimulator(Simulator):
         )
 
     # ------------------------------------------------------------------ internals
+
+    def _accept(self, node: int, vehicle: int | None, *, rules: RouteRules | None = None) -> bool:
+        """Insert ``node`` where the routing rule says; False if no insertion is feasible."""
+        if self.initial_overtime and rules is None:
+            return False
+        insertion = self.insertion(node, vehicle, rules=rules)
+        if insertion is None:
+            return False
+        state = self.state
+        state.vehicles[insertion.vehicle].plan.insert(insertion.position, node)
+        state.request_status[node] = RequestStatus.ASSIGNED
+        self.log.append(
+            "accept",
+            time=state.time,
+            node=node,
+            vehicle=insertion.vehicle,
+            value=insertion.cost,
+            action=insertion.position,
+        )
+        return True
 
     def _outsourcing_cost(self, node: int) -> float:
         value = np.asarray(self.problem.value("constraints.outsourcing.value"), dtype=float)
@@ -325,10 +406,22 @@ class PlannedRoutingSimulator(Simulator):
             start = max(start, float(tw[node, 0]))
         return start + float(self._truth["service_time"][node])
 
-    def _release(self, node: int, time: float) -> None:
+    def _release(self, node: int, time: float, *, initial: bool = False) -> None:
         self.state.request_status[node] = RequestStatus.PENDING
         self.log.append("request", time=time, node=node)
-        self._decision_queue.append(node)
+        if self.hold_requests and not initial:
+            self._held.append(node)
+        else:
+            self._decision_queue.append(node)
+
+    def _vehicle_waiting(self) -> bool:
+        """A vehicle is idle with nothing planned (it could act on a request now)."""
+        return any(v.status == VehicleStatus.IDLE and not v.plan for v in self.state.vehicles)
+
+    def _decide_held(self) -> None:
+        """Move the held requests, in release order, to the decision queue."""
+        self._decision_queue.extend(self._held)
+        self._held = []
 
     def _reject(self, node: int | None, time: float, why: str) -> None:
         where = {"node": node} if node is not None else {}
@@ -369,6 +462,8 @@ class PlannedRoutingSimulator(Simulator):
                         v.plan.remove(node)
                 if node in self._decision_queue:
                     self._decision_queue.remove(node)
+                if node in self._held:
+                    self._held.remove(node)
             return
         if (
             event.kind == EventKind.VEHICLE_ARRIVAL
@@ -402,7 +497,7 @@ class PlannedRoutingSimulator(Simulator):
 
     def _day_over(self) -> bool:
         """No request can arrive or wait for a decision any more."""
-        if self._decision_queue:
+        if self._decision_queue or self._held:
             return False
         return not any(
             e.kind in (EventKind.REQUEST_ARRIVAL, EventKind.OVERFLOW_ARRIVAL)
@@ -462,7 +557,15 @@ class PlannedRoutingSimulator(Simulator):
             if self._move_idle_vehicles():
                 continue
             if state.queue:
-                self._process(state.queue.pop())
+                event = state.queue.pop()
+                self._process(event)
+                if self._held and (
+                    event.kind == EventKind.VEHICLE_ARRIVAL or self._vehicle_waiting()
+                ):
+                    self._decide_held()
+                continue
+            if self._held:  # no vehicle will arrive any more: decide now
+                self._decide_held()
                 continue
             self._terminate_planned()
             return None
@@ -514,12 +617,22 @@ class PlannedRoutingSimulator(Simulator):
     def snapshot(self) -> tuple[SimState, list[Any]]:
         """Deep copy of the state (the pending decisions are stored with it)."""
         state, cstates = super().snapshot()
-        return state, [*cstates, (list(self._decision_queue), dict(self._timers))]
+        return state, [
+            *cstates,
+            (
+                list(self._decision_queue),
+                dict(self._timers),
+                list(self._held),
+                self.initial_overtime,
+            ),
+        ]
 
     def restore(self, snapshot: tuple[SimState, list[Any]]) -> None:
         """Restore a snapshot taken with `snapshot`."""
         state, cstates = snapshot
         super().restore((state, cstates[:-1]))
-        queue, timers = cstates[-1]
+        queue, timers, held, overtime = cstates[-1]
+        self.initial_overtime = overtime
         self._decision_queue = list(queue)
         self._timers = dict(timers)
+        self._held = list(held)

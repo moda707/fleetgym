@@ -17,7 +17,7 @@ with a focus on stochastic and dynamic variants where information arrives during
   published JSON format with schemas you can extend, carry every number. Models `extend` each
   other; every spec and instance has a stable content hash saved with logs and results.
 - **Paper presets.** Published settings with their grids: Solomon, CVRPLIB (Florio et al.), Kool et
-  al., Dastpak et al. (VRP-VCSD, Goodson's VRPSD), Vera and Abad. FleetGym ships no instances:
+  al., Dastpak et al. (VRP-VCSD, Goodson's VRPSD), Vera and Abad, Ulmer et al. (dynamic requests). FleetGym ships no instances:
   benchmarks are downloaded with checksums, and each example writes the instances its preset needs.
 - **A discrete-event simulator** with exact `get_state` / `set_state` / `clone` (including RNG state)
   and an event log of everything that happened.

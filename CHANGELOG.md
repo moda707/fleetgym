@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- The DVRP paper example (`15_dvrp_ulmer`, preset `ulmer2016-vrpssr`, ADR 0024): Ulmer, Goodson,
+  Mattfeld and Hennig's single vehicle with stochastic service requests, 18 settings. New model
+  features: `normal_mixture` request locations, `network.time_rounding: ceil`,
+  `dynamics.initial_requests: mandatory` with `dynamics.initial_infeasible: error | serve_all`,
+  `decisions.request_epochs: on_vehicle_arrival`, event kind `initial_overtime`.
 - M13b steps c-d (ADR 0023): model families `CVRP-v1`, `VRPTW-v1`, `SVRP-v1`, `DVRP-v1`; paper
   presets (`fleetgym/presets/`, `fg.load_preset`, `fg.make_preset`, `fg.preset_names`):
   `solomon1987-vrptw`, `florio2023-vrpsd`, `kool2019-cvrp`, `dastpak2022-vcsd`,
@@ -14,12 +19,6 @@ All notable changes to this project are documented here. The format follows
   rounding from the instance (`network.rounding: from_instance`); `--instances` for `fleetgym
   train/eval/render`; every example writes its own instances (the paper examples in `instances.py`);
   the concept page *Models, instances and presets*.
-
-### Removed
-- The `-v0` configs (`CVRP-v0`, `VRPTW-v0`, `VRPSD-v0`, `DVRP-StochReq-v0`, `MA-CVRP-v0`,
-  `MA-DVRP-v0`, `VRP-VCSD-v0`, `VRPSD-Goodson-v0`); planned configs are now `EVRP-NL-v1` and
-  `VRPSD-Outsource-v1`. Instance generators (`uniform`, `clustered`, `zones`), the `generator`
-  instance source and `register_generator`: FleetGym ships no instances (ADR 0023).
 - M13b steps a-b (ADR 0023): instance schemas (`fleetgym/core/1`, user schemas in YAML via
   `load_schema`/`register_schema`); the FleetGym JSON instance format (`write_instance`,
   `read_instance`) with CVRPLIB and Solomon conversion; instance sets (folder plus checksummed
@@ -33,7 +32,6 @@ All notable changes to this project are documented here. The format follows
   revenue component `served_demand` (negative weight); distributions `discrete_uniform` and
   `scaled_categorical`; generator `zones`; instance source `collection`; examples
   `09_vrp_vcsd` and `10_vrpsd_goodson`.
-
 - M13 (ADR 0022): paper-based examples `11_cvrp_kool`, `12_vrptw_solomon`, `13_vrpsd_florio` and
   `14_ma_cvrp_vera`; `05_custom_variant` is now a complete step-by-step guide;
   `fleetgym.register_generator` (to be removed with the spec/instance separation).
@@ -48,6 +46,16 @@ All notable changes to this project are documented here. The format follows
   (outputs of a local run are ignored).
 - Scope (user, 2026-11-20): the EV shortest path with charging-station occupancy (EVSPP-OI) is in
   scope as M14.
+
+### Removed
+- The `-v0` configs (`CVRP-v0`, `VRPTW-v0`, `VRPSD-v0`, `DVRP-StochReq-v0`, `MA-CVRP-v0`,
+  `MA-DVRP-v0`, `VRP-VCSD-v0`, `VRPSD-Goodson-v0`); planned configs are now `EVRP-NL-v1` and
+  `VRPSD-Outsource-v1`. Instance generators (`uniform`, `clustered`, `zones`), the `generator`
+  instance source and `register_generator`: FleetGym ships no instances (ADR 0023).
+
+### Fixed
+- Literal parameters of a request-location distribution given by the instance (for example
+  `uniform` with numbers) were not found.
 
 ## [0.1.0a1] - 2026-11-20
 

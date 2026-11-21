@@ -237,6 +237,33 @@ class KDEParams(FrozenModel):
     bandwidth: Literal["scott", "silverman"] | PositiveFloat = "scott"
 
 
+class NormalMixtureParams(FrozenModel):
+    """Isotropic normal clusters.
+
+    A center is drawn with probability ``weights`` (equal by default), then each coordinate is
+    ``Normal(center, std)``.
+
+    Centers are points of any one dimension (``[[5, 5], [5, 15]]`` for request locations, or
+    ``[[3], [8]]`` for a scalar). Example (Ulmer et al., three clusters, large area):
+    ``centers: [[5, 5], [5, 15], [15, 10]]``, ``std: 1``, ``weights: [1, 2, 1]``.
+    """
+
+    centers: tuple[tuple[float, ...], ...] = Field(min_length=1)
+    std: PositiveFloat
+    weights: tuple[float, ...] | None = None
+
+    @model_validator(mode="after")
+    def _shape(self) -> NormalMixtureParams:
+        if len({len(c) for c in self.centers}) != 1 or not self.centers[0]:
+            raise ValueError("all `centers` must have the same, positive dimension")
+        if self.weights is not None:
+            if len(self.weights) != len(self.centers) or any(w < 0 for w in self.weights):
+                raise ValueError("`weights` must be non-negative, one per center")
+            if not any(w > 0 for w in self.weights):
+                raise ValueError("at least one weight must be positive")
+        return self
+
+
 _BUILTINS: tuple[tuple[str, type[FrozenModel], str], ...] = (
     ("fixed", FixedParams, "Always the same value (deterministic case)"),
     ("uniform", UniformParams, "Continuous uniform on [low, high)"),
@@ -253,6 +280,7 @@ _BUILTINS: tuple[tuple[str, type[FrozenModel], str], ...] = (
     ("scaled_categorical", ScaledCategoricalParams, "Multiples of a scale with probabilities"),
     ("empirical", EmpiricalParams, "Resampling of observed values"),
     ("kde", KDEParams, "Gaussian kernel density estimate"),
+    ("normal_mixture", NormalMixtureParams, "Isotropic normal clusters with weights"),
 )
 for _name, _model, _description in _BUILTINS:
     DISTRIBUTIONS.register(_name, PluginEntry(_model, description=_description))

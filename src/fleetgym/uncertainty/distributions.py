@@ -467,6 +467,52 @@ class KDE(Distribution):
         raise NotImplementedError("the KDE sampler has no quantile function")
 
 
+def normal_mixture_points(
+    params: Mapping[str, Any], rng: np.random.Generator, size: int
+) -> FloatArray:
+    """``size`` points of a normal mixture (``NormalMixtureParams``), shape ``(size, dim)``.
+
+    For each point a center is drawn with the normalized ``weights`` (equal by default), then
+    every coordinate is ``Normal(center, std)`` independently.
+    """
+    centers = np.asarray(params["centers"], dtype=float)
+    weights = params.get("weights")
+    w = np.ones(len(centers)) if weights is None else np.asarray(weights, dtype=float)
+    which = rng.choice(len(centers), size=size, p=w / w.sum())
+    return centers[which] + rng.normal(0.0, float(params["std"]), size=(size, centers.shape[1]))
+
+
+@DISTRIBUTION_CLASSES.register("normal_mixture")
+class NormalMixture(Distribution):
+    """Normal clusters (``NormalMixtureParams``); scalar use needs one-dimensional centers.
+
+    Two-dimensional centers describe request locations (`fleetgym.uncertainty.requests`).
+    """
+
+    name = "normal_mixture"
+
+    def _centers(self) -> FloatArray:
+        centers = np.asarray(self.params["centers"], dtype=float)
+        if centers.shape[1] != 1:
+            raise ValueError("a scalar uncertain parameter needs one-dimensional `centers`")
+        return centers[:, 0]
+
+    def sample(self, rng: np.random.Generator, size: int) -> FloatArray:
+        """A center by weight, plus ``Normal(0, std)``."""
+        self._centers()
+        return normal_mixture_points(self.params, rng, size)[:, 0]
+
+    def mean(self, size: int) -> FloatArray:
+        """The weighted mean of the centers."""
+        weights = self.params.get("weights")
+        centers = self._centers()
+        w = np.ones(centers.size) if weights is None else np.asarray(weights, dtype=float)
+        return np.full(size, float(np.dot(centers, w / w.sum())))
+
+    def _quantile(self, q: float, size: int) -> FloatArray:
+        raise NotImplementedError("the normal mixture has no closed-form quantile")
+
+
 def build_distribution(name: str, params: Mapping[str, Any]) -> Distribution:
     """Instantiate the sampler ``name`` with resolved parameters.
 

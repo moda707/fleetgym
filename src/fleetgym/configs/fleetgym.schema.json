@@ -256,7 +256,7 @@
     },
     "DecisionsSpec": {
       "additionalProperties": false,
-      "description": "When the agent decides and what it decides.\n\nAttributes\n----------\nepochs\n    ``on_event``: when a vehicle becomes idle or a request arrives (time-ordered).\n    ``sequential``: one vehicle builds its whole route before the next starts (static\n    problems only). ``periodic``: every ``period`` time units. ``hybrid``: reserved.\ninterface\n    Name of the action interface.\nrouting\n    Built-in routing rule for interfaces that do not route themselves.\ncommitment\n    ``next_stop``: a vehicle commits only to its next destination. ``diversion``: reserved.",
+      "description": "When the agent decides and what it decides.\n\nAttributes\n----------\nepochs\n    ``on_event``: when a vehicle becomes idle or a request arrives (time-ordered).\n    ``sequential``: one vehicle builds its whole route before the next starts (static\n    problems only). ``periodic``: every ``period`` time units. ``hybrid``: reserved.\ninterface\n    Name of the action interface.\nrouting\n    Built-in routing rule for interfaces that do not route themselves.\ncommitment\n    ``next_stop``: a vehicle commits only to its next destination. ``diversion``: reserved.\nrequest_epochs\n    When the request interfaces (``accept_reject``, ``assign``) decide on a released\n    request. ``on_release``: at once. ``on_vehicle_arrival``: at the next arrival of a vehicle\n    at a node, all requests released since then one by one in release order, as in Ulmer et\n    al.; while a vehicle waits with nothing planned, at once (the waiting vehicle can act).",
       "properties": {
         "epochs": {
           "default": "on_event",
@@ -306,6 +306,15 @@
             "diversion"
           ],
           "title": "Commitment",
+          "type": "string"
+        },
+        "request_epochs": {
+          "default": "on_release",
+          "enum": [
+            "on_release",
+            "on_vehicle_arrival"
+          ],
+          "title": "Request Epochs",
           "type": "string"
         }
       },
@@ -631,6 +640,50 @@
         },
         {
           "additionalProperties": false,
+          "description": "Isotropic normal clusters with weights",
+          "properties": {
+            "dist": {
+              "const": "normal_mixture"
+            },
+            "centers": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "minItems": 1,
+              "title": "Centers",
+              "type": "array"
+            },
+            "std": {
+              "exclusiveMinimum": 0.0,
+              "title": "Std",
+              "type": "number"
+            },
+            "weights": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Weights"
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
           "description": "Poisson with mean",
           "properties": {
             "dist": {
@@ -823,7 +876,7 @@
     },
     "DynamicsSpec": {
       "additionalProperties": false,
-      "description": "Requests arriving during the day.\n\nThe model declares that requests arrive and how they are handled; the numbers may come from\neach instance (ADR 0023): the instance's ``distributions`` block gives ``arrivals`` (the\nprocess, written like the spec's), ``request.location``, ``request.demand``,\n``request.time_window_width``, ``request.service_time`` and ``cancellation``, and its global\n``cutoff`` field the cutoff. What the spec gives is used first.\n\nAttributes\n----------\ncutoff\n    Time after which no requests arrive.\nmax_requests\n    Upper bound on the number of requests per episode; observations are padded to it.\noverflow\n    What happens if a scenario has more requests than ``max_requests``: ``error`` raises,\n    ``reject`` rejects the extra requests automatically (logged and charged as rejected).\ninitial_requests\n    ``instance``: the instance's customers are requests known at the start. ``none``: only\n    requests arriving during the day (the instance's customers serve as data, for example\n    for the location distribution).",
+      "description": "Requests arriving during the day.\n\nThe model declares that requests arrive and how they are handled; the numbers may come from\neach instance (ADR 0023): the instance's ``distributions`` block gives ``arrivals`` (the\nprocess, written like the spec's), ``request.location``, ``request.demand``,\n``request.time_window_width``, ``request.service_time`` and ``cancellation``, and its global\n``cutoff`` field the cutoff. What the spec gives is used first.\n\nAttributes\n----------\ncutoff\n    Time after which no requests arrive.\nmax_requests\n    Upper bound on the number of requests per episode; observations are padded to it.\noverflow\n    What happens if a scenario has more requests than ``max_requests``: ``error`` raises,\n    ``reject`` rejects the extra requests automatically (logged and charged as rejected).\ninitial_requests\n    ``instance``: the instance's customers are requests known at the start, decided like any\n    other request. ``mandatory``: the same requests, but they must be served: they are\n    accepted at the start, in node order, by the routing rule (an instance whose initial\n    requests do not fit raises `InstanceError`); with interfaces that route\n    themselves (``next_node``) it is the same as ``instance``. ``none``: only requests\n    arriving during the day (the instance's customers serve as data, for example for the\n    location distribution).\ninitial_infeasible\n    What happens when mandatory initial requests do not fit within the time limits. ``error``\n    raises `InstanceError`. ``serve_all``: they are planned without the closing times, the\n    route may end late, and no other request is accepted that day (Ulmer, Mattfeld and\n    Koester 2017, Section 3.1); the log records an ``initial_overtime`` row. Only time limits\n    are relaxed: requests that exceed the capacity still raise.",
       "properties": {
         "arrivals": {
           "anyOf": [
@@ -881,9 +934,19 @@
           "default": "instance",
           "enum": [
             "instance",
+            "mandatory",
             "none"
           ],
           "title": "Initial Requests",
+          "type": "string"
+        },
+        "initial_infeasible": {
+          "default": "error",
+          "enum": [
+            "error",
+            "serve_all"
+          ],
+          "title": "Initial Infeasible",
           "type": "string"
         }
       },
@@ -1119,6 +1182,15 @@
               "exclusiveMinimum": 0.0,
               "title": "Speed",
               "type": "number"
+            },
+            "time_rounding": {
+              "default": "none",
+              "enum": [
+                "none",
+                "ceil"
+              ],
+              "title": "Time Rounding",
+              "type": "string"
             },
             "time_model": {
               "default": null,
@@ -1870,6 +1942,72 @@
                 }
               ],
               "title": "Std"
+            },
+            "revealed": {
+              "enum": [
+                "never",
+                "a_priori",
+                "on_request",
+                "on_departure",
+                "on_arrival",
+                "on_completion"
+              ]
+            },
+            "correlated_with": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "forecast": {
+              "enum": [
+                "none",
+                "mean"
+              ]
+            }
+          },
+          "required": [
+            "dist"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Isotropic normal clusters with weights",
+          "properties": {
+            "dist": {
+              "const": "normal_mixture"
+            },
+            "centers": {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "minItems": 1,
+              "title": "Centers",
+              "type": "array"
+            },
+            "std": {
+              "exclusiveMinimum": 0.0,
+              "title": "Std",
+              "type": "number"
+            },
+            "weights": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Weights"
             },
             "revealed": {
               "enum": [

@@ -251,15 +251,18 @@ def dynamic_problems(draw: st.DrawFn) -> tuple[ProblemSpec, Instance]:
         "cutoff": float(draw(st.integers(10, 80))),
         "max_requests": draw(st.integers(1, 12)),
         "overflow": "reject",
-        "initial_requests": draw(st.sampled_from(["instance", "none"])),
+        "initial_requests": draw(st.sampled_from(["instance", "mandatory", "none"])),
         "request_class": request_class,
     }
+    if dynamics["initial_requests"] == "mandatory":
+        dynamics["initial_infeasible"] = draw(st.sampled_from(["error", "serve_all"]))
     if draw(st.booleans()):
         dynamics["cancellations"] = {"dist": "bernoulli", "p": 0.3}
     interface = draw(st.sampled_from(["accept_reject", "assign", "next_node"]))
     decisions: dict[str, Any] = {"epochs": "on_event", "interface": interface}
     if interface != "next_node":
         decisions["routing"] = "cheapest_insertion"
+        decisions["request_epochs"] = draw(st.sampled_from(["on_release", "on_vehicle_arrival"]))
     spec = {
         "fleet": {
             "sizing": draw(st.sampled_from(["fixed", "limited"])),
@@ -268,6 +271,7 @@ def dynamic_problems(draw: st.DrawFn) -> tuple[ProblemSpec, Instance]:
         "network": {
             "type": "euclidean",
             "rounding": draw(st.sampled_from(["none", "nearest_int"])),
+            "time_rounding": draw(st.sampled_from(["none", "ceil"])),
         },
         "constraints": constraints,
         "dynamics": dynamics,
@@ -281,6 +285,9 @@ def random_masked_rollout(
     env: FleetGymEnv, rng: np.random.Generator, *, seed: int = 0, max_steps: int = 10_000
 ) -> float:
     """Play uniformly random valid actions until the episode ends; return the episode return.
+
+    With ``initial_requests: mandatory``, `fleetgym.errors.InstanceError` is raised by the reset
+    when the requests known at the start do not fit (random instances may be infeasible).
 
     Raises
     ------

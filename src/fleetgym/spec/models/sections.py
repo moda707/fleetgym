@@ -174,12 +174,17 @@ class EuclideanParams(FrozenModel):
         ``EXACT_2D`` keeps double precision).
     speed
         Travel time equals distance divided by ``speed``.
+    time_rounding
+        ``none`` keeps travel times as computed. ``ceil`` rounds each travel time up to a whole
+        time unit (Ulmer et al.: Euclidean kilometers at 25 km/h, rounded up to whole minutes).
+        Distances are not affected.
     time_model
         Reserved for time-dependent travel (not in this version).
     """
 
     rounding: Literal["none", "nearest_int", "from_instance"] = "none"
     speed: PositiveFloat = 1.0
+    time_rounding: Literal["none", "ceil"] = "none"
     time_model: FrozenJSON = None
 
 
@@ -518,9 +523,19 @@ class DynamicsSpec(FrozenModel):
         What happens if a scenario has more requests than ``max_requests``: ``error`` raises,
         ``reject`` rejects the extra requests automatically (logged and charged as rejected).
     initial_requests
-        ``instance``: the instance's customers are requests known at the start. ``none``: only
-        requests arriving during the day (the instance's customers serve as data, for example
-        for the location distribution).
+        ``instance``: the instance's customers are requests known at the start, decided like any
+        other request. ``mandatory``: the same requests, but they must be served: they are
+        accepted at the start, in node order, by the routing rule (an instance whose initial
+        requests do not fit raises `InstanceError`); with interfaces that route
+        themselves (``next_node``) it is the same as ``instance``. ``none``: only requests
+        arriving during the day (the instance's customers serve as data, for example for the
+        location distribution).
+    initial_infeasible
+        What happens when mandatory initial requests do not fit within the time limits. ``error``
+        raises `InstanceError`. ``serve_all``: they are planned without the closing times, the
+        route may end late, and no other request is accepted that day (Ulmer, Mattfeld and
+        Koester 2017, Section 3.1); the log records an ``initial_overtime`` row. Only time limits
+        are relaxed: requests that exceed the capacity still raise.
     """
 
     arrivals: ArrivalSpec | None = None
@@ -529,7 +544,14 @@ class DynamicsSpec(FrozenModel):
     cancellations: DistSpec | None = None
     max_requests: PositiveInt
     overflow: Literal["error", "reject"] = "error"
-    initial_requests: Literal["instance", "none"] = "instance"
+    initial_requests: Literal["instance", "mandatory", "none"] = "instance"
+    initial_infeasible: Literal["error", "serve_all"] = "error"
+
+    @model_validator(mode="after")
+    def _initial(self) -> DynamicsSpec:
+        if self.initial_infeasible != "error" and self.initial_requests != "mandatory":
+            raise ValueError("`initial_infeasible` applies to `initial_requests: mandatory` only")
+        return self
 
 
 # --------------------------------------------------------------------------- decisions
@@ -576,6 +598,11 @@ class DecisionsSpec(FrozenModel):
         Built-in routing rule for interfaces that do not route themselves.
     commitment
         ``next_stop``: a vehicle commits only to its next destination. ``diversion``: reserved.
+    request_epochs
+        When the request interfaces (``accept_reject``, ``assign``) decide on a released
+        request. ``on_release``: at once. ``on_vehicle_arrival``: at the next arrival of a vehicle
+        at a node, all requests released since then one by one in release order, as in Ulmer et
+        al.; while a vehicle waits with nothing planned, at once (the waiting vehicle can act).
     """
 
     epochs: Literal["on_event", "sequential", "periodic", "hybrid"] = "on_event"
@@ -583,6 +610,7 @@ class DecisionsSpec(FrozenModel):
     interface: str = "next_node"
     routing: str | None = None
     commitment: Literal["next_stop", "diversion"] = "next_stop"
+    request_epochs: Literal["on_release", "on_vehicle_arrival"] = "on_release"
 
     @model_validator(mode="after")
     def _consistent(self) -> DecisionsSpec:
@@ -598,6 +626,10 @@ class DecisionsSpec(FrozenModel):
             raise ValueError(f"interface {self.interface!r} requires `routing`")
         if (self.epochs == "periodic") != (self.period is not None):
             raise ValueError("`period` is required with periodic epochs and only then")
+        if self.request_epochs != "on_release" and self.interface not in INTERFACES_NEEDING_ROUTING:
+            raise ValueError(
+                "`request_epochs` applies to the request interfaces (accept_reject, assign) only"
+            )
         return self
 
 

@@ -225,6 +225,9 @@ def validate(
             fail("identity", "the scenario belongs to a different spec or instance")
     planned = spec.decisions.interface in ("accept_reject", "assign")
     dynamic = spec.dynamics is not None
+    mandatory = (
+        planned and spec.dynamics is not None and spec.dynamics.initial_requests == "mandatory"
+    )
     waits = planned or dynamic  # vehicles may stay idle before departing or ending
     release_times = np.asarray(
         instance.extra.get("_release", np.zeros(instance.n_nodes)), dtype=float
@@ -245,7 +248,16 @@ def validate(
 
     problem = bind(spec, instance)
     dist = _distances(spec, instance)
-    speed = float(spec.network.params.model_dump()["speed"])
+    network_params = spec.network.params.model_dump()
+    speed = float(network_params["speed"])
+    round_up = network_params.get("time_rounding") == "ceil"
+
+    def travel(arc: float) -> float:
+        # Independent of fleetgym.network: distance / speed, rounded up to whole units with
+        # `time_rounding: ceil` (an excess of 1e-9 relative is forgiven).
+        t = arc / speed
+        return float(math.ceil(t - 1e-9 * max(1.0, t))) if round_up else t
+
     n = instance.n_nodes
     demands = np.asarray(instance.demands, dtype=float)
     service_times = (
@@ -282,6 +294,19 @@ def validate(
     )
     shift_start = problem.shift[0] if problem.shift is not None else 0.0
     shift_end = problem.shift[1] if problem.shift is not None else None
+    # Mandatory initial requests that exceed the time limits (`initial_infeasible: serve_all`):
+    # closing times, the shift end and the duration limit do not apply that day, and no other
+    # request may be accepted. Whether the start really was infeasible is not re-checked here.
+    overtime_day = any(row["kind"] == "initial_overtime" for row in log.rows)
+    if overtime_day:
+        if not (
+            mandatory
+            and spec.dynamics is not None
+            and spec.dynamics.initial_infeasible == "serve_all"
+        ):
+            fail("request", "an initial_overtime day needs `initial_infeasible: serve_all`")
+        shift_end = None
+        duration_max = None
     type_of_vehicle: list[int] = []
     for t, vt in enumerate(problem.vehicle_types):
         type_of_vehicle += [t] * (vt.count or 0)
@@ -494,8 +519,8 @@ def validate(
                 v.route_start = time
                 charge("vehicles", 1.0)
             charge("distance", arc)
-            charge("time", arc / speed)
-            v.in_transit = (target, time + arc / speed)
+            charge("time", travel(arc))
+            v.in_transit = (target, time + travel(arc))
         elif kind == "arrive":
             v = vehicle_of(row)
             if v is None:
@@ -589,7 +614,7 @@ def validate(
                 fail("load", f"logged load {row.get('load')}, recomputed {v.load}", row)
             if capacity_on and v.load > v.capacity * (1 + tol):
                 fail("capacity", f"load {v.load} exceeds capacity {v.capacity}", row, node=node)
-            if tw_on:
+            if tw_on and not overtime_day:
                 assert tw is not None
                 late = time - float(tw[node, 1])
                 if tw_soft:
@@ -710,6 +735,8 @@ def validate(
                 fail("unknown_vehicle", f"request {node} accepted for vehicle {index}", row)
             decided.add(node)
             accepted[node] = index
+            if overtime_day and float(release_times[node]) > shift_start + tol:
+                fail("request", f"request {node} accepted on an initial_overtime day", row)
         elif kind == "reject":
             if row.get("component") == "overflow":
                 if overflow_seen >= len(overflow_times) or not _close(
@@ -723,6 +750,8 @@ def validate(
                     fail("request", f"reject of {node}, which awaits no decision", row)
                 else:
                     decided.add(node)
+                    if mandatory and float(release_times[node]) <= shift_start + tol:
+                        fail("request", f"request {node} is mandatory but was rejected", row)
             charge("rejected", 1.0)
         elif kind == "cancel":
             node, time = row["node"], row["time"]
@@ -801,7 +830,7 @@ def validate(
                     f"route of vehicle {index} lasts {duration} > {duration_max}",
                     row,
                 )
-            if tw_on and not tw_soft:
+            if tw_on and not tw_soft and not overtime_day:
                 assert tw is not None
                 if time > float(tw[DEPOT, 1]) * (1 + tol):
                     fail(

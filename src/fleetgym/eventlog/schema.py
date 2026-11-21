@@ -53,6 +53,10 @@ Event kinds and the columns they use
     ``component``, ``amount``, ``time``, optional ``vehicle`` and ``node``.
 ``epoch``
     ``epoch``, ``reward``, ``time``: the reward returned for the step that ended at this epoch.
+``initial_overtime``
+    ``time``, ``node`` (the first mandatory initial request that did not fit): the requests known
+    at the start are served beyond the time limits and no other request is accepted
+    (``dynamics.initial_infeasible: serve_all``).
 ``episode_end``
     ``time``.
 """
@@ -87,6 +91,7 @@ EVENT_KINDS = (
     "conflict",
     "cost",
     "epoch",
+    "initial_overtime",
     "episode_end",
 )
 
